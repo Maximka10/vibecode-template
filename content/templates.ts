@@ -1,4 +1,6 @@
-export const templates = [
+import type { Template } from "@/types/template";
+
+export const templates: Template[] = [
   {
     id: "coffee-shop",
     name: "Кофейня",

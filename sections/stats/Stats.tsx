@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { Container } from "@/components/layout/Container";
+import { getTheme } from "@/lib/themes/getTheme";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 40 },
@@ -16,6 +17,8 @@ const stats = [
 ];
 
 export function Stats() {
+  const theme = getTheme();
+
   return (
     <section className="px-6 py-24">
       <Container>
@@ -32,10 +35,15 @@ export function Stats() {
               key={stat.label}
               whileHover={{ scale: 1.05 }}
               transition={{ duration: 0.3 }}
-              className="rounded-3xl border border-white/10 bg-white/5 p-8 backdrop-blur-xl"
+              className="p-8"
+              style={{
+                borderRadius: theme.radius.card,
+                border: `1px solid ${theme.colors.borderSubtle}`,
+                backgroundColor: theme.colors.surface,
+              }}
             >
               <div className="text-5xl font-bold tracking-tight">{stat.value}</div>
-              <p className="mt-4 text-zinc-400">{stat.label}</p>
+              <p className="mt-4" style={{ color: theme.colors.textMuted }}>{stat.label}</p>
             </motion.div>
           ))}
         </motion.div>
