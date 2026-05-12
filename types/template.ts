@@ -1,3 +1,5 @@
+import type { PageSection } from "@/types/section";
+
 export type TemplateService = {
   title: string;
   description: string;
@@ -10,6 +12,7 @@ export type TemplateContent = {
 };
 
 export type Template = {
+  sections: PageSection[];
   id: string;
   name: string;
   description: string;

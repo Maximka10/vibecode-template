@@ -2,20 +2,25 @@
 
 import { motion } from "framer-motion";
 import { Container } from "@/components/layout/Container";
+import type { StatsSection } from "@/types/section";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 40 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.8 } },
 };
 
-const stats = [
+const fallbackItems: NonNullable<StatsSection["content"]>["items"] = [
   { value: "50+", label: "созданных сайтов" },
   { value: "2 дня", label: "средний срок запуска" },
   { value: "100%", label: "адаптивность" },
   { value: "24/7", label: "поддержка и связь" },
 ];
 
-export function Stats() {
+type StatsProps = { section: StatsSection };
+
+export function Stats({ section }: StatsProps) {
+  const items = section.content?.items?.length ? section.content.items : fallbackItems;
+
   return (
     <section className="px-6 py-24">
       <Container>
@@ -27,7 +32,7 @@ export function Stats() {
           viewport={{ once: true }}
           transition={{ staggerChildren: 0.15 }}
         >
-          {stats.map((stat) => (
+          {items.map((stat) => (
             <motion.div
               key={stat.label}
               whileHover={{ scale: 1.05 }}
