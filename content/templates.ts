@@ -1,6 +1,7 @@
+import { buildSharedSections } from "@/content/sectionPresets";
 import type { Template } from "@/types/template";
 
-export const templates: Template[] = [
+const templateSeed: Array<Omit<Template, "sections">> = [
   {
     id: "coffee-shop",
     name: "Кофейня",
@@ -45,3 +46,12 @@ export const templates: Template[] = [
     },
   },
 ];
+
+/**
+ * Templates behave like data models: structure + section payload.
+ * This allows CMS, AI generation, drag-and-drop editors, and live previews.
+ */
+export const templates: Template[] = templateSeed.map((template) => ({
+  ...template,
+  sections: buildSharedSections(templateSeed),
+}));
