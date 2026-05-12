@@ -1,12 +1,10 @@
 "use client";
 
-import { Navbar } from "@/components/layout/Navbar";
-import { Hero } from "@/sections/hero/Hero";
-import { About } from "@/sections/about/About";
-import { Stats } from "@/sections/stats/Stats";
-import { TemplatesGallery } from "@/sections/templates/TemplatesGallery";
-import { Calculator } from "@/sections/calculator/Calculator";
 import { Footer } from "@/components/layout/Footer";
+import { Navbar } from "@/components/layout/Navbar";
+import { homeTemplate } from "@/content/homeTemplate";
+import { SectionRenderer } from "@/lib/rendering/SectionRenderer";
+import { Calculator } from "@/sections/calculator/Calculator";
 
 export default function HomePage() {
   return (
@@ -14,13 +12,7 @@ export default function HomePage() {
       <div className="noise" />
 
       <Navbar />
-      <Hero />
-      <div className="gradient-divider" />
-      <About />
-      <div className="gradient-divider" />
-      <Stats />
-      <div className="gradient-divider" />
-      <TemplatesGallery />
+      <SectionRenderer sections={homeTemplate.sections} />
       <div className="gradient-divider" />
       <Calculator />
       <Footer />
