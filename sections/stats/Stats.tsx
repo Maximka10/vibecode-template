@@ -3,21 +3,25 @@
 import { motion } from "framer-motion";
 import { Container } from "@/components/layout/Container";
 import { getTheme } from "@/lib/themes/getTheme";
+import type { StatsSection } from "@/types/section";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 40 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.8 } },
 };
 
-const stats = [
+const fallbackStats = [
   { value: "50+", label: "созданных сайтов" },
   { value: "2 дня", label: "средний срок запуска" },
   { value: "100%", label: "адаптивность" },
   { value: "24/7", label: "поддержка и связь" },
 ];
 
-export function Stats() {
+type StatsProps = { section: StatsSection };
+
+export function Stats({ section }: StatsProps) {
   const theme = getTheme();
+  const stats = section.content?.items?.length ? section.content.items : fallbackStats;
 
   return (
     <section className="px-6 py-24">

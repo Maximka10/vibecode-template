@@ -16,7 +16,9 @@ function isRenderableSection(section: PageSection | null | undefined): section i
  * and later allows AI systems to safely generate section arrays.
  */
 export function SectionRenderer({ sections }: SectionRendererProps) {
-  const validSections = sections.filter(isRenderableSection);
+  const validSections = sections.filter((section): section is PageSection => {
+    return isRenderableSection(section) && section.enabled;
+  });
 
   return (
     <>
