@@ -1,5 +1,6 @@
 "use client";
 
+import { Container } from "@/components/layout/Container";
 import { templates } from "@/content/templates";
 import { motion } from "framer-motion";
 import Link from "next/link";
@@ -17,38 +18,40 @@ export function TemplatesGallery({ section }: TemplatesGalleryProps) {
   const ctaLabel = content?.ctaLabel ?? "Выбрать";
 
   return (
-    <section className="px-6 py-32 bg-black text-white">
-      <div className="max-w-7xl mx-auto text-center mb-12">
-        <h2 className="text-4xl font-bold">{title}</h2>
-        <p className="mt-2" style={{ color: theme.colors.textMuted }}>
-          {subtitle}
-        </p>
-      </div>
+    <section className="section-shell py-20 sm:py-24">
+      <Container>
+        <div className="mx-auto mb-10 max-w-3xl text-center sm:mb-14">
+          <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">{title}</h2>
+          <p className="mt-3 text-sm leading-relaxed sm:text-base" style={{ color: theme.colors.textMuted }}>
+            {subtitle}
+          </p>
+        </div>
 
-      <div className="grid md:grid-cols-3 gap-6 max-w-7xl mx-auto">
-        {templateCards.map((tpl) => (
-          <motion.div
-            key={tpl.id}
-            whileHover={{ scale: 1.03 }}
-            className="group p-4 cursor-pointer transition"
-            style={{
-              borderRadius: theme.radius.card,
-              border: `1px solid ${theme.colors.borderSubtle}`,
-              backgroundColor: theme.colors.surface,
-              boxShadow: theme.shadows.card,
-            }}
-          >
-            <img src={tpl.previewImage} className="rounded-xl mb-4" />
-            <h3 className="font-semibold" style={{ color: theme.colors.textPrimary }}>{tpl.name}</h3>
-            <p style={{ color: theme.colors.textMuted }}>{tpl.description}</p>
-            <Link href={`/customize/${tpl.id}`}>
-              <button className="mt-2 px-4 py-2 text-black" style={{ borderRadius: theme.radius.button, backgroundColor: theme.colors.textPrimary }}>
-                {ctaLabel}
-              </button>
-            </Link>
-          </motion.div>
-        ))}
-      </div>
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {templateCards.map((tpl) => (
+            <motion.div
+              key={tpl.id}
+              whileHover={{ y: -6 }}
+              className="group flex h-full flex-col overflow-hidden"
+              style={{ borderRadius: theme.radius.card, border: `1px solid ${theme.colors.borderSubtle}`, backgroundColor: theme.colors.surface, boxShadow: theme.shadows.card }}
+            >
+              <div className="aspect-[16/10] overflow-hidden border-b" style={{ borderColor: theme.colors.borderSubtle }}>
+                <img src={tpl.previewImage} alt={tpl.name} className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
+              </div>
+
+              <div className="flex flex-1 flex-col p-5">
+                <h3 className="text-lg font-semibold" style={{ color: theme.colors.textPrimary }}>{tpl.name}</h3>
+                <p className="mt-2 flex-1 text-sm leading-relaxed" style={{ color: theme.colors.textMuted }}>{tpl.description}</p>
+                <Link href={`/customize/${tpl.id}`} className="mt-5">
+                  <button className="w-full px-4 py-2.5 text-sm font-medium text-black transition hover:opacity-90" style={{ borderRadius: theme.radius.button, backgroundColor: theme.colors.textPrimary }}>
+                    {ctaLabel}
+                  </button>
+                </Link>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      </Container>
     </section>
   );
 }

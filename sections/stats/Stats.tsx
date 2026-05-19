@@ -24,32 +24,30 @@ export function Stats({ section }: StatsProps) {
   const stats = section.content?.items?.length ? section.content.items : fallbackStats;
 
   return (
-    <section className="px-6 py-24">
+    <section className="section-shell py-18 sm:py-22">
       <Container>
         <motion.div
-          className="grid gap-6 md:grid-cols-4 text-center"
+          className="rounded-3xl border p-4 sm:p-6"
+          style={{ borderColor: theme.colors.borderSubtle, backgroundColor: "rgba(20, 20, 28, 0.5)", boxShadow: theme.shadows.card }}
           variants={fadeUp}
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true }}
-          transition={{ staggerChildren: 0.15 }}
         >
-          {stats.map((stat) => (
-            <motion.div
-              key={stat.label}
-              whileHover={{ scale: 1.05 }}
-              transition={{ duration: 0.3 }}
-              className="p-8"
-              style={{
-                borderRadius: theme.radius.card,
-                border: `1px solid ${theme.colors.borderSubtle}`,
-                backgroundColor: theme.colors.surface,
-              }}
-            >
-              <div className="text-5xl font-bold tracking-tight">{stat.value}</div>
-              <p className="mt-4" style={{ color: theme.colors.textMuted }}>{stat.label}</p>
-            </motion.div>
-          ))}
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {stats.map((stat) => (
+              <motion.div
+                key={stat.label}
+                whileHover={{ scale: 1.02 }}
+                transition={{ duration: 0.2 }}
+                className="rounded-2xl border p-6 text-center"
+                style={{ borderColor: theme.colors.borderSubtle, backgroundColor: theme.colors.surface }}
+              >
+                <div className="text-3xl font-semibold tracking-tight sm:text-4xl">{stat.value}</div>
+                <p className="mt-3 text-sm" style={{ color: theme.colors.textMuted }}>{stat.label}</p>
+              </motion.div>
+            ))}
+          </div>
         </motion.div>
       </Container>
     </section>
