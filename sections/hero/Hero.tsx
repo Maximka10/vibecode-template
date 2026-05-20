@@ -21,7 +21,7 @@ export function Hero({ section }: HeroProps) {
   const titleLines = content.title.split("\n");
 
   return (
-    <section className="section-shell relative flex min-h-[96vh] items-center overflow-hidden pt-28 pb-16 sm:pt-36 sm:pb-24">
+    <section className="section-shell relative flex min-h-screen items-center overflow-hidden pt-28 pb-16 sm:pt-36 sm:pb-24">
       <div
         className="absolute left-1/2 top-[40%] -translate-x-1/2 -translate-y-1/2 rounded-full"
         style={{ width: theme.glow.centerSize, height: theme.glow.centerSize, backgroundColor: theme.gradients.heroGlowCenter, filter: `blur(${theme.glow.blur})` }}
@@ -41,7 +41,7 @@ export function Hero({ section }: HeroProps) {
             {content.badge}
           </p>
 
-          <h1 className="text-4xl font-semibold leading-tight tracking-tight sm:text-6xl lg:text-7xl">
+          <h1 className="bg-gradient-to-b from-white via-zinc-100 to-zinc-400 bg-clip-text text-4xl font-semibold leading-[1.05] tracking-tight text-transparent sm:text-6xl lg:text-7xl">
             {titleLines.map((line, index) => (
               <span key={`${line}-${index}`}>
                 {line}
@@ -58,7 +58,7 @@ export function Hero({ section }: HeroProps) {
             <button className="px-6 py-3 text-sm font-medium text-black transition hover:scale-[1.02] sm:px-7 sm:py-3.5" style={{ borderRadius: theme.radius.button, backgroundColor: theme.colors.textPrimary }}>
               {content.primaryCta}
             </button>
-            <button className="border px-6 py-3 text-sm transition hover:bg-white/5 sm:px-7 sm:py-3.5" style={{ borderRadius: theme.radius.button, borderColor: theme.colors.borderSubtle }}>
+            <button className="glass-panel border px-6 py-3 text-sm transition hover:bg-white/5 sm:px-7 sm:py-3.5" style={{ borderRadius: theme.radius.button, borderColor: theme.colors.borderSubtle }}>
               {content.secondaryCta}
             </button>
           </div>

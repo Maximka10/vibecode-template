@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { Container } from "@/components/layout/Container";
 import { ServiceCard } from "@/components/shared/ServiceCard";
+import { getTheme } from "@/lib/themes/getTheme";
 import type { AboutSection } from "@/types/section";
 
 const fadeUp = {
@@ -24,26 +25,27 @@ const fallbackContent: NonNullable<AboutSection["content"]> = {
 type AboutProps = { section: AboutSection };
 
 export function About({ section }: AboutProps) {
+  const theme = getTheme();
   const content = section.content ?? fallbackContent;
   const services = content.services.length > 0 ? content.services : fallbackContent.services;
 
   return (
-    <section className="px-6 py-32">
+    <section className="section-shell section-spacing">
       <Container>
         <motion.div
           variants={fadeUp}
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true }}
-          className="max-w-3xl mx-auto text-center"
+          className="mx-auto max-w-3xl text-center"
         >
-          <p className="mb-4 text-sm uppercase tracking-[0.3em] text-zinc-500">{content.badge}</p>
-          <h2 className="text-4xl font-bold tracking-tight sm:text-5xl">{content.title}</h2>
-          <p className="mt-6 text-lg text-zinc-400">{content.description}</p>
+          <p className="mb-4 text-sm uppercase tracking-[0.3em]" style={{ color: theme.colors.textMuted }}>{content.badge}</p>
+          <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl lg:text-5xl">{content.title}</h2>
+          <p className="mt-5 text-base leading-relaxed sm:text-lg" style={{ color: theme.colors.textMuted }}>{content.description}</p>
         </motion.div>
 
         <motion.div
-          className="mt-16 grid gap-6 md:grid-cols-3"
+          className="mt-14 grid gap-5 md:grid-cols-3"
           variants={fadeUp}
           initial="hidden"
           whileInView="visible"
