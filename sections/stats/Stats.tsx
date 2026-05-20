@@ -24,10 +24,10 @@ export function Stats({ section }: StatsProps) {
   const stats = section.content?.items?.length ? section.content.items : fallbackStats;
 
   return (
-    <section className="section-shell py-18 sm:py-22">
+    <section className="section-shell section-spacing">
       <Container>
         <motion.div
-          className="rounded-3xl border p-4 sm:p-6"
+          className="glass-panel rounded-3xl p-4 sm:p-6"
           style={{ borderColor: theme.colors.borderSubtle, backgroundColor: "rgba(20, 20, 28, 0.5)", boxShadow: theme.shadows.card }}
           variants={fadeUp}
           initial="hidden"
@@ -41,7 +41,7 @@ export function Stats({ section }: StatsProps) {
                 whileHover={{ scale: 1.02 }}
                 transition={{ duration: 0.2 }}
                 className="rounded-2xl border p-6 text-center"
-                style={{ borderColor: theme.colors.borderSubtle, backgroundColor: theme.colors.surface }}
+                style={{ borderColor: theme.colors.borderSubtle, backgroundColor: "rgba(16,16,25,0.75)" }}
               >
                 <div className="text-3xl font-semibold tracking-tight sm:text-4xl">{stat.value}</div>
                 <p className="mt-3 text-sm" style={{ color: theme.colors.textMuted }}>{stat.label}</p>

@@ -18,7 +18,7 @@ export function TemplatesGallery({ section }: TemplatesGalleryProps) {
   const ctaLabel = content?.ctaLabel ?? "Выбрать";
 
   return (
-    <section className="section-shell py-20 sm:py-24">
+    <section className="section-shell section-spacing">
       <Container>
         <div className="mx-auto mb-10 max-w-3xl text-center sm:mb-14">
           <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">{title}</h2>
@@ -27,13 +27,13 @@ export function TemplatesGallery({ section }: TemplatesGalleryProps) {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
           {templateCards.map((tpl) => (
             <motion.div
               key={tpl.id}
               whileHover={{ y: -6 }}
-              className="group flex h-full flex-col overflow-hidden"
-              style={{ borderRadius: theme.radius.card, border: `1px solid ${theme.colors.borderSubtle}`, backgroundColor: theme.colors.surface, boxShadow: theme.shadows.card }}
+              className="glass-panel group flex h-full flex-col overflow-hidden"
+              style={{ borderRadius: theme.radius.card, border: `1px solid ${theme.colors.borderSubtle}`, boxShadow: theme.shadows.card }}
             >
               <div className="aspect-[16/10] overflow-hidden border-b" style={{ borderColor: theme.colors.borderSubtle }}>
                 <img src={tpl.previewImage} alt={tpl.name} className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
