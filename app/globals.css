@@ -1,4 +1,12 @@
 @import "tailwindcss";
+@config "../tailwind.config.ts";
+@source "../app/**/*.{ts,tsx,js,jsx,mdx}";
+@source "../components/**/*.{ts,tsx,js,jsx,mdx}";
+@source "../sections/**/*.{ts,tsx,js,jsx,mdx}";
+@source "../lib/**/*.{ts,tsx,js,jsx,mdx}";
+@source "../content/**/*.{ts,tsx,js,jsx,mdx}";
+@source "../features/**/*.{ts,tsx,js,jsx,mdx}";
+@source "../themes/**/*.{ts,tsx,js,jsx,mdx}";
 
 :root {
   --background: #050509;
