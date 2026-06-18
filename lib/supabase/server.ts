@@ -1,2 +1,20 @@
-type Query={select:(s?:string)=>Query;eq:(c:string,v:string)=>Query;single:()=>Promise<{data:any,error:null}>;order:(c:string)=>Query};
-export async function createServerSupabaseClient(){const q:Query={select(){return q},eq(){return q},single:async()=>({data:null,error:null}),order(){return q}}; return {auth:{getUser:async()=>({data:{user:null as {id:string}|null},error:null}),getSession:async()=>({data:{session:null as {access_token:string}|null},error:null})},from:()=>q}}
+import { createServerClient } from '@supabase/ssr'
+import { cookies } from 'next/headers'
+import { config } from '@/lib/config'
+
+export async function createServerSupabaseClient() {
+  if (!config.supabase.isConfigured) return null
+  const cookieStore = await cookies()
+  return createServerClient(config.supabase.url, config.supabase.anonKey, {
+    cookies: {
+      getAll() { return cookieStore.getAll() },
+      setAll(cookiesToSet) {
+        try {
+          cookiesToSet.forEach(({ name, value, options }) =>
+            cookieStore.set(name, value, options)
+          )
+        } catch {}
+      },
+    },
+  })
+}

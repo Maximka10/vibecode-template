@@ -2,7 +2,7 @@
 import { Button } from "@/components/ui/Button";
 
 export function Footer() {
-  const telegramUsername = "Maxvol2"; // заменяешь на свой
+  const telegramUsername = process.env.NEXT_PUBLIC_TELEGRAM_USERNAME || '';
   const handleClick = () => {
     window.open(`https://t.me/${telegramUsername}`, "_blank");
   };

@@ -1,2 +1,9 @@
-type Query={select:(s?:string)=>Query;eq:(c:string,v:string)=>Query;single:()=>Promise<{data:any,error:null}>;insert:(v:any)=>Promise<{data:any,error:null}>;order:(c:string)=>Query};
-export function createAdminClient(){const q:Query={select(){return q},eq(){return q},single:async()=>({data:null,error:null}),insert:async()=>({data:null,error:null}),order(){return q}}; return {auth:{getUser:async(_token:string)=>({data:{user:null as {id:string}|null},error:null})},from:(_t:string)=>q}}
+import { createClient } from '@supabase/supabase-js'
+import { config } from '@/lib/config'
+
+export function createAdminClient() {
+  if (!config.supabase.isConfigured || !config.supabase.serviceRoleKey) return null
+  return createClient(config.supabase.url, config.supabase.serviceRoleKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  })
+}
