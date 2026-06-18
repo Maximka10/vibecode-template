@@ -4,17 +4,35 @@ import { createAdminClient } from "@/lib/supabase/admin";
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { templateName, email, phone, comment } = body;
+    const {
+      templateId,
+      templateName,
+      selectedOptions,
+      totalPrice,
+      primaryColor,
+      bgColor,
+      email,
+      phone,
+      comment,
+    } = body;
 
-    // Save lead to Supabase
+    const admin = createAdminClient();
     let savedToDb = false;
     let dbError: string | null = null;
-    const admin = createAdminClient();
+
     const { error } = await admin.from("orders").insert({
-      template_id: templateName,
+      template_id: templateId ?? templateName,
+      template_name: templateName,
+      selected_options: selectedOptions ?? null,
+      total_price: totalPrice ?? null,
+      primary_color: primaryColor ?? null,
+      bg_color: bgColor ?? null,
+      notes: [email && `email: ${email}`, phone && `phone: ${phone}`, comment]
+        .filter(Boolean)
+        .join("\n") || null,
       status: "new",
-      customization_data: { email, phone, comment },
     });
+
     if (error) {
       dbError = error.message;
     } else {
