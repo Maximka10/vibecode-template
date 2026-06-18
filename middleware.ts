@@ -1,3 +1,41 @@
 import { NextRequest, NextResponse } from "next/server";
-export async function middleware(req: NextRequest){const path=req.nextUrl.pathname; const hasSession=Boolean(req.cookies.get("sb-access-token")||req.cookies.get("supabase-auth-token")); if(["/admin","/studio","/dashboard"].some(p=>path.startsWith(p))&&!hasSession){return NextResponse.redirect(new URL("/auth/login",req.url));} if(path==="/auth/login"&&hasSession){return NextResponse.redirect(new URL("/dashboard",req.url));} return NextResponse.next();}
-export const config={matcher:["/studio/:path*","/admin/:path*","/dashboard/:path*","/auth/login"]};
+import { createServerClient } from "@supabase/ssr";
+
+export async function middleware(req: NextRequest) {
+  const res = NextResponse.next();
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return req.cookies.getAll();
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) =>
+            res.cookies.set(name, value, options)
+          );
+        },
+      },
+    }
+  );
+
+  const { data: { user } } = await supabase.auth.getUser();
+  const path = req.nextUrl.pathname;
+  const protectedPaths = ["/admin", "/studio", "/dashboard"];
+
+  if (protectedPaths.some((p) => path.startsWith(p)) && !user) {
+    return NextResponse.redirect(new URL("/auth/login", req.url));
+  }
+
+  if (path === "/auth/login" && user) {
+    return NextResponse.redirect(new URL("/dashboard", req.url));
+  }
+
+  return res;
+}
+
+export const config = {
+  matcher: ["/studio/:path*", "/admin/:path*", "/dashboard/:path*", "/auth/login"],
+};
