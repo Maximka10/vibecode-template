@@ -1,0 +1,4 @@
+import Link from "next/link";
+import { Navbar } from "@/components/layout/Navbar";
+import { templates } from "@/lib/templates";
+export default function TemplatesPage(){return <main><Navbar/><section className="mx-auto max-w-6xl px-4 py-12"><h1 className="text-3xl sm:text-4xl font-black">Каталог шаблонов</h1><div className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">{templates.map(t=><Link key={t.id} href={`/customize/${t.id}`} className="rounded-3xl border border-white/10 bg-white/5 p-5"><div className="mb-4 aspect-video rounded-2xl bg-gradient-to-br from-white/20 to-white/5"/><h2 className="text-xl font-bold">{t.name}</h2><p className="mt-2 text-white/65">{t.description}</p><p className="mt-4"><span className="whitespace-nowrap">от {t.priceFrom?.toLocaleString("ru-RU")} ₽</span> · {t.deliveryDays} дня</p></Link>)}</div></section></main>}

@@ -1,0 +1,3 @@
+import { NextRequest, NextResponse } from "next/server";
+export async function middleware(req: NextRequest){const path=req.nextUrl.pathname; const hasSession=Boolean(req.cookies.get("sb-access-token")||req.cookies.get("supabase-auth-token")); if(["/admin","/studio","/dashboard"].some(p=>path.startsWith(p))&&!hasSession){return NextResponse.redirect(new URL("/auth/login",req.url));} if(path==="/auth/login"&&hasSession){return NextResponse.redirect(new URL("/dashboard",req.url));} return NextResponse.next();}
+export const config={matcher:["/studio/:path*","/admin/:path*","/dashboard/:path*","/auth/login"]};
