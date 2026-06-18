@@ -3,6 +3,8 @@ import { useEffect, useRef, useState } from "react";
 import { Reorder } from "framer-motion";
 import type { Template } from "@/types";
 import { createClient } from "@/lib/supabase/client";
+import ImageUpload from "@/components/ui/ImageUpload";
+import { isImageUrl } from "@/lib/supabase/storage";
 
 const PALETTES = [
   "#d97706","#be185d","#eab308","#0ea5e9","#b45309",
@@ -10,12 +12,13 @@ const PALETTES = [
 ];
 
 type Device = "desktop" | "mobile";
-type Tab = "hero" | "about" | "services" | "order" | "colors" | "lead";
+type Tab = "hero" | "about" | "services" | "gallery" | "order" | "colors" | "lead";
 
 const SECTION_TABS: { id: Tab; label: string }[] = [
   { id: "hero", label: "Главный экран" },
   { id: "about", label: "О нас" },
   { id: "services", label: "Услуги" },
+  { id: "gallery", label: "Галерея" },
   { id: "order", label: "Порядок секций" },
   { id: "colors", label: "Цвета" },
   { id: "lead", label: "Заявка" },
@@ -231,6 +234,13 @@ export default function CustomizeClient({
                     onChange={(e) => setTemplate(updateSectionContent(template, "hero", "badge", e.target.value))}
                   />
                 </div>
+                <ImageUpload
+                  label="Фото для главного экрана (необязательно)"
+                  value={hero.heroImage as string | undefined}
+                  onChange={(url) => setTemplate(updateSectionContent(template, "hero", "heroImage", url ?? ""))}
+                  storagePath={`${template.id}/hero`}
+                  aspectClass="aspect-video"
+                />
               </>
             )}
 
@@ -254,6 +264,13 @@ export default function CustomizeClient({
                     onChange={(e) => setTemplate(updateSectionContent(template, "about", "text", e.target.value))}
                   />
                 </div>
+                <ImageUpload
+                  label="Обложка раздела «О нас» (необязательно)"
+                  value={about.coverImage as string | undefined}
+                  onChange={(url) => setTemplate(updateSectionContent(template, "about", "coverImage", url ?? ""))}
+                  storagePath={`${template.id}/about`}
+                  aspectClass="aspect-[16/5]"
+                />
               </>
             )}
 
@@ -288,6 +305,60 @@ export default function CustomizeClient({
                 </div>
               </>
             )}
+
+            {/* Gallery editor */}
+            {tab === "gallery" && (() => {
+              const gallerySection = template.sections.find((s) => s.type === "gallery");
+              const images = ((gallerySection?.content.images as string[]) ?? []);
+              return (
+                <>
+                  <p className="text-xs text-white/50">
+                    Добавляйте фото — они появятся в галерее шаблона. Перетащите или нажмите для загрузки.
+                  </p>
+                  <div className="space-y-2">
+                    {images.map((img, idx) => (
+                      <div key={idx} className="flex items-center gap-2 rounded-xl bg-white/5 p-2">
+                        {isImageUrl(img) ? (
+                          <img src={img} alt="" className="h-12 w-20 rounded-lg object-cover shrink-0" />
+                        ) : (
+                          <div className="h-12 w-20 rounded-lg bg-white/10 flex items-center justify-center shrink-0">
+                            <span className="text-xs text-white/40">🖼</span>
+                          </div>
+                        )}
+                        <span className="flex-1 text-xs text-white/60 truncate">
+                          {isImageUrl(img) ? img.split("/").pop() : img}
+                        </span>
+                        <button
+                          onClick={() => {
+                            const next = images.filter((_, i) => i !== idx);
+                            setTemplate(updateSectionContent(template, "gallery", "images", next));
+                          }}
+                          className="rounded-full border border-red-500/30 bg-red-500/10 px-2.5 py-1 text-xs text-red-400 hover:bg-red-500/20 shrink-0"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                  <ImageUpload
+                    label="Добавить фото в галерею"
+                    value={null}
+                    onChange={(url) => {
+                      if (!url) return;
+                      const next = [...images, url];
+                      setTemplate(updateSectionContent(template, "gallery", "images", next));
+                    }}
+                    storagePath={`${template.id}/gallery`}
+                    aspectClass="aspect-[3/1]"
+                  />
+                  {images.length === 0 && (
+                    <p className="text-xs text-white/30 text-center py-4">
+                      Галерея пуста. Загрузите первое фото выше.
+                    </p>
+                  )}
+                </>
+              );
+            })()}
 
             {/* Section order */}
             {tab === "order" && (
