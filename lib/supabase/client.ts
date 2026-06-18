@@ -5,6 +5,3 @@ export function createClient() {
   if (!config.supabase.isConfigured) return null
   return createBrowserClient(config.supabase.url, config.supabase.anonKey)
 }
-
-// Legacy export for compatibility with CustomizeClient
-export const supabase = createClient()
