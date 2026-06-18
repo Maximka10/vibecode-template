@@ -11,10 +11,10 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 const STATUS_COLOR: Record<string, string> = {
-  new: "bg-blue-500/20 text-blue-300",
-  inprogress: "bg-yellow-500/20 text-yellow-300",
-  done: "bg-green-500/20 text-green-300",
-  cancelled: "bg-red-500/20 text-red-300",
+  new: "bg-blue-500/15 text-blue-300 border-blue-500/30",
+  inprogress: "bg-yellow-500/15 text-yellow-300 border-yellow-500/30",
+  done: "bg-green-500/15 text-green-300 border-green-500/30",
+  cancelled: "bg-red-500/15 text-red-300 border-red-500/30",
 };
 
 export default async function DashboardPage() {
@@ -30,26 +30,48 @@ export default async function DashboardPage() {
     .order("created_at");
 
   return (
-    <main className="min-h-screen bg-slate-950 px-4 py-12 text-white">
-      <div className="mx-auto max-w-3xl">
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-black">Личный кабинет</h1>
+    <main className="relative min-h-screen overflow-hidden bg-slate-950 text-white">
+      {/* Background glows */}
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute left-1/2 top-0 h-[400px] w-[600px] -translate-x-1/2 rounded-full bg-cyan-500/6 blur-[100px]" />
+        <div className="absolute bottom-0 right-0 h-64 w-64 rounded-full bg-purple-600/4 blur-[80px]" />
+      </div>
+
+      <div className="relative mx-auto max-w-3xl px-4 py-12">
+        {/* Header */}
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-widest text-cyan-400">Личный кабинет</p>
+            <h1 className="mt-1 text-3xl font-black">Мои заказы</h1>
+            <p className="mt-1 text-sm text-white/40">{user.email}</p>
+          </div>
           <form action="/api/auth/logout" method="POST">
-            <button className="rounded-full border border-white/20 px-4 py-2 text-sm text-white/60 hover:text-white">
+            <button className="rounded-full border border-white/15 bg-white/5 px-4 py-2 text-xs font-medium text-white/50 transition hover:border-white/30 hover:text-white/80">
               Выйти
             </button>
           </form>
         </div>
-        <p className="mt-1 text-white/50 text-sm">{user.email}</p>
 
+        {/* Divider */}
+        <div className="mt-8 h-px bg-white/8" />
+
+        {/* Content */}
         {!orders?.length ? (
-          <div className="mt-10 rounded-2xl border border-white/10 bg-white/5 p-8 text-center">
-            <p className="text-white/60">У вас пока нет заказов.</p>
+          <div className="mt-12 flex flex-col items-center rounded-3xl border border-white/8 bg-white/3 px-8 py-16 text-center">
+            <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-full border border-white/10 bg-white/5">
+              <svg className="h-7 w-7 text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              </svg>
+            </div>
+            <h2 className="text-lg font-bold text-white">Заказов пока нет</h2>
+            <p className="mt-2 max-w-sm text-sm leading-relaxed text-white/45">
+              Выберите шаблон, настройте его под свой бизнес — и мы запустим сайт за 3 дня.
+            </p>
             <Link
               href="/templates"
-              className="mt-4 inline-block rounded-full bg-white px-6 py-3 font-bold text-black"
+              className="mt-7 inline-flex items-center gap-2 rounded-full bg-white px-7 py-3 text-sm font-bold text-black transition hover:bg-white/90"
             >
-              Выбрать шаблон
+              Выбрать шаблон →
             </Link>
           </div>
         ) : (
@@ -57,18 +79,26 @@ export default async function DashboardPage() {
             {orders.map((order) => (
               <div
                 key={order.id}
-                className="rounded-2xl border border-white/10 bg-white/5 p-5"
+                className="rounded-2xl border border-white/8 bg-white/4 p-5 transition hover:border-white/15 hover:bg-white/6"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="font-bold">{order.template_name ?? order.template_id}</p>
-                    <p className="mt-1 text-sm text-white/50">
-                      {new Date(order.created_at).toLocaleDateString("ru-RU")}
-                      {order.total_price && ` · ${order.total_price.toLocaleString("ru-RU")} ₽`}
+                    <p className="font-bold text-white">{order.template_name ?? order.template_id}</p>
+                    <p className="mt-1 text-sm text-white/40">
+                      {new Date(order.created_at).toLocaleDateString("ru-RU", {
+                        day: "numeric",
+                        month: "long",
+                        year: "numeric",
+                      })}
+                      {order.total_price && (
+                        <span className="ml-2 font-semibold text-white/60">
+                          {order.total_price.toLocaleString("ru-RU")} ₽
+                        </span>
+                      )}
                     </p>
                   </div>
                   <span
-                    className={`rounded-full px-3 py-1 text-xs font-semibold ${STATUS_COLOR[order.status] ?? "bg-white/10 text-white/60"}`}
+                    className={`shrink-0 rounded-full border px-3 py-1 text-xs font-semibold ${STATUS_COLOR[order.status] ?? "border-white/15 bg-white/8 text-white/50"}`}
                   >
                     {STATUS_LABEL[order.status] ?? order.status}
                   </span>
