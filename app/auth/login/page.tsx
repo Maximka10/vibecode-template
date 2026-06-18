@@ -1,6 +1,7 @@
 "use client";
 export const dynamic = "force-dynamic";
 import { useState } from "react";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 
 export default function LoginPage() {
@@ -29,36 +30,112 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-950 px-4 py-16 text-white">
-      <div className="mx-auto max-w-md rounded-3xl border border-white/10 bg-white/5 p-6">
-        <h1 className="text-3xl font-black">Вход / регистрация</h1>
-        {sent ? (
-          <p className="mt-4 text-white/70">
-            Письмо отправлено на <strong>{email}</strong>. Проверьте почту и перейдите по ссылке.
-          </p>
-        ) : (
-          <form onSubmit={handleSubmit}>
-            <p className="mt-3 text-white/70">
-              Введите email — получите ссылку для входа.
-            </p>
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="mt-6 w-full rounded-xl p-3 text-black"
-              placeholder="email@example.com"
-            />
-            {error && <p className="mt-2 text-red-400 text-sm">{error}</p>}
-            <button
-              type="submit"
-              disabled={loading}
-              className="mt-3 w-full rounded-full bg-white px-5 py-3 font-bold text-black disabled:opacity-50"
-            >
-              {loading ? "Отправка..." : "Войти по ссылке"}
-            </button>
-          </form>
-        )}
+    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-slate-950 px-4 text-white">
+      {/* Background glows */}
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute left-1/2 top-0 h-[500px] w-[700px] -translate-x-1/2 rounded-full bg-cyan-500/8 blur-[100px]" />
+        <div className="absolute bottom-0 left-0 h-72 w-72 rounded-full bg-blue-600/5 blur-[80px]" />
+        <div className="absolute bottom-0 right-0 h-72 w-72 rounded-full bg-purple-600/5 blur-[80px]" />
+      </div>
+
+      <div className="relative w-full max-w-md">
+        {/* Logo */}
+        <div className="mb-8 text-center">
+          <Link href="/" className="inline-block">
+            <span className="text-xl font-black tracking-tight text-white">VIBECODE STUDIO</span>
+          </Link>
+          <p className="mt-2 text-sm text-white/40">Сайты для малого бизнеса</p>
+        </div>
+
+        {/* Card */}
+        <div className="rounded-3xl border border-white/10 bg-white/5 p-8 shadow-2xl shadow-black/40 backdrop-blur-xl">
+          {sent ? (
+            <div className="py-4 text-center">
+              <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full border border-green-500/30 bg-green-500/10">
+                <svg className="h-8 w-8 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <h2 className="text-xl font-bold text-white">Проверьте почту</h2>
+              <p className="mt-3 text-sm leading-relaxed text-white/60">
+                Мы отправили ссылку для входа на{" "}
+                <span className="font-semibold text-white/85">{email}</span>.
+                Перейдите по ней — и вы окажетесь в личном кабинете.
+              </p>
+              <p className="mt-5 text-xs text-white/35">
+                Не пришло? Проверьте папку «Спам» или{" "}
+                <button
+                  onClick={() => setSent(false)}
+                  className="text-cyan-400 underline underline-offset-2 transition hover:text-cyan-300"
+                >
+                  попробуйте ещё раз
+                </button>
+              </p>
+            </div>
+          ) : (
+            <>
+              <div className="mb-6">
+                <h1 className="text-2xl font-black text-white">Войти в кабинет</h1>
+                <p className="mt-2 text-sm text-white/55">
+                  Введите email — получите ссылку для входа без пароля.
+                </p>
+              </div>
+
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <label htmlFor="auth-email" className="mb-1.5 block text-xs font-medium text-white/60">
+                    Email адрес
+                  </label>
+                  <input
+                    id="auth-email"
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="you@example.com"
+                    className="w-full rounded-xl border border-white/12 bg-white/8 px-4 py-3 text-sm text-white placeholder-white/30 outline-none transition focus:border-cyan-500/60 focus:bg-white/10 focus:ring-2 focus:ring-cyan-500/20"
+                  />
+                </div>
+
+                {error && (
+                  <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3">
+                    <p className="text-xs text-red-400">{error}</p>
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full rounded-xl bg-white py-3.5 text-sm font-bold text-black transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {loading ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-black/20 border-t-black" />
+                      Отправка...
+                    </span>
+                  ) : (
+                    "Получить ссылку для входа →"
+                  )}
+                </button>
+              </form>
+
+              <div className="mt-6 flex items-center gap-3">
+                <div className="h-px flex-1 bg-white/8" />
+                <span className="text-xs text-white/30">без пароля · безопасно</span>
+                <div className="h-px flex-1 bg-white/8" />
+              </div>
+
+              <p className="mt-5 text-center text-xs text-white/35">
+                Нет аккаунта?{" "}
+                <span className="text-white/55">Просто введите email — мы создадим его автоматически.</span>
+              </p>
+            </>
+          )}
+        </div>
+
+        <p className="mt-6 text-center text-xs text-white/25">
+          <Link href="/" className="transition hover:text-white/50">← На главную</Link>
+        </p>
       </div>
     </main>
   );
