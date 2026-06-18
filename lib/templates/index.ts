@@ -1,11 +1,11 @@
 import { baseStyle, defaultTheme } from "@/lib/theme/tokens";
 import type { Template, TemplateStyle, ThemeTokens } from "@/types";
 const themes: Record<string, Partial<ThemeTokens>> = {
- coffee:{primary:"#b7791f",secondary:"#fed7aa",accent:"#f97316",bgBase:"#1c120b",bgSurface:"#2a1810",gradientFrom:"#7c2d12",gradientVia:"#b45309",gradientTo:"#fed7aa",heroStyle:"orbs"},
- beauty:{primary:"#d946ef",secondary:"#f0abfc",accent:"#f5d0fe",bgBase:"#16051f",bgSurface:"#2e1040",gradientFrom:"#3b0764",gradientVia:"#c026d3",gradientTo:"#f5d0fe",heroStyle:"dots"},
- wash:{primary:"#22d3ee",secondary:"#67e8f9",accent:"#a5f3fc",bgBase:"#020617",bgSurface:"#082f49",gradientFrom:"#0369a1",gradientVia:"#22d3ee",gradientTo:"#a5f3fc",heroStyle:"geometric"},
- food:{primary:"#f59e0b",secondary:"#fde68a",accent:"#fb923c",bgBase:"#120b05",bgSurface:"#2b1608",gradientFrom:"#7f1d1d",gradientVia:"#b45309",gradientTo:"#fbbf24",heroStyle:"noise"},
- clean:{primary:"#34d399",secondary:"#a7f3d0",accent:"#10b981",bgBase:"#03120d",bgSurface:"#06351f",gradientFrom:"#065f46",gradientVia:"#34d399",gradientTo:"#bbf7d0",heroStyle:"lines"},
+ coffee:{primary:"#b7791f",secondary:"#fed7aa",accent:"#f97316",bgBase:"#1c120b",bgSurface:"#2a1810",gradientFrom:"#7c2d12",gradientTo:"#f59e0b",heroStyle:"orbs"},
+ beauty:{primary:"#d946ef",secondary:"#f0abfc",accent:"#f5d0fe",bgBase:"#16051f",bgSurface:"#2e1040",gradientFrom:"#581c87",gradientTo:"#e879f9",heroStyle:"dots"},
+ wash:{primary:"#22d3ee",secondary:"#67e8f9",accent:"#a5f3fc",bgBase:"#020617",bgSurface:"#082f49",gradientFrom:"#0891b2",gradientTo:"#38bdf8",heroStyle:"geometric"},
+ food:{primary:"#f59e0b",secondary:"#fde68a",accent:"#fb923c",bgBase:"#120b05",bgSurface:"#2b1608",gradientFrom:"#92400e",gradientTo:"#fbbf24",heroStyle:"noise"},
+ clean:{primary:"#34d399",secondary:"#a7f3d0",accent:"#10b981",bgBase:"#03120d",bgSurface:"#06351f",gradientFrom:"#047857",gradientTo:"#86efac",heroStyle:"lines"},
 };
 function tpl(id:string,name:string,category:string,description:string,theme:Partial<ThemeTokens>,style:Partial<TemplateStyle>,hero:string,sub:string):Template{const fullTheme={...defaultTheme,...theme}; const fullStyle={...baseStyle,...style}; return {id,name,category,description,thumbnail:`/templates/${id}.png`,theme:fullTheme,style:fullStyle,priceFrom:9900,deliveryDays:3,featured:true,tags:[category,"сайт за 3 дня","под ключ"],sections:[
 {id:`${id}-hero`,type:"hero",content:{layout: style.heroTextAlign==="center"?"centered": id==="car-wash"?"minimal": id==="restaurant"?"cinematic":"split", badge:"Готовый сайт за 3 дня", headline:hero, subheadline:sub, cta:"Заказать от 9 900 ₽", secondaryCta:"Смотреть шаблон", accentWord:"premium"}},
