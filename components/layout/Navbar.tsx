@@ -1,69 +1,13 @@
 "use client";
-import { useState } from "react";
-import { getTheme } from "@/lib/themes/getTheme";
-import { Container } from "@/components/layout/Container";
-
-const links = ["Главная", "Услуги", "Примеры", "Контакты"];
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabase/client";
 
 export function Navbar() {
-  const [open, setOpen] = useState(false);
-  const theme = getTheme();
-
-  return (
-    <header className="fixed top-0 z-50 w-full pt-4 sm:pt-6">
-      <Container>
-        <div
-          className="glass-panel relative flex items-center justify-between gap-4 rounded-2xl px-4 py-3 sm:px-6"
-          style={{
-            borderRadius: theme.radius.card,
-          }}
-        >
-          <h2 className="text-xs font-semibold sm:text-sm" style={{ letterSpacing: theme.typography.brandTracking, color: theme.colors.textPrimary }}>
-            VIBECODE
-          </h2>
-
-          <nav className="absolute left-1/2 hidden -translate-x-1/2 items-center gap-8 lg:flex" style={{ color: theme.colors.textMuted }}>
-            {links.map((item) => (
-              <a key={item} href="#" className="text-sm transition hover:text-white">
-                {item}
-              </a>
-            ))}
-          </nav>
-
-          <button
-            className="rounded-lg border px-3 py-2 text-sm lg:hidden"
-            style={{ borderColor: theme.colors.borderSubtle, color: theme.colors.textPrimary }}
-            onClick={() => setOpen(!open)}
-            aria-label="Открыть меню"
-          >
-            ☰
-          </button>
-
-          <button
-            className="hidden rounded-full border px-4 py-2 text-xs font-medium lg:block"
-            style={{ borderColor: theme.colors.borderSubtle, color: theme.colors.textPrimary }}
-          >
-            Запросить демо
-          </button>
-        </div>
-
-        {open ? (
-          <div
-            className="glass-panel mt-2 rounded-2xl p-3 lg:hidden"
-            style={{
-              borderColor: theme.colors.borderSubtle,
-            }}
-          >
-            <nav className="flex flex-col gap-1">
-              {links.map((item) => (
-                <a key={item} href="#" className="rounded-lg px-3 py-2 text-sm text-zinc-100 transition hover:bg-white/5">
-                  {item}
-                </a>
-              ))}
-            </nav>
-          </div>
-        ) : null}
-      </Container>
-    </header>
-  );
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [logged, setLogged] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  useEffect(() => { const onScroll = () => setScrolled(window.scrollY > 12); onScroll(); window.addEventListener("scroll", onScroll, { passive: true }); return () => window.removeEventListener("scroll", onScroll); }, []);
+  useEffect(() => { supabase.auth.getUser().then(async ({ data }) => { if (data.user) { setLogged(true); const { data: profile } = await supabase.from("profiles").select("role").eq("id", data.user.id).single(); setIsAdmin(profile?.role === "admin"); } }); }, []);
+  return <nav className={`sticky top-0 z-50 transition-all duration-300 ${scrolled ? "border-b border-white/10 bg-[#030712]/80 shadow-[0_10px_40px_-24px_rgba(103,232,249,.5)] backdrop-blur-xl" : "bg-transparent"}`}><div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3"><Link href="/" className="group flex items-center gap-2 font-black tracking-tight"><span className="grid h-8 w-8 place-items-center rounded-xl bg-gradient-to-br from-cyan-300 via-violet-300 to-amber-200 text-black shadow-[0_0_34px_-10px_rgba(103,232,249,.9)] transition group-hover:scale-105">V</span><span>VIBECODE</span></Link><div className="flex items-center gap-2 text-sm sm:gap-4"><Link className="relative text-white/75 transition after:absolute after:-bottom-1 after:left-0 after:h-px after:w-0 after:bg-white after:transition-all hover:text-white hover:after:w-full" href="/templates">Шаблоны</Link>{isAdmin && <Link className="relative text-white/75 transition hover:text-white" href="/studio">⚡ Studio</Link>}{logged ? <Link className="secondary-cta rounded-full px-3 py-2 font-bold text-white sm:px-4" href={isAdmin ? "/admin" : "/dashboard"}>{isAdmin ? "Админ" : "Кабинет"}</Link> : <Link className="primary-cta rounded-full px-4 py-2 font-black text-black" href="/auth/login">Войти</Link>}</div></div></nav>;
 }

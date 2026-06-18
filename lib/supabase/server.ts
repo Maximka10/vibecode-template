@@ -1,0 +1,2 @@
+type Query={select:(s?:string)=>Query;eq:(c:string,v:string)=>Query;single:()=>Promise<{data:any,error:null}>;order:(c:string)=>Query};
+export async function createServerSupabaseClient(){const q:Query={select(){return q},eq(){return q},single:async()=>({data:null,error:null}),order(){return q}}; return {auth:{getUser:async()=>({data:{user:null as {id:string}|null},error:null}),getSession:async()=>({data:{session:null as {access_token:string}|null},error:null})},from:()=>q}}
