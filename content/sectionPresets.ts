@@ -1,17 +1,17 @@
 import type { PageSection, TemplatesGalleryContent } from "@/types/section";
 
-type TemplateCard = { id: string; name: string; description: string; previewImage: string };
+type TemplateCard = { id: string; name: string; description: string; previewImage?: string };
 
 export function buildSharedSections(templateCards: TemplateCard[]): PageSection[] {
   const galleryContent: TemplatesGalleryContent = {
-    title: "Выберите шаблон",
-    subtitle: "Нажмите на шаблон, чтобы кастомизировать под ваш бизнес",
-    ctaLabel: "Выбрать",
+    title: "Готовые шаблоны для вашего бизнеса",
+    subtitle: "Выберите шаблон — мы адаптируем его под ваш бренд и запустим за 3 дня",
+    ctaLabel: "Выбрать и настроить",
     templates: templateCards.map((tpl) => ({
       id: tpl.id,
       name: tpl.name,
       description: tpl.description,
-      previewImage: tpl.previewImage,
+      previewImage: tpl.previewImage ?? `/templates/${tpl.id}.jpg`,
     })),
   };
 
@@ -21,29 +21,13 @@ export function buildSharedSections(templateCards: TemplateCard[]): PageSection[
       type: "hero",
       enabled: true,
       content: {
-        badge: "VIBECODE STUDIO",
-        title: "Современные сайты\nдля малого бизнеса",
+        badge: "VIBECODE STUDIO · Москва",
+        title: "Готовый сайт за 3 дня\nот 13 900 ₽",
         subtitle:
-          "Быстрые, современные и доступные сайты для кофеен, автомоек, салонов, ресторанов и локальных брендов.",
-        primaryCta: "Рассчитать стоимость",
-        secondaryCta: "Примеры работ",
-        meta: ["от 15 000 ₽", "срок от 2 дней", "Telegram / WhatsApp"],
-      },
-    },
-    {
-      id: "about-main",
-      type: "about",
-      enabled: true,
-      content: {
-        badge: "ПОЧЕМУ МЫ",
-        title: "Сайты, которые продают",
-        description:
-          "Мы создаём сайты, которые выглядят дорого, работают быстро и помогают вашему бизнесу выделяться среди конкурентов.",
-        services: [
-          { title: "Быстрый запуск", description: "От идеи до рабочего сайта за 2-5 дней" },
-          { title: "Поддержка", description: "Помогаем после запуска и вносим правки" },
-          { title: "Современный дизайн", description: "Трендовый внешний вид и адаптивность" },
-        ],
+          "Делаем современные сайты для кофеен, барбершопов, салонов красоты, автомоек и ресторанов. Домен, хостинг и Telegram-заявки включены.",
+        primaryCta: "Выбрать шаблон",
+        secondaryCta: "Как это работает",
+        meta: ["от 13 900 ₽", "срок 3 дня", "0 ₽ предоплата"],
       },
     },
     {
@@ -52,10 +36,35 @@ export function buildSharedSections(templateCards: TemplateCard[]): PageSection[
       enabled: true,
       content: {
         items: [
-          { value: "50+", label: "созданных сайтов" },
-          { value: "2 дня", label: "средний срок запуска" },
-          { value: "100%", label: "адаптивность" },
-          { value: "24/7", label: "поддержка и связь" },
+          { value: "50+", label: "сайтов запущено" },
+          { value: "3 дня", label: "средний срок" },
+          { value: "0 ₽", label: "предоплата" },
+          { value: "12 мес", label: "поддержка" },
+        ],
+      },
+    },
+    {
+      id: "about-main",
+      type: "about",
+      enabled: true,
+      content: {
+        badge: "КАК МЫ РАБОТАЕМ",
+        title: "Сайт, который приносит заявки",
+        description:
+          "Мы не просто делаем красивые сайты — мы упаковываем ваш бизнес так, чтобы клиенты доверяли с первого экрана и оставляли заявки.",
+        services: [
+          {
+            title: "Выбираете шаблон",
+            description: "Кофейня, салон, автомойка, ресторан или барбершоп — выбираете готовый дизайн",
+          },
+          {
+            title: "Мы адаптируем",
+            description: "Вносим ваши тексты, фото, услуги и цены. Подключаем домен и хостинг",
+          },
+          {
+            title: "Запуск за 3 дня",
+            description: "Сайт работает, заявки идут в Telegram. Поддержка 12 месяцев включена",
+          },
         ],
       },
     },
