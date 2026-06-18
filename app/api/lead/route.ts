@@ -7,48 +7,81 @@ export async function POST(req: NextRequest) {
     const {
       templateId,
       templateName,
+      clientName,
+      clientPhone,
+      clientTelegram,
+      clientEmail,
+      businessType,
+      selectedServices,
+      budget,
+      notes,
       selectedOptions,
       totalPrice,
       primaryColor,
       bgColor,
-      email,
-      phone,
-      comment,
     } = body;
 
     const admin = createAdminClient();
+    let orderId: string | null = null;
     let savedToDb = false;
     let dbError: string | null = null;
 
-    const { error } = await admin.from("orders").insert({
-      template_id: templateId ?? templateName,
-      template_name: templateName,
-      selected_options: selectedOptions ?? null,
-      total_price: totalPrice ?? null,
-      primary_color: primaryColor ?? null,
-      bg_color: bgColor ?? null,
-      notes: [email && `email: ${email}`, phone && `phone: ${phone}`, comment]
-        .filter(Boolean)
-        .join("\n") || null,
-      status: "new",
-    });
+    const { data, error } = await admin
+      .from("orders")
+      .insert({
+        template_id: templateId ?? templateName,
+        template_name: templateName,
+        client_name: clientName ?? null,
+        client_phone: clientPhone ?? null,
+        client_telegram: clientTelegram ?? null,
+        client_email: clientEmail ?? null,
+        business_type: businessType ?? null,
+        selected_services: selectedServices ?? null,
+        budget: budget ?? null,
+        notes: notes ?? null,
+        selected_options: selectedOptions ?? null,
+        primary_color: primaryColor ?? null,
+        bg_color: bgColor ?? null,
+        total_price: totalPrice ?? null,
+        status: "new",
+      })
+      .select("id")
+      .single();
 
     if (error) {
       dbError = error.message;
     } else {
       savedToDb = true;
+      orderId = data.id;
     }
 
-    // Notify via Telegram if configured
-    const { TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID } = process.env;
+    // Telegram notification
+    const { TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, NEXT_PUBLIC_SITE_URL } = process.env;
     if (TELEGRAM_BOT_TOKEN && TELEGRAM_CHAT_ID) {
-      const text = [
-        `🆕 Новая заявка: ${templateName}`,
-        email && `📧 ${email}`,
-        phone && `📞 ${phone}`,
-        comment && `💬 ${comment}`,
+      const siteUrl = NEXT_PUBLIC_SITE_URL ?? "https://vibecode-studio.ru";
+      const projectLink = orderId ? `${siteUrl}/admin?order=${orderId}` : siteUrl;
+
+      const servicesList = Array.isArray(selectedServices)
+        ? selectedServices.join(", ")
+        : selectedServices ?? "—";
+
+      const lines = [
+        `🆕 *Новая заявка* #${orderId?.slice(0, 8) ?? "—"}`,
+        ``,
+        `👤 *Клиент:* ${clientName ?? "—"}`,
+        `📞 *Телефон:* ${clientPhone ?? "—"}`,
+        `✈️ *Telegram:* ${clientTelegram ? `@${clientTelegram.replace("@", "")}` : "—"}`,
+        `📧 *Email:* ${clientEmail ?? "—"}`,
+        ``,
+        `🏪 *Бизнес:* ${businessType ?? "—"}`,
+        `📐 *Шаблон:* ${templateName ?? "—"}`,
+        `🛠 *Услуги:* ${servicesList}`,
+        `💰 *Бюджет:* ${budget ? `${Number(budget).toLocaleString("ru-RU")} ₽` : "—"}`,
+        notes ? `💬 *Комментарий:* ${notes}` : null,
+        ``,
+        `🔗 [Открыть заказ](${projectLink})`,
       ]
-        .filter(Boolean)
+        .filter((l) => l !== null)
         .join("\n");
 
       await fetch(
@@ -56,12 +89,17 @@ export async function POST(req: NextRequest) {
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ chat_id: TELEGRAM_CHAT_ID, text }),
+          body: JSON.stringify({
+            chat_id: TELEGRAM_CHAT_ID,
+            text: lines,
+            parse_mode: "Markdown",
+            disable_web_page_preview: true,
+          }),
         }
       ).catch(() => null);
     }
 
-    return NextResponse.json({ ok: true, savedToDb, dbError });
+    return NextResponse.json({ ok: true, savedToDb, dbError, orderId });
   } catch (e) {
     return NextResponse.json(
       { ok: false, error: e instanceof Error ? e.message : String(e) },
