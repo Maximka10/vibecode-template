@@ -1,0 +1,11 @@
+create table if not exists profiles (id uuid primary key, email text, name text, role text default 'client' check (role in ('admin','client')), created_at timestamptz default now());
+create table if not exists orders (id uuid primary key default gen_random_uuid(), user_id uuid references profiles(id), template_id text, template_name text, selected_options jsonb, total_price int, status text default 'new' check (status in ('new','inprogress','done','cancelled')), primary_color text, bg_color text, notes text, created_at timestamptz default now(), updated_at timestamptz default now());
+create table if not exists reviews (id uuid primary key default gen_random_uuid(), user_id uuid references profiles(id), order_id uuid references orders(id), rating int check (rating between 1 and 5), text text, is_approved bool default false, created_at timestamptz default now());
+create table if not exists messages (id uuid primary key default gen_random_uuid(), order_id uuid references orders(id), sender_id uuid references profiles(id), text text, is_read bool default false, created_at timestamptz default now());
+create or replace function public.is_admin() returns boolean as $$ select exists (select 1 from profiles where id = auth.uid() and role = 'admin'); $$ language sql security definer stable;
+alter table profiles enable row level security; alter table orders enable row level security; alter table reviews enable row level security; alter table messages enable row level security;
+create policy "profiles_select_own" on profiles for select using (auth.uid() = id); create policy "profiles_select_admin" on profiles for select using (public.is_admin());
+create policy "orders_select_own" on orders for select using (auth.uid() = user_id); create policy "orders_select_admin" on orders for select using (public.is_admin());
+create policy "reviews_select_own" on reviews for select using (auth.uid() = user_id); create policy "reviews_select_admin" on reviews for select using (public.is_admin());
+create policy "messages_select_own" on messages for select using (exists (select 1 from orders where orders.id = messages.order_id and orders.user_id = auth.uid())); create policy "messages_select_admin" on messages for select using (public.is_admin());
+alter publication supabase_realtime add table messages; alter publication supabase_realtime add table orders;
