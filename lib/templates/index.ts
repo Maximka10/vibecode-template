@@ -79,7 +79,9 @@ function tpl(
   heroHeadline: string,
   heroSub: string,
   services: string[],
-  priceFrom: number
+  priceFrom: number,
+  galleryImages?: string[],
+  heroImage?: string
 ): Template {
   const fullTheme = { ...defaultTheme, ...theme };
   const fullStyle = { ...baseStyle, ...style };
@@ -89,7 +91,7 @@ function tpl(
     name,
     category,
     description,
-    thumbnail: `/templates/${id}.jpg`,
+    thumbnail: `/templates/${id}.svg`,
     theme: fullTheme,
     style: fullStyle,
     priceFrom,
@@ -108,6 +110,7 @@ function tpl(
           cta: `Заказать от ${priceFrom.toLocaleString("ru-RU")} ₽`,
           secondaryCta: "Смотреть пример",
           accentWord: "premium",
+          ...(heroImage ? { heroImage } : {}),
         },
       },
       {
@@ -142,7 +145,8 @@ function tpl(
         id: `${id}-gallery`,
         type: "gallery",
         content: {
-          images: ["Атмосфера", "Команда", "Процесс", "Результат"],
+          title: "Наши работы",
+          images: galleryImages ?? ["Интерьер", "Команда", "Процесс", "Результат"],
         },
       },
       {
@@ -197,7 +201,8 @@ export const templates: Template[] = [
       "Домен и хостинг на 1 год",
       "Подключение Яндекс.Метрики",
     ],
-    14900
+    14900,
+    ["Уютный интерьер", "Свежий кофе", "Авторские напитки", "Наша команда", "Утренние завтраки", "Летняя терраса"]
   ),
   tpl(
     "beauty-salon",
@@ -216,7 +221,8 @@ export const templates: Template[] = [
       "Форма заявки с Telegram-уведомлением",
       "Домен и хостинг на 1 год",
     ],
-    16900
+    16900,
+    ["Стрижки и укладки", "Уходовые процедуры", "Маникюр и педикюр", "Команда мастеров", "Свадебные образы", "До и после"]
   ),
   tpl(
     "barber-shop",
@@ -235,7 +241,8 @@ export const templates: Template[] = [
       "Форма заявки с Telegram-уведомлением",
       "Домен и хостинг на 1 год",
     ],
-    14900
+    14900,
+    ["Классические стрижки", "Работы мастеров", "Брадобрейское искусство", "Коррекция бороды", "До и после", "Наши барберы"]
   ),
   tpl(
     "car-wash",
@@ -254,7 +261,8 @@ export const templates: Template[] = [
       "Форма заявки с Telegram-уведомлением",
       "Домен и хостинг на 1 год",
     ],
-    13900
+    13900,
+    ["Детейлинг кузова", "Химчистка салона", "Полировка", "Нанопокрытие", "Результат до/после", "Наше оборудование"]
   ),
   tpl(
     "restaurant",
@@ -273,7 +281,8 @@ export const templates: Template[] = [
       "Форма заявки с Telegram-уведомлением",
       "Домен и хостинг на 1 год",
     ],
-    17900
+    17900,
+    ["Фирменные блюда", "Интерьер зала", "Кухня шефа", "Авторские коктейли", "Банкеты и события", "Летняя веранда"]
   ),
 ];
 

@@ -11,7 +11,7 @@ export function buildSharedSections(templateCards: TemplateCard[]): PageSection[
       id: tpl.id,
       name: tpl.name,
       description: tpl.description,
-      previewImage: tpl.previewImage ?? `/templates/${tpl.id}.jpg`,
+      previewImage: tpl.previewImage ?? `/templates/${tpl.id}.svg`,
     })),
   };
 
