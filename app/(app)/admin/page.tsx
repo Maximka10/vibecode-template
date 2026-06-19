@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { getUserRole } from "@/lib/supabase/role";
+import { getUserWithRole } from "@/lib/auth/getUserWithRole";
 import { createAdminClient } from "@/lib/supabase/admin";
 import AdminOrders from "@/components/admin/AdminOrders";
 
@@ -9,12 +8,20 @@ export default async function AdminPage({
 }: {
   searchParams: Promise<{ tab?: string; order?: string }>;
 }) {
-  const supabase = await createServerSupabaseClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/auth/login");
+  const auth = await getUserWithRole();
 
-  const role = await getUserRole(user.id);
-  if (role !== "admin") redirect("/dashboard");
+  // Debug logging — remove after fix confirmed
+  console.log("AUTH USER:", auth?.user?.id ?? null);
+  console.log("AUTH ROLE:", auth?.role ?? null);
+
+  if (!auth) redirect("/auth/login");
+
+  const { user, role } = auth;
+
+  if (role !== "admin") {
+    console.log("AUTH DENIED: role is", role, "for user", user.id);
+    redirect("/dashboard");
+  }
 
   const admin = createAdminClient();
   const { tab = "orders" } = await searchParams;

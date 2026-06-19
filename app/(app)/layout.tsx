@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { getUserRole } from "@/lib/supabase/role";
+import { getUserWithRole } from "@/lib/auth/getUserWithRole";
 import AppSidebar from "@/components/layout/AppSidebar";
 
 export default async function AppLayout({
@@ -8,19 +7,15 @@ export default async function AppLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const supabase = await createServerSupabaseClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const auth = await getUserWithRole();
 
-  if (!user) redirect("/auth/login");
+  if (!auth) redirect("/auth/login");
 
-  const role = await getUserRole(user.id);
-  const isAdmin = role === "admin";
+  const { user, role } = auth;
 
   return (
     <div className="flex min-h-screen flex-col bg-slate-950 text-white lg:flex-row">
-      <AppSidebar isAdmin={isAdmin} userEmail={user.email ?? ""} />
+      <AppSidebar isAdmin={role === "admin"} userEmail={user.email ?? ""} />
       <div className="flex min-w-0 flex-1 flex-col">
         {children}
       </div>
