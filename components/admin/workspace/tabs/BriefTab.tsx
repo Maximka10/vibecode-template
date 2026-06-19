@@ -72,8 +72,8 @@ export default function BriefTab({
   const seoTitle = pd.seo_title || opts.seo_title;
   const seoDescription = pd.seo_description || opts.seo_description;
 
-  const primaryColor = pd.primary_color || opts.primary_color;
-  const secondaryColor = pd.secondary_color || opts.secondary_color;
+  const primaryColor = pd.branding?.primary_color || pd.primary_color || opts.primary_color;
+  const secondaryColor = pd.branding?.secondary_color || pd.secondary_color || opts.secondary_color;
   const font = pd.font || opts.font;
 
   const SKIP_KEYS = new Set([

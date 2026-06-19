@@ -18,13 +18,14 @@ export default async function OrderWorkspacePage({
 
   const admin = createAdminClient();
 
-  const [orderRes, messagesRes] = await Promise.all([
+  const [orderRes, messagesRes, pdRes] = await Promise.all([
     admin.from("orders").select("*").eq("id", id).single(),
     admin
       .from("messages")
       .select("*")
       .eq("order_id", id)
       .order("created_at", { ascending: true }),
+    admin.from("project_data").select("*").eq("order_id", id).maybeSingle(),
   ]);
 
   if (orderRes.error || !orderRes.data) notFound();
@@ -34,6 +35,7 @@ export default async function OrderWorkspacePage({
       order={orderRes.data}
       initialMessages={messagesRes.data ?? []}
       adminId={user.id}
+      projectData={pdRes.data ?? null}
     />
   );
 }

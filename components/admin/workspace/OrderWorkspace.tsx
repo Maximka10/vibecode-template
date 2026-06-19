@@ -38,11 +38,14 @@ export default function OrderWorkspace({
   order,
   initialMessages,
   adminId: _adminId,
+  projectData,
 }: {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   order: Record<string, any>;
   initialMessages: Message[];
   adminId: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  projectData?: Record<string, any> | null;
 }) {
   const [activeTab, setActiveTab] = useState<TabId>("overview");
 
@@ -91,8 +94,8 @@ export default function OrderWorkspace({
 
       {/* Tab content */}
       <div className={`mx-auto px-4 py-6 ${activeTab === "development" ? "max-w-7xl" : "max-w-5xl"}`}>
-        {activeTab === "overview" && <OverviewTab order={order} />}
-        {activeTab === "brief" && <BriefTab orderId={order.id} order={order} projectData={order.project_data ?? null} />}
+        {activeTab === "overview" && <OverviewTab order={order} projectData={projectData} />}
+        {activeTab === "brief" && <BriefTab orderId={order.id} order={order} projectData={projectData ?? null} />}
         {activeTab === "materials" && <MaterialsTab orderId={order.id} order={order} />}
         {activeTab === "development" && <DevelopmentTab orderId={order.id} order={order} />}
         {activeTab === "preview" && <PreviewTab orderId={order.id} />}

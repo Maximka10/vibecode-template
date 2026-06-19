@@ -81,6 +81,93 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
 
 // ── Section Content Editor ────────────────────────────────────────────────────
 
+// ── Working Hours Editor ───────────────────────────────────────────────────────
+type DayKey = "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun";
+type DaySchedule = { open: string; close: string; closed: boolean };
+type WeekSchedule = Record<DayKey, DaySchedule>;
+const DAY_KEYS: DayKey[] = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
+const DAY_LABELS: Record<DayKey, string> = { mon: "Пн", tue: "Вт", wed: "Ср", thu: "Чт", fri: "Пт", sat: "Сб", sun: "Вс" };
+const DEFAULT_SCHEDULE: WeekSchedule = {
+  mon: { open: "09:00", close: "18:00", closed: false },
+  tue: { open: "09:00", close: "18:00", closed: false },
+  wed: { open: "09:00", close: "18:00", closed: false },
+  thu: { open: "09:00", close: "18:00", closed: false },
+  fri: { open: "09:00", close: "18:00", closed: false },
+  sat: { open: "10:00", close: "16:00", closed: true },
+  sun: { open: "10:00", close: "16:00", closed: true },
+};
+function parseWeekSchedule(raw?: string | null): WeekSchedule {
+  if (!raw) return { ...DEFAULT_SCHEDULE };
+  try {
+    const parsed = JSON.parse(raw) as WeekSchedule;
+    if (parsed.mon && parsed.fri) return parsed;
+  } catch { /* fall through */ }
+  return { ...DEFAULT_SCHEDULE };
+}
+function buildSchedulePreview(s: WeekSchedule): string {
+  const groups: string[] = [];
+  let i = 0;
+  while (i < DAY_KEYS.length) {
+    const key = DAY_KEYS[i];
+    const day = s[key];
+    let j = i + 1;
+    while (j < DAY_KEYS.length) {
+      const next = s[DAY_KEYS[j]];
+      if (next.closed !== day.closed || next.open !== day.open || next.close !== day.close) break;
+      j++;
+    }
+    const range = j - i > 1
+      ? `${DAY_LABELS[DAY_KEYS[i]]}–${DAY_LABELS[DAY_KEYS[j - 1]]}`
+      : DAY_LABELS[key];
+    groups.push(day.closed ? `${range}: выходной` : `${range}: ${day.open}–${day.close}`);
+    i = j;
+  }
+  return groups.join(", ");
+}
+function WorkingHoursEditor({ value, onChange }: { value?: string | null; onChange: (v: string) => void }) {
+  const [schedule, setSchedule] = useState<WeekSchedule>(() => parseWeekSchedule(value));
+  function update(key: DayKey, patch: Partial<DaySchedule>) {
+    const next = { ...schedule, [key]: { ...schedule[key], ...patch } };
+    setSchedule(next);
+    onChange(JSON.stringify(next));
+  }
+  return (
+    <div className="space-y-2">
+      <div className="overflow-x-auto">
+        <table className="w-full text-xs">
+          <thead>
+            <tr className="text-white/30">
+              <th className="py-1 text-left font-medium w-10">День</th>
+              <th className="py-1 text-left font-medium w-20">Открытие</th>
+              <th className="py-1 text-left font-medium w-20">Закрытие</th>
+              <th className="py-1 text-center font-medium w-16">Выходной</th>
+            </tr>
+          </thead>
+          <tbody>
+            {DAY_KEYS.map((k) => (
+              <tr key={k} className={schedule[k].closed ? "opacity-40" : ""}>
+                <td className="py-1 font-semibold text-white/70">{DAY_LABELS[k]}</td>
+                <td className="py-1 pr-2">
+                  <input type="time" disabled={schedule[k].closed} value={schedule[k].open} onChange={(e) => update(k, { open: e.target.value })}
+                    className="w-20 rounded border border-white/10 bg-white/5 px-1.5 py-1 text-white/70 disabled:opacity-30" />
+                </td>
+                <td className="py-1 pr-2">
+                  <input type="time" disabled={schedule[k].closed} value={schedule[k].close} onChange={(e) => update(k, { close: e.target.value })}
+                    className="w-20 rounded border border-white/10 bg-white/5 px-1.5 py-1 text-white/70 disabled:opacity-30" />
+                </td>
+                <td className="py-1 text-center">
+                  <input type="checkbox" checked={schedule[k].closed} onChange={(e) => update(k, { closed: e.target.checked })} className="accent-cyan-500" />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p className="text-xs text-white/30">{buildSchedulePreview(schedule)}</p>
+    </div>
+  );
+}
+
 function GalleryPicker({ orderId, onPick }: { orderId: string; onPick: (url: string) => void }) {
   const [open, setOpen] = useState(false);
   const [imgs, setImgs] = useState<{ name: string; url: string }[]>([]);
@@ -602,7 +689,7 @@ export default function DevelopmentTab({ orderId, order }: { orderId: string; or
               <input className={FIELD_CLS} value={pd.address ?? ""} onChange={(e) => { setPd((p) => ({ ...p, address: e.target.value })); setDirty(true); }} placeholder="г. Москва, ул. Примерная, 1" />
             </Field>
             <Field label="Режим работы">
-              <input className={FIELD_CLS} value={pd.working_hours ?? ""} onChange={(e) => { setPd((p) => ({ ...p, working_hours: e.target.value })); setDirty(true); }} placeholder="Пн-Пт 9:00–18:00" />
+              <WorkingHoursEditor value={pd.working_hours} onChange={(v) => { setPd((p) => ({ ...p, working_hours: v })); setDirty(true); }} />
             </Field>
             <div className="col-span-full">
               <Field label="Описание компании">

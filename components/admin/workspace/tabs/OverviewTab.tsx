@@ -7,22 +7,24 @@ import { Card } from "@/components/ui/Card";
 // ── Project Health Card ───────────────────────────────────────────────────────
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function ProjectHealthCard({ order }: { order: Record<string, any> }) {
+function ProjectHealthCard({ order, projectData }: { order: Record<string, any>; projectData?: Record<string, any> | null }) {
   const opts = order.selected_options ?? {};
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const sections: any[] = order.content_edits?.sections ?? [];
+  const pd: Record<string, any> = projectData ?? {};
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sections: any[] = pd.content_edits?.sections ?? order.content_edits?.sections ?? [];
 
   const checks: { label: string; done: boolean }[] = [
-    { label: "Название компании", done: !!opts.company_name },
-    { label: "Телефон или email", done: !!(opts.phone || opts.email) },
-    { label: "Адрес", done: !!opts.address },
-    { label: "Режим работы", done: !!opts.working_hours },
+    { label: "Название компании", done: !!(pd.company_name || opts.company_name || order.template_name) },
+    { label: "Телефон или email", done: !!(pd.phone || pd.email || opts.phone || opts.email) },
+    { label: "Адрес", done: !!(pd.address || opts.address) },
+    { label: "Режим работы", done: !!(pd.working_hours || opts.working_hours) },
     { label: "Секция Hero", done: sections.some((s) => s.type === "hero") },
     { label: "Секция Услуги", done: sections.some((s) => s.type === "services") },
     { label: "Секция Галерея или О нас", done: sections.some((s) => s.type === "gallery" || s.type === "about") },
-    { label: "SEO заголовок", done: !!opts.seo_title },
-    { label: "SEO описание", done: !!opts.seo_description },
-    { label: "Домен сайта", done: !!opts.domain_name },
+    { label: "SEO заголовок", done: !!(pd.seo_title || opts.seo_title) },
+    { label: "SEO описание", done: !!(pd.seo_description || opts.seo_description) },
+    { label: "Домен сайта", done: !!(pd.domain_name || opts.domain_name) },
     { label: "Минимум 3 активные секции", done: sections.filter((s) => s.enabled !== false).length >= 3 },
   ];
 
@@ -98,7 +100,8 @@ const WORKFLOW_ACTIONS: { action: string; label: string; fromStatuses: string[] 
 ];
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export default function OverviewTab({ order: initialOrder }: { order: Record<string, any> }) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export default function OverviewTab({ order: initialOrder, projectData }: { order: Record<string, any>; projectData?: Record<string, any> | null }) {
   const router = useRouter();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [order, setOrder] = useState<Record<string, any>>(initialOrder);
@@ -158,7 +161,7 @@ export default function OverviewTab({ order: initialOrder }: { order: Record<str
 
   return (
     <div className="space-y-6">
-      <ProjectHealthCard order={order} />
+      <ProjectHealthCard order={order} projectData={projectData} />
     <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
       {/* LEFT */}
       <div className="space-y-5">
