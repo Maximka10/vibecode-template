@@ -29,32 +29,48 @@ export async function POST(req: NextRequest) {
       clientEmail,
       businessType,
       selectedServices,
-      notes,
       selectedOptions,
-      totalPrice,
+      budget,
+      notes,
       primaryColor,
       bgColor,
+      totalPrice,
     } = body;
 
-    const admin = createAdminClient();
-
-    // Step 1: resolve authenticated user from Bearer token
-    let userId: string | null = null;
-    const authHeader = req.headers.get("Authorization");
-    const token = authHeader?.replace("Bearer ", "").trim();
-    if (token) {
-      const { data: { user }, error: userError } = await admin.auth.getUser(token);
-      if (userError) {
-        console.warn("[lead] auth.getUser error:", userError.message);
-      } else {
-        userId = user?.id ?? null;
+    // =========================
+    // 1. AUTH CONTEXT (CRITICAL FIX)
+    // =========================
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll: () => req.cookies.getAll(),
+          setAll: () => {},
+        },
       }
+    );
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    // HARD GUARD
+    if (!user) {
+      return NextResponse.json(
+        { ok: false, error: "Unauthorized" },
+        { status: 401 }
+      );
     }
 
-    // Step 2: insert order — if this fails, do NOT send Telegram
-    const { data, error: insertError } = await admin
+    // =========================
+    // 2. INSERT ORDER (FIXED OWNERSHIP)
+    // =========================
+    const { data, error } = await supabase
       .from("orders")
       .insert({
+        user_id: user.id, // ✅ ONLY SOURCE OF TRUTH
+
         template_id: templateId ?? templateName,
         template_name: templateName,
         client_name: clientName ?? null,
@@ -69,7 +85,6 @@ export async function POST(req: NextRequest) {
         bg_color: bgColor ?? null,
         total_price: totalPrice ?? null,
         status: "new",
-        user_id: userId,
       })
       .select("id")
       .single();
@@ -89,22 +104,27 @@ export async function POST(req: NextRequest) {
     let telegramSent = false;
 
     if (TELEGRAM_BOT_TOKEN && TELEGRAM_CHAT_ID) {
-      const siteUrl = NEXT_PUBLIC_SITE_URL ?? "https://vibecode-studio-pink.vercel.app";
-      const projectLink = `${siteUrl}/admin/orders/${orderId}`;
+      const siteUrl =
+        NEXT_PUBLIC_SITE_URL ??
+        "https://vibecode-studio-pink.vercel.app";
+
+      const orderLink = `${siteUrl}/admin/orders/${orderId}`;
 
       const lines = [
         `🆕 *Новая заявка* #${orderId.slice(0, 8)}`,
         ``,
-        `👤 ${clientName ?? "—"}`,
-        clientPhone ? `📞 ${clientPhone}` : null,
-        clientTelegram ? `✈️ @${clientTelegram.replace("@", "")}` : null,
-        clientEmail ? `📧 ${clientEmail}` : null,
+        `👤 *Клиент:* ${clientName ?? "—"}`,
+        `📞 *Тел:* ${clientPhone ?? "—"}`,
+        `✈️ *Telegram:* ${
+          clientTelegram ? `@${clientTelegram.replace("@", "")}` : "—"
+        }`,
+        `📧 *Email:* ${clientEmail ?? "—"}`,
         ``,
         `📐 Шаблон: *${templateName ?? "—"}*`,
         businessType ? `🏪 ${businessType}` : null,
         totalPrice ? `💰 ${Number(totalPrice).toLocaleString("ru-RU")} ₽` : null,
         ``,
-        `🔗 [Открыть заказ в системе](${projectLink})`,
+        `🔗 [Открыть заказ в системе](${orderLink})`,
       ]
         .filter(Boolean)
         .join("\n");
