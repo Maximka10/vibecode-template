@@ -62,6 +62,7 @@ export default function CustomizeClient({
   const [submitting, setSubmitting] = useState(false);
   const [orderError, setOrderError] = useState<string | null>(null);
   const [orderStep, setOrderStep] = useState<OrderStep>("form");
+  const [wasAuthenticated, setWasAuthenticated] = useState(false);
 
   const [leadForm, setLeadForm] = useState({ notes: "" });
   const [companyForm, setCompanyForm] = useState({
@@ -118,6 +119,7 @@ export default function CustomizeClient({
       const supabase = createClient();
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData.session?.access_token;
+      if (token) setWasAuthenticated(true);
       console.log("[handleOrder] session token present:", !!token);
 
       // Step 1: create the order record
@@ -182,6 +184,7 @@ export default function CustomizeClient({
       setOrderStep("done");
       try { localStorage.removeItem(`draft-${template.id}`); } catch { /* ignore */ }
       if (token) setTimeout(() => (location.href = "/dashboard"), 2500);
+      else setTimeout(() => (location.href = "/"), 4000);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Неизвестная ошибка";
       console.error("[handleOrder] fetch threw:", msg);
@@ -481,8 +484,9 @@ export default function CustomizeClient({
                   <p className="text-3xl">✅</p>
                   <p className="mt-3 text-lg font-bold">Заявка принята!</p>
                   <p className="mt-2 text-sm leading-relaxed text-white/60">
-                    Менеджер свяжется с вами в течение часа для уточнения деталей.
-                    Переходим в личный кабинет…
+                    {wasAuthenticated
+                      ? "Менеджер свяжется с вами в течение часа. Переходим в личный кабинет…"
+                      : "Менеджер свяжется с вами по указанному email в течение часа."}
                   </p>
                 </div>
               ) : orderStep === "company" ? (
@@ -549,9 +553,13 @@ export default function CustomizeClient({
                     variant="primary"
                     size="lg"
                     className="w-full"
+                    disabled={!companyForm.company_name?.trim() || !companyForm.email?.trim()}
                   >
                     Продолжить →
                   </Btn>
+                  {(!companyForm.company_name?.trim() || !companyForm.email?.trim()) && (
+                    <p className="text-center text-xs text-red-400/70">Заполните название компании и email</p>
+                  )}
                   <Btn onClick={() => setOrderStep("form")} variant="ghost" size="sm" className="w-full">
                     ← Назад
                   </Btn>

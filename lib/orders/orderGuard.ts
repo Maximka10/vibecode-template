@@ -42,6 +42,16 @@ export const TRANSITION_RULES: Record<OrderAction, TransitionRule> = {
     from: ["in_progress", "waiting_client"],
     to: "completed",
   },
+  RESUME_WORK: {
+    role: "admin",
+    from: ["waiting_client"],
+    to: "in_progress",
+  },
+  REOPEN_ORDER: {
+    role: "admin",
+    from: ["completed"],
+    to: "in_progress",
+  },
   CANCEL_ORDER: {
     role: "admin",
     from: ["new", "contacted", "in_progress", "waiting_client"],

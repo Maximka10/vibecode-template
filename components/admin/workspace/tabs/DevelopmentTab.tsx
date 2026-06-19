@@ -260,6 +260,7 @@ export default function DevelopmentTab({ orderId, order }: { orderId: string; or
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [dirty, setDirty] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [savingTemplate, setSavingTemplate] = useState(false);
   const [device, setDevice] = useState<Device>("desktop");
@@ -282,6 +283,12 @@ export default function DevelopmentTab({ orderId, order }: { orderId: string; or
         setLoading(false);
       });
   }, [orderId]);
+
+  useEffect(() => {
+    const handler = (e: BeforeUnloadEvent) => { if (dirty) e.preventDefault(); };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [dirty]);
 
   // ── Build live preview data ───────────────────────────────────────────────
   const previewData = useMemo((): BuildData => {
@@ -313,6 +320,7 @@ export default function DevelopmentTab({ orderId, order }: { orderId: string; or
     setSections((prev) => [...prev, newSection]);
     setEditingId(newSection.id);
     setAddOpen(false);
+    setDirty(true);
   }
 
   function moveSection(index: number, dir: -1 | 1) {
@@ -321,19 +329,23 @@ export default function DevelopmentTab({ orderId, order }: { orderId: string; or
     if (swap < 0 || swap >= next.length) return;
     [next[index], next[swap]] = [next[swap], next[index]];
     setSections(next);
+    setDirty(true);
   }
 
   function deleteSection(id: string) {
     setSections((prev) => prev.filter((s) => s.id !== id));
     if (editingId === id) setEditingId(null);
+    setDirty(true);
   }
 
   function updateSectionContent(id: string, content: SectionContent) {
     setSections((prev) => prev.map((s) => s.id === id ? { ...s, content } : s));
+    setDirty(true);
   }
 
   function toggleSection(id: string) {
     setSections((prev) => prev.map((s) => s.id === id ? { ...s, enabled: !s.enabled } : s));
+    setDirty(true);
   }
 
   // ── Save ─────────────────────────────────────────────────────────────────
@@ -348,7 +360,7 @@ export default function DevelopmentTab({ orderId, order }: { orderId: string; or
       body: JSON.stringify(patch),
     });
     const result = await res.json();
-    if (result.ok) { setPd(result.data); setSaved(true); setTimeout(() => setSaved(false), 3000); }
+    if (result.ok) { setPd(result.data); setSaved(true); setDirty(false); setTimeout(() => setSaved(false), 3000); }
     else setError(result.error ?? "Ошибка сохранения");
     setSaving(false);
   }
@@ -371,6 +383,7 @@ export default function DevelopmentTab({ orderId, order }: { orderId: string; or
       generated.push({ id: genId(), type: "contacts", enabled: true, content: { title: "Контакты", phone: pd.phone || "", email: pd.email || "", telegram: pd.telegram || "", address: pd.address || "", working_hours: pd.working_hours || "" } });
       generated.push({ id: genId(), type: "footer", enabled: true, content: { company_name: pd.company_name || "" } });
       setSections((prev) => prev.length === 0 ? generated : [...prev, ...generated.filter((g) => !prev.some((p) => p.type === g.type))]);
+      setDirty(true);
     } else setError(result.error ?? "Ошибка генерации");
     setGenerating(false);
   }
@@ -406,11 +419,22 @@ export default function DevelopmentTab({ orderId, order }: { orderId: string; or
           <Btn onClick={() => setShowSaveTemplate(true)} variant="ghost" size="sm" disabled={sections.length === 0}>
             💾 Сохранить как шаблон
           </Btn>
-          <div className="ml-auto flex gap-2">
+          <div className="ml-auto flex items-center gap-2">
+            {dirty && !saving && (
+              <span className="flex items-center gap-1 text-xs text-orange-400/80">
+                <span className="inline-block h-1.5 w-1.5 rounded-full bg-orange-400" />
+                Несохранено
+              </span>
+            )}
+            {saved && !dirty && (
+              <span className="flex items-center gap-1 text-xs text-green-400/80">
+                <span className="inline-block h-1.5 w-1.5 rounded-full bg-green-400" />
+                Сохранено
+              </span>
+            )}
             <Btn onClick={handleSave} disabled={saving} loading={saving} size="sm">
               {saving ? "Сохранение…" : "Сохранить"}
             </Btn>
-            {saved && <span className="self-center text-sm text-green-400/80">✓</span>}
           </div>
         </div>
 

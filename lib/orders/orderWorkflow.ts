@@ -23,7 +23,9 @@ export type OrderAction =
   | "CONFIRM_PAYMENT"
   | "START_WORK"
   | "REQUEST_CLIENT_INPUT"
+  | "RESUME_WORK"
   | "COMPLETE_ORDER"
+  | "REOPEN_ORDER"
   | "CANCEL_ORDER";
 
 export type OrderStatus =
@@ -72,7 +74,9 @@ async function sendTelegramNotification(
     CONFIRM_PAYMENT: "✅ Клиент подтвердил заказ",
     START_WORK: "🔨 Работа начата",
     REQUEST_CLIENT_INPUT: "⏳ Ожидаем ответа клиента",
+    RESUME_WORK: "🔄 Работа возобновлена",
     COMPLETE_ORDER: "🎉 Заказ завершён",
+    REOPEN_ORDER: "🔁 Заказ возвращён в работу",
     CANCEL_ORDER: "❌ Заказ отменён",
   };
 

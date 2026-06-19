@@ -170,10 +170,8 @@ export async function POST(req: NextRequest) {
       else console.log("[lead] project_data populated for order:", orderId);
     }
 
-    // Step 3: Telegram — non-blocking, only fires after confirmed insert
+    // Step 3: Telegram — fire-and-forget, never blocks order creation response
     const { TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, NEXT_PUBLIC_SITE_URL } = process.env;
-    let telegramSent = false;
-
     if (TELEGRAM_BOT_TOKEN && TELEGRAM_CHAT_ID) {
       const siteUrl = NEXT_PUBLIC_SITE_URL ?? "https://vibecode-studio-pink.vercel.app";
       const lines = [
@@ -187,34 +185,14 @@ export async function POST(req: NextRequest) {
         .filter(Boolean)
         .join("\n");
 
-      try {
-        const tgRes = await fetch(
-          `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              chat_id: TELEGRAM_CHAT_ID,
-              text: lines,
-              parse_mode: "Markdown",
-              disable_web_page_preview: true,
-            }),
-          }
-        );
-        if (tgRes.ok) {
-          telegramSent = true;
-          console.log("[lead] Telegram sent for order:", orderId);
-        } else {
-          console.error("[lead] Telegram failed:", await tgRes.text());
-        }
-      } catch (tgErr) {
-        console.error("[lead] Telegram network error:", tgErr instanceof Error ? tgErr.message : tgErr);
-      }
-    } else {
-      console.warn("[lead] Telegram not configured");
+      fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ chat_id: TELEGRAM_CHAT_ID, text: lines, parse_mode: "Markdown", disable_web_page_preview: true }),
+      }).catch((err) => console.error("[lead] Telegram send failed (non-fatal):", err instanceof Error ? err.message : err));
     }
 
-    return NextResponse.json({ ok: true, savedToDb: true, orderId, telegramSent });
+    return NextResponse.json({ ok: true, savedToDb: true, orderId });
   } catch (e) {
     console.error("[lead] unhandled error:", e instanceof Error ? e.message : e);
     return NextResponse.json(

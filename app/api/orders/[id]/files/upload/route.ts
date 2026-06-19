@@ -28,7 +28,12 @@ export async function POST(
   const path = `${id}/${folder}/${Date.now()}_${sanitizedName}`;
 
   const admin = createAdminClient();
-  const arrayBuffer = await file.arrayBuffer();
+  let arrayBuffer: ArrayBuffer;
+  try {
+    arrayBuffer = await file.arrayBuffer();
+  } catch {
+    return NextResponse.json({ ok: false, error: "Failed to read file data" }, { status: 400 });
+  }
   const { error } = await admin.storage
     .from(BUCKET)
     .upload(path, arrayBuffer, {

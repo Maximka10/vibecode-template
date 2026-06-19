@@ -13,11 +13,13 @@ const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
   cancelled: { label: "Отменена", color: "bg-red-500/15 text-red-300 border-red-500/30" },
 };
 
-const STATUS_TO_ACTION: Record<string, string> = {
-  in_progress: "START_WORK",
-  waiting_client: "REQUEST_CLIENT_INPUT",
-  completed: "COMPLETE_ORDER",
-};
+const WORKFLOW_ACTIONS: { action: string; label: string; fromStatuses: string[] }[] = [
+  { action: "START_WORK", label: "Начать работу", fromStatuses: ["new", "contacted"] },
+  { action: "REQUEST_CLIENT_INPUT", label: "Ожидать клиента", fromStatuses: ["in_progress", "contacted"] },
+  { action: "RESUME_WORK", label: "Возобновить работу", fromStatuses: ["waiting_client"] },
+  { action: "COMPLETE_ORDER", label: "Завершить заказ", fromStatuses: ["in_progress", "waiting_client"] },
+  { action: "REOPEN_ORDER", label: "Вернуть в работу", fromStatuses: ["completed"] },
+];
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export default function OverviewTab({ order: initialOrder }: { order: Record<string, any> }) {
@@ -28,7 +30,6 @@ export default function OverviewTab({ order: initialOrder }: { order: Record<str
   const [cancelOpen, setCancelOpen] = useState(false);
   const [cancelLoading, setCancelLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [exporting, setExporting] = useState(false);
 
   const statusCfg = STATUS_CONFIG[order.status] ?? { label: order.status, color: "bg-white/10 text-white/60 border-white/10" };
 
@@ -73,25 +74,6 @@ export default function OverviewTab({ order: initialOrder }: { order: Record<str
       if (result.ok) router.push("/admin/orders");
       else { alert(`Ошибка: ${result.error}`); setDeleting(false); }
     } catch { alert("Ошибка соединения"); setDeleting(false); }
-  }
-
-  async function handleExport() {
-    setExporting(true);
-    try {
-      const res = await fetch(`/api/orders/${order.id}/export`, { method: "POST" });
-      const result = await res.json();
-      if (result.ok) {
-        if (result.url) { window.open(result.url, "_blank"); }
-        else {
-          const blob = new Blob([JSON.stringify(result.data, null, 2)], { type: "application/json" });
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement("a");
-          a.href = url; a.download = `order-${order.id.slice(0, 8)}-export.json`; a.click();
-          URL.revokeObjectURL(url);
-        }
-      } else alert(`Ошибка: ${result.error}`);
-    } catch { alert("Ошибка соединения"); }
-    finally { setExporting(false); }
   }
 
   return (
@@ -145,21 +127,9 @@ export default function OverviewTab({ order: initialOrder }: { order: Record<str
           </Card>
         )}
 
-        {/* Export placeholder */}
-        <Card variant="solid" padding="md">
-          <h2 className="mb-3 text-xs font-semibold uppercase tracking-widest text-white/40">Экспорт проекта</h2>
-          <p className="mb-4 text-sm text-white/40">Сгенерируйте готовый проект или скачайте ZIP-архив.</p>
-          <div className="flex flex-wrap gap-2">
-            <Btn variant="outline" size="sm" onClick={() => alert("Будет реализовано на следующем этапе")}>
-              Сгенерировать проект
-            </Btn>
-            <Btn variant="ghost" size="sm" onClick={() => alert("Будет реализовано на следующем этапе")}>
-              ↓ Скачать ZIP
-            </Btn>
-            <Btn variant="ghost" size="sm" onClick={handleExport} disabled={exporting}>
-              {exporting ? "Экспорт…" : "↓ Экспорт конфига"}
-            </Btn>
-          </div>
+        <Card variant="subtle" padding="md">
+          <h2 className="mb-2 text-xs font-semibold uppercase tracking-widest text-white/40">Экспорт</h2>
+          <p className="text-xs text-white/30">Для скачивания ZIP-архива используйте вкладку <span className="text-white/50">Экспорт</span>.</p>
         </Card>
       </div>
 
@@ -172,22 +142,19 @@ export default function OverviewTab({ order: initialOrder }: { order: Record<str
             {statusCfg.label}
           </div>
           <div className="space-y-2">
-            {Object.entries(STATUS_TO_ACTION).map(([targetStatus, action]) => {
-              const cfg = STATUS_CONFIG[targetStatus];
-              const active = order.status === targetStatus;
-              return (
-                <button
-                  key={targetStatus}
-                  disabled={statusSaving || active}
-                  onClick={() => applyTransition(action)}
-                  className={`w-full rounded-xl border px-3 py-2 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 ${
-                    active ? cfg.color : "border-white/10 text-white/50 hover:border-white/25 hover:text-white"
-                  }`}
-                >
-                  {cfg.label}
-                </button>
-              );
-            })}
+            {WORKFLOW_ACTIONS.filter((a) => a.fromStatuses.includes(order.status)).map(({ action, label }) => (
+              <button
+                key={action}
+                disabled={statusSaving}
+                onClick={() => applyTransition(action)}
+                className="w-full rounded-xl border border-white/10 px-3 py-2 text-xs font-semibold text-white/50 transition hover:border-white/25 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {label}
+              </button>
+            ))}
+            {WORKFLOW_ACTIONS.every((a) => !a.fromStatuses.includes(order.status)) && (
+              <p className="text-center text-xs text-white/25">Нет доступных переходов</p>
+            )}
           </div>
         </Card>
 
