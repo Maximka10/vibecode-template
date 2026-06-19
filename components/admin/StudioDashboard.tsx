@@ -59,7 +59,7 @@ function ProjectCard({
             </span>
           </div>
           <p className="mt-1 text-sm text-white/50">
-            {project.client_name ?? project.client_email ?? "Клиент неизвестен"}
+            {project.client_name ?? "Клиент неизвестен"}
             {project.client_phone && ` · ${project.client_phone}`}
           </p>
           <p className="mt-0.5 text-xs text-white/30">

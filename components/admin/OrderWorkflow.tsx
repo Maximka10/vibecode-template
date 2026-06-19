@@ -203,10 +203,8 @@ export default function OrderWorkflow({
               </h2>
               <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
                 <InfoRow label="Клиент" value={order.client_name} />
-                <InfoRow label="Email" value={order.client_email} />
                 <InfoRow label="Телефон" value={order.client_phone} />
                 <InfoRow label="Telegram" value={order.client_telegram ? `@${order.client_telegram.replace("@", "")}` : null} />
-                <InfoRow label="Бизнес" value={order.business_type} />
                 <InfoRow
                   label="Стоимость"
                   value={order.total_price ? `${Number(order.total_price).toLocaleString("ru-RU")} ₽` : null}

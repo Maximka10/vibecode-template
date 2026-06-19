@@ -68,7 +68,6 @@ export default function CustomizeClient({
     clientPhone: "",
     clientTelegram: "",
     clientEmail: "",
-    businessType: template.category,
     notes: "",
     selectedServices: [] as string[],
   });
@@ -125,8 +124,6 @@ export default function CustomizeClient({
         clientName: leadForm.clientName,
         clientPhone: leadForm.clientPhone,
         clientTelegram: leadForm.clientTelegram,
-        clientEmail: leadForm.clientEmail,
-        businessType: leadForm.businessType || template.category,
         selectedServices: leadForm.selectedServices,
         notes: leadForm.notes,
         selectedOptions: template,
