@@ -1,6 +1,23 @@
-import { createAdminClient } from "@/lib/supabase/admin";
+/**
+ * orderWorkflow — the ONLY place where orders.status is mutated.
+ *
+ * Architecture:
+ *   transitionOrder()
+ *     → acquireLock()            (race condition guard)
+ *     → fetch order from DB
+ *     → guardTransition()        (state machine + permission + idempotency)
+ *     → UPDATE orders.status
+ *     → releaseLock()
+ *     → sendTelegramNotification() (non-blocking, never throws)
+ *
+ * No other module in this codebase may call:
+ *   admin.from("orders").update({ status: ... })
+ */
 
-// ── Types ────────────────────────────────────────────────────────────────────
+import { createAdminClient } from "@/lib/supabase/admin";
+import { acquireLock, releaseLock, guardTransition } from "./orderGuard";
+
+// ── Re-export types so consumers import from one place ───────────────────────
 
 export type OrderAction =
   | "CONFIRM_PAYMENT"
@@ -28,43 +45,13 @@ export type TransitionInput = {
 
 export type TransitionResult =
   | { ok: true; orderId: string; status: OrderStatus; previousStatus: OrderStatus }
-  | { ok: false; error: string; code: "NOT_FOUND" | "FORBIDDEN" | "INVALID_TRANSITION" | "DB_ERROR" | "UNKNOWN" };
+  | {
+      ok: false;
+      error: string;
+      code: "NOT_FOUND" | "FORBIDDEN" | "INVALID_TRANSITION" | "DB_ERROR" | "LOCKED" | "UNKNOWN";
+    };
 
-// ── State machine ─────────────────────────────────────────────────────────────
-
-// Maps action → { requiredRole, allowedFromStatuses, targetStatus }
-const TRANSITIONS: Record<
-  OrderAction,
-  { role: ActorRole; from: OrderStatus[]; to: OrderStatus }
-> = {
-  CONFIRM_PAYMENT: {
-    role: "client",
-    from: ["new"],
-    to: "contacted",
-  },
-  START_WORK: {
-    role: "admin",
-    from: ["new", "contacted"],
-    to: "in_progress",
-  },
-  REQUEST_CLIENT_INPUT: {
-    role: "admin",
-    from: ["in_progress", "contacted"],
-    to: "waiting_client",
-  },
-  COMPLETE_ORDER: {
-    role: "admin",
-    from: ["in_progress", "waiting_client"],
-    to: "completed",
-  },
-  CANCEL_ORDER: {
-    role: "admin",
-    from: ["new", "contacted", "in_progress", "waiting_client"],
-    to: "cancelled",
-  },
-};
-
-// ── Telegram helper ───────────────────────────────────────────────────────────
+// ── Telegram ─────────────────────────────────────────────────────────────────
 
 async function sendTelegramNotification(
   order: Record<string, unknown>,
@@ -73,12 +60,12 @@ async function sendTelegramNotification(
 ): Promise<void> {
   const { TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, NEXT_PUBLIC_SITE_URL } = process.env;
   if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) {
-    console.warn("[orderWorkflow] Telegram not configured — skipping notification");
+    console.warn("[orderWorkflow] Telegram not configured — skipping");
     return;
   }
 
-  const siteUrl = NEXT_PUBLIC_SITE_URL ?? "https://vibecode-studio-pink.vercel.app";
   const orderId = order.id as string;
+  const siteUrl = NEXT_PUBLIC_SITE_URL ?? "https://vibecode-studio-pink.vercel.app";
   const link = `${siteUrl}/admin/orders/${orderId}`;
 
   const ACTION_LABELS: Record<OrderAction, string> = {
@@ -106,7 +93,7 @@ async function sendTelegramNotification(
     .join("\n");
 
   try {
-    const tgRes = await fetch(
+    const res = await fetch(
       `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`,
       {
         method: "POST",
@@ -119,16 +106,14 @@ async function sendTelegramNotification(
         }),
       }
     );
-
-    if (tgRes.ok) {
-      console.log(`[orderWorkflow] Telegram sent for action=${action} order=${orderId}`);
+    if (res.ok) {
+      console.log(`[orderWorkflow] Telegram OK action=${action} order=${orderId}`);
     } else {
-      const errText = await tgRes.text();
-      console.error(`[orderWorkflow] Telegram API error for order=${orderId}:`, errText);
+      console.error(`[orderWorkflow] Telegram API error order=${orderId}:`, await res.text());
     }
   } catch (err) {
     console.error(
-      `[orderWorkflow] Telegram network error for order=${orderId}:`,
+      `[orderWorkflow] Telegram network error order=${orderId}:`,
       err instanceof Error ? err.message : err
     );
   }
@@ -138,82 +123,85 @@ async function sendTelegramNotification(
 
 export async function transitionOrder(input: TransitionInput): Promise<TransitionResult> {
   const { orderId, action, actorId, actorRole } = input;
-  console.log(`[orderWorkflow] transition received: action=${action} orderId=${orderId} actorId=${actorId} actorRole=${actorRole}`);
+  console.log(
+    `[orderWorkflow] → action=${action} orderId=${orderId} actorId=${actorId} actorRole=${actorRole}`
+  );
 
-  // 1. Validate action is known
-  const transition = TRANSITIONS[action];
-  if (!transition) {
-    console.error(`[orderWorkflow] Unknown action: ${action}`);
-    return { ok: false, error: `Unknown action: ${action}`, code: "INVALID_TRANSITION" };
+  // ── 1. In-process lock (double-click / race condition protection) ──────────
+  const locked = acquireLock(orderId);
+  if (!locked) {
+    console.warn(`[orderWorkflow] LOCKED: orderId=${orderId} already processing`);
+    return { ok: false, error: "Order is already being processed. Please wait.", code: "LOCKED" };
   }
 
-  // 2. Permission check
-  if (transition.role !== actorRole) {
-    console.warn(`[orderWorkflow] Permission denied: action=${action} requires role=${transition.role} but actor has role=${actorRole}`);
-    return {
-      ok: false,
-      error: `Action ${action} requires role "${transition.role}"`,
-      code: "FORBIDDEN",
-    };
-  }
-  console.log(`[orderWorkflow] permission check passed: actorRole=${actorRole}`);
+  try {
+    // ── 2. Fetch current order ───────────────────────────────────────────────
+    const admin = createAdminClient();
+    const { data: order, error: fetchError } = await admin
+      .from("orders")
+      .select(
+        "id, status, user_id, client_name, client_phone, template_id, template_name, total_price"
+      )
+      .eq("id", orderId)
+      .single();
 
-  // 3. Fetch current order
-  const admin = createAdminClient();
-  const { data: order, error: fetchError } = await admin
-    .from("orders")
-    .select("id, status, user_id, client_name, client_phone, template_id, template_name, total_price")
-    .eq("id", orderId)
-    .single();
+    if (fetchError || !order) {
+      console.error(`[orderWorkflow] Order not found: orderId=${orderId}`, fetchError?.message);
+      return { ok: false, error: "Order not found", code: "NOT_FOUND" };
+    }
 
-  if (fetchError || !order) {
-    console.error(`[orderWorkflow] Order not found: orderId=${orderId}`, fetchError?.message);
-    return { ok: false, error: "Order not found", code: "NOT_FOUND" };
-  }
+    const previousStatus = order.status as OrderStatus;
+    console.log(`[orderWorkflow] current status=${previousStatus} target=${action}`);
 
-  const previousStatus = order.status as OrderStatus;
-  console.log(`[orderWorkflow] current status: ${previousStatus} → target: ${transition.to}`);
+    // ── 3. Guard: permissions + state machine + idempotency ─────────────────
+    const guard = guardTransition({
+      action,
+      actorId,
+      actorRole,
+      currentStatus: previousStatus,
+      orderUserId: order.user_id,
+    });
 
-  // 4. Validate transition is allowed from current status
-  if (!transition.from.includes(previousStatus)) {
-    console.warn(
-      `[orderWorkflow] Invalid transition: action=${action} not allowed from status=${previousStatus}. Allowed from: [${transition.from.join(", ")}]`
+    if (!guard.ok) {
+      const rejected = guard.result;
+      console.warn(
+        `[orderWorkflow] guard rejected: action=${action} status=${previousStatus} → ${!rejected.ok ? rejected.error : ""}`
+      );
+      return rejected;
+    }
+
+    const { rule } = guard;
+    console.log(`[orderWorkflow] guard passed: ${previousStatus} → ${rule.to}`);
+
+    // ── 4. Apply status update (THE ONLY PLACE this ever happens) ───────────
+    const { error: updateError } = await admin
+      .from("orders")
+      .update({ status: rule.to, updated_at: new Date().toISOString() })
+      .eq("id", orderId)
+      // Extra safety: only update if status hasn't changed since we read it.
+      // This is the serialisation point for multi-instance deployments.
+      .eq("status", previousStatus);
+
+    if (updateError) {
+      console.error(
+        `[orderWorkflow] DB update failed orderId=${orderId}:`,
+        updateError.message
+      );
+      return { ok: false, error: updateError.message, code: "DB_ERROR" };
+    }
+
+    console.log(
+      `[orderWorkflow] ✓ status updated ${previousStatus} → ${rule.to} for orderId=${orderId}`
     );
-    return {
-      ok: false,
-      error: `Cannot perform ${action} when order is "${previousStatus}". Allowed from: ${transition.from.join(", ")}`,
-      code: "INVALID_TRANSITION",
-    };
+
+    // ── 5. Telegram (non-blocking, failure never aborts the response) ────────
+    sendTelegramNotification(order, action, rule.to).catch((err) => {
+      console.error("[orderWorkflow] Telegram threw unexpectedly:", err);
+    });
+
+    return { ok: true, orderId, status: rule.to, previousStatus };
+  } finally {
+    // Lock MUST always be released, even on thrown exceptions
+    releaseLock(orderId);
   }
-
-  // 5. For client actions: verify actor owns the order
-  if (actorRole === "client" && order.user_id !== actorId) {
-    console.warn(`[orderWorkflow] Ownership check failed: actorId=${actorId} order.user_id=${order.user_id}`);
-    return { ok: false, error: "Order does not belong to this user", code: "FORBIDDEN" };
-  }
-
-  // 6. Apply status update
-  const { error: updateError } = await admin
-    .from("orders")
-    .update({ status: transition.to, updated_at: new Date().toISOString() })
-    .eq("id", orderId);
-
-  if (updateError) {
-    console.error(`[orderWorkflow] DB update failed for orderId=${orderId}:`, updateError.message);
-    return { ok: false, error: updateError.message, code: "DB_ERROR" };
-  }
-
-  console.log(`[orderWorkflow] status updated: ${previousStatus} → ${transition.to} for orderId=${orderId}`);
-
-  // 7. Fire Telegram notification (non-blocking — never throws)
-  sendTelegramNotification(order, action, transition.to).catch((err) => {
-    console.error("[orderWorkflow] Unexpected Telegram error (should not happen):", err);
-  });
-
-  return {
-    ok: true,
-    orderId,
-    status: transition.to,
-    previousStatus,
-  };
 }

@@ -152,26 +152,14 @@ export default function OrderWorkflow({
     }
   }
 
-  // Escape hatch: admin can force any valid status via direct PATCH
-  async function forceStatus(status: string) {
-    setStatusSaving(true);
-    console.log("[OrderWorkflow] forceStatus:", status, "for order:", order.id);
-    try {
-      const res = await fetch(`/api/orders/${order.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status }),
-      });
-      const result = await res.json();
-      console.log("[OrderWorkflow] forceStatus result:", result);
-      if (res.ok) setOrder((prev) => ({ ...prev, status }));
-      else console.error("[OrderWorkflow] forceStatus error:", result);
-    } catch (err) {
-      console.error("[OrderWorkflow] forceStatus threw:", err);
-    } finally {
-      setStatusSaving(false);
-    }
-  }
+  // Maps each target status to the workflow action that reaches it (admin view)
+  const STATUS_TO_ACTION: Partial<Record<string, string>> = {
+    in_progress: "START_WORK",
+    waiting_client: "REQUEST_CLIENT_INPUT",
+    completed: "COMPLETE_ORDER",
+    cancelled: "CANCEL_ORDER",
+    contacted: "START_WORK", // admin "contacted" = effectively start of engagement
+  };
 
   const statusCfg = STATUS_CONFIG[order.status] ?? { label: order.status, color: "bg-white/10 text-white/60 border-white/10" };
 
@@ -349,11 +337,13 @@ export default function OrderWorkflow({
                 {STATUS_ORDER.map((s) => {
                   const cfg = STATUS_CONFIG[s];
                   const active = order.status === s;
+                  const action = STATUS_TO_ACTION[s];
                   return (
                     <button
                       key={s}
-                      disabled={statusSaving || active}
-                      onClick={() => forceStatus(s)}
+                      disabled={statusSaving || active || !action}
+                      onClick={() => action && applyTransition(action)}
+                      title={!action ? "Этот статус устанавливается автоматически" : undefined}
                       className={`rounded-xl border px-2.5 py-2 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 ${
                         active
                           ? cfg.color
