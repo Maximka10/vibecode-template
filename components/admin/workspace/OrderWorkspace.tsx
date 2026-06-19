@@ -8,6 +8,7 @@ import MaterialsTab from "./tabs/MaterialsTab";
 import DevelopmentTab from "./tabs/DevelopmentTab";
 import PreviewTab from "./tabs/PreviewTab";
 import HistoryTab from "./tabs/HistoryTab";
+import ExportTab from "./tabs/ExportTab";
 
 const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
   new: { label: "Новая", color: "bg-blue-500/15 text-blue-300 border-blue-500/30" },
@@ -24,6 +25,7 @@ const TABS = [
   { id: "materials", label: "Материалы" },
   { id: "development", label: "Разработка" },
   { id: "preview", label: "Предпросмотр" },
+  { id: "export", label: "Экспорт" },
   { id: "history", label: "История" },
 ] as const;
 
@@ -94,6 +96,7 @@ export default function OrderWorkspace({
         {activeTab === "materials" && <MaterialsTab orderId={order.id} order={order} />}
         {activeTab === "development" && <DevelopmentTab orderId={order.id} order={order} />}
         {activeTab === "preview" && <PreviewTab orderId={order.id} />}
+        {activeTab === "export" && <ExportTab orderId={order.id} />}
         {activeTab === "history" && <HistoryTab order={order} messages={initialMessages} />}
       </div>
     </main>
