@@ -122,6 +122,12 @@ export default function MaterialsTab({ orderId, order }: { orderId: string; orde
         </div>
       )}
 
+      <div className="flex items-center gap-3">
+        <div className="flex-1 h-px bg-white/8" />
+        <p className="text-xs font-semibold uppercase tracking-widest text-white/25">Загруженные файлы</p>
+        <div className="flex-1 h-px bg-white/8" />
+      </div>
+
       {(Object.keys(FOLDER_CONFIG) as Folder[]).map((folder) => {
         const cfg = FOLDER_CONFIG[folder];
         const folderFiles = files[folder] ?? [];
