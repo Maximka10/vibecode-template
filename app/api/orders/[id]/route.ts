@@ -12,8 +12,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getUserRole } from "@/lib/supabase/role";
+import { ORDER_METADATA_PATCH_KEYS } from "@/types/orders";
 
-const METADATA_FIELDS = ["project_url", "domain", "notes", "launch_date", "admin_url"] as const;
+const METADATA_FIELDS = ORDER_METADATA_PATCH_KEYS;
 type MetadataField = (typeof METADATA_FIELDS)[number];
 
 export async function PATCH(

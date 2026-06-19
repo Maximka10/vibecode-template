@@ -1,9 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { ORDER_ALLOWED_INSERT_KEYS } from "@/types/orders";
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
+
+    // Reject unknown/forbidden fields before any DB operation
+    const ALLOWED_BODY_KEYS = new Set([
+      "templateId", "templateName", "clientName", "clientPhone", "clientTelegram",
+      "clientEmail", "businessType", "selectedServices", "notes", "selectedOptions",
+      "totalPrice", "primaryColor", "bgColor",
+    ]);
+    const unknown = Object.keys(body).filter((k) => !ALLOWED_BODY_KEYS.has(k));
+    if (unknown.length > 0) {
+      return NextResponse.json(
+        { ok: false, error: `Unknown fields: ${unknown.join(", ")}` },
+        { status: 400 }
+      );
+    }
+
     const {
       templateId,
       templateName,
@@ -34,7 +50,6 @@ export async function POST(req: NextRequest) {
         userId = user?.id ?? null;
       }
     }
-    console.log("ORDER USER", userId);
 
     // Step 2: insert order — if this fails, do NOT send Telegram
     const { data, error: insertError } = await admin
@@ -68,7 +83,6 @@ export async function POST(req: NextRequest) {
     }
 
     const orderId = data.id;
-    console.log("ORDER CREATED:", orderId);
 
     // Step 3: send Telegram — only runs after confirmed insert
     const { TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, NEXT_PUBLIC_SITE_URL } = process.env;
@@ -111,7 +125,6 @@ export async function POST(req: NextRequest) {
         );
         if (tgRes.ok) {
           telegramSent = true;
-          console.log("TELEGRAM SENT: success, order", orderId);
         } else {
           const tgErr = await tgRes.text();
           console.error("TELEGRAM SENT: failed —", tgErr);
