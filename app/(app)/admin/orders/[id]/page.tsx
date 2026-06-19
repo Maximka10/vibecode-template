@@ -1,9 +1,9 @@
 import { notFound, redirect } from "next/navigation";
 import { getUserWithRole } from "@/lib/auth/getUserWithRole";
 import { createAdminClient } from "@/lib/supabase/admin";
-import OrderWorkflow from "@/components/admin/OrderWorkflow";
+import OrderWorkspace from "@/components/admin/workspace/OrderWorkspace";
 
-export default async function OrderWorkflowPage({
+export default async function OrderWorkspacePage({
   params,
 }: {
   params: Promise<{ id: string }>;
@@ -30,7 +30,7 @@ export default async function OrderWorkflowPage({
   if (orderRes.error || !orderRes.data) notFound();
 
   return (
-    <OrderWorkflow
+    <OrderWorkspace
       order={orderRes.data}
       initialMessages={messagesRes.data ?? []}
       adminId={user.id}
