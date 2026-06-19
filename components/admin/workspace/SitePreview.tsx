@@ -11,6 +11,8 @@ const DEVICE_WIDTH: Record<PreviewDevice, string> = {
 
 const ICONS = ["✦", "◈", "◆", "⬡", "◉", "⬟"];
 
+function s(v: unknown): string { return v != null ? String(v) : ""; }
+
 function SectionHero({ content, primary, secondary }: { content: Record<string, unknown>; primary: string; secondary: string }) {
   return (
     <div
@@ -18,19 +20,19 @@ function SectionHero({ content, primary, secondary }: { content: Record<string, 
       style={{ background: `linear-gradient(135deg, ${primary}, ${secondary})` }}
     >
       <div className="relative mx-auto max-w-4xl">
-        {content.title && (
-          <h1 className="text-4xl font-black leading-tight sm:text-5xl">{String(content.title)}</h1>
+        {!!content.title && (
+          <h1 className="text-4xl font-black leading-tight sm:text-5xl">{s(content.title)}</h1>
         )}
-        {content.subtitle && (
-          <p className="mt-4 max-w-2xl text-base leading-relaxed opacity-85">{String(content.subtitle)}</p>
+        {!!content.subtitle && (
+          <p className="mt-4 max-w-2xl text-base leading-relaxed opacity-85">{s(content.subtitle)}</p>
         )}
-        {content.cta_text && (
+        {!!content.cta_text && (
           <div className="mt-8">
             <span
               className="inline-flex items-center gap-2 rounded-full px-8 py-3 text-sm font-bold shadow-lg"
               style={{ backgroundColor: "white", color: primary }}
             >
-              {String(content.cta_text)}
+              {s(content.cta_text)}
             </span>
           </div>
         )}
@@ -50,8 +52,8 @@ function SectionAbout({ content, primary }: { content: Record<string, unknown>; 
   return (
     <div className="px-8 py-14 bg-white border-b border-slate-100">
       <div className="mb-3 h-1 w-10 rounded-full" style={{ backgroundColor: primary }} />
-      {content.title && <h2 className="mb-5 text-2xl font-black text-slate-900">{String(content.title)}</h2>}
-      {content.text && <p className="text-sm leading-relaxed text-slate-600 whitespace-pre-line max-w-3xl">{String(content.text)}</p>}
+      {!!content.title && <h2 className="mb-5 text-2xl font-black text-slate-900">{s(content.title)}</h2>}
+      {!!content.text && <p className="text-sm leading-relaxed text-slate-600 whitespace-pre-line max-w-3xl">{s(content.text)}</p>}
     </div>
   );
 }
@@ -61,9 +63,9 @@ function SectionServices({ content, primary }: { content: Record<string, unknown
   return (
     <div className="px-8 py-14 bg-slate-50 border-b border-slate-100">
       <div className="mb-3 h-1 w-10 rounded-full" style={{ backgroundColor: primary }} />
-      {content.title && <h2 className="mb-7 text-2xl font-black text-slate-900">{String(content.title)}</h2>}
+      {!!content.title && <h2 className="mb-7 text-2xl font-black text-slate-900">{s(content.title)}</h2>}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {items.map((s, i) => (
+        {items.map((item, i) => (
           <div key={i} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
             <div
               className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl text-lg text-white"
@@ -71,7 +73,7 @@ function SectionServices({ content, primary }: { content: Record<string, unknown
             >
               {ICONS[i % ICONS.length]}
             </div>
-            <p className="font-bold text-slate-800 leading-snug">{s}</p>
+            <p className="font-bold text-slate-800 leading-snug">{item}</p>
           </div>
         ))}
       </div>
@@ -83,7 +85,7 @@ function SectionGallery({ content }: { content: Record<string, unknown> }) {
   const images = (content.images as string[]) ?? [];
   return (
     <div className="px-8 py-14 bg-white border-b border-slate-100">
-      {content.title && <h2 className="mb-7 text-2xl font-black text-slate-900">{String(content.title)}</h2>}
+      {!!content.title && <h2 className="mb-7 text-2xl font-black text-slate-900">{s(content.title)}</h2>}
       {images.length > 0 ? (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           {images.map((img, i) => (
@@ -113,7 +115,7 @@ function SectionReviews({ content, primary }: { content: Record<string, unknown>
   return (
     <div className="px-8 py-14 bg-slate-50 border-b border-slate-100">
       <div className="mb-3 h-1 w-10 rounded-full" style={{ backgroundColor: primary }} />
-      {content.title && <h2 className="mb-7 text-2xl font-black text-slate-900">{String(content.title)}</h2>}
+      {!!content.title && <h2 className="mb-7 text-2xl font-black text-slate-900">{s(content.title)}</h2>}
       <div className="grid gap-4 sm:grid-cols-2">
         {items.map((r, i) => (
           <div key={i} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -138,7 +140,7 @@ function SectionFAQ({ content, primary }: { content: Record<string, unknown>; pr
   return (
     <div className="px-8 py-14 bg-white border-b border-slate-100">
       <div className="mb-3 h-1 w-10 rounded-full" style={{ backgroundColor: primary }} />
-      {content.title && <h2 className="mb-7 text-2xl font-black text-slate-900">{String(content.title)}</h2>}
+      {!!content.title && <h2 className="mb-7 text-2xl font-black text-slate-900">{s(content.title)}</h2>}
       <div className="space-y-3 max-w-3xl">
         {items.map((f, i) => (
           <div key={i} className="rounded-2xl border border-slate-200 overflow-hidden">
@@ -159,7 +161,7 @@ function SectionPricing({ content, primary }: { content: Record<string, unknown>
   return (
     <div className="px-8 py-14 bg-slate-50 border-b border-slate-100">
       <div className="mb-3 h-1 w-10 rounded-full" style={{ backgroundColor: primary }} />
-      {content.title && <h2 className="mb-7 text-2xl font-black text-slate-900">{String(content.title)}</h2>}
+      {!!content.title && <h2 className="mb-7 text-2xl font-black text-slate-900">{s(content.title)}</h2>}
       <div className="grid gap-5 sm:grid-cols-3">
         {plans.map((p, i) => (
           <div
@@ -194,14 +196,14 @@ function SectionCTA({ content, primary, secondary }: { content: Record<string, u
       className="px-8 py-20 text-center text-white"
       style={{ background: `linear-gradient(135deg, ${primary}, ${secondary})` }}
     >
-      {content.title && <h2 className="text-3xl font-black">{String(content.title)}</h2>}
-      {content.subtitle && <p className="mt-3 text-base opacity-80">{String(content.subtitle)}</p>}
-      {content.cta_text && (
+      {!!content.title && <h2 className="text-3xl font-black">{s(content.title)}</h2>}
+      {!!content.subtitle && <p className="mt-3 text-base opacity-80">{s(content.subtitle)}</p>}
+      {!!content.cta_text && (
         <span
           className="mt-8 inline-flex items-center gap-2 rounded-full px-10 py-4 text-sm font-bold shadow-lg"
           style={{ backgroundColor: "white", color: primary }}
         >
-          {String(content.cta_text)} →
+          {s(content.cta_text)} →
         </span>
       )}
     </div>
@@ -210,18 +212,18 @@ function SectionCTA({ content, primary, secondary }: { content: Record<string, u
 
 function SectionContacts({ content, primary }: { content: Record<string, unknown>; primary: string }) {
   const items = [
-    content.phone && { icon: "📞", label: "Телефон", value: String(content.phone) },
-    content.email && { icon: "✉️", label: "Email", value: String(content.email) },
-    content.telegram && { icon: "💬", label: "Telegram", value: String(content.telegram) },
-    content.whatsapp && { icon: "📱", label: "WhatsApp", value: String(content.whatsapp) },
-    content.address && { icon: "📍", label: "Адрес", value: String(content.address) },
-    content.working_hours && { icon: "🕐", label: "Режим работы", value: String(content.working_hours) },
+    content.phone && { icon: "📞", label: "Телефон", value: s(content.phone) },
+    content.email && { icon: "✉️", label: "Email", value: s(content.email) },
+    content.telegram && { icon: "💬", label: "Telegram", value: s(content.telegram) },
+    content.whatsapp && { icon: "📱", label: "WhatsApp", value: s(content.whatsapp) },
+    content.address && { icon: "📍", label: "Адрес", value: s(content.address) },
+    content.working_hours && { icon: "🕐", label: "Режим работы", value: s(content.working_hours) },
   ].filter(Boolean) as { icon: string; label: string; value: string }[];
 
   return (
     <div className="px-8 py-14 bg-white border-b border-slate-100">
       <div className="mb-3 h-1 w-10 rounded-full" style={{ backgroundColor: primary }} />
-      {content.title && <h2 className="mb-7 text-2xl font-black text-slate-900">{String(content.title)}</h2>}
+      {!!content.title && <h2 className="mb-7 text-2xl font-black text-slate-900">{s(content.title)}</h2>}
       <div className="grid gap-4 sm:grid-cols-2">
         {items.map((item, i) => (
           <div key={i} className="flex items-start gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-5">
@@ -244,13 +246,13 @@ function SectionContacts({ content, primary }: { content: Record<string, unknown
 
 function SectionMap({ content, primary }: { content: Record<string, unknown>; primary: string }) {
   const embedUrl = (content.embed_url as string) ||
-    (content.address ? `https://yandex.ru/map-widget/v1/?text=${encodeURIComponent(String(content.address))}&z=15&lang=ru_RU` : null);
+    (content.address ? `https://yandex.ru/map-widget/v1/?text=${encodeURIComponent(s(content.address))}&z=15&lang=ru_RU` : null);
 
   return (
     <div className="px-8 py-14 bg-slate-50 border-b border-slate-100">
       <div className="mb-3 h-1 w-10 rounded-full" style={{ backgroundColor: primary }} />
-      {content.title && <h2 className="mb-4 text-2xl font-black text-slate-900">{String(content.title)}</h2>}
-      {content.address && <p className="mb-5 text-sm text-slate-600">📍 {String(content.address)}</p>}
+      {!!content.title && <h2 className="mb-4 text-2xl font-black text-slate-900">{s(content.title)}</h2>}
+      {!!content.address && <p className="mb-5 text-sm text-slate-600">📍 {s(content.address)}</p>}
       {embedUrl ? (
         <iframe
           src={embedUrl}
@@ -263,10 +265,10 @@ function SectionMap({ content, primary }: { content: Record<string, unknown>; pr
           Введите адрес для отображения карты
         </div>
       )}
-      {content.address && (
+      {!!content.address && (
         <div className="mt-4 flex gap-3">
           <a
-            href={`https://yandex.ru/maps/?text=${encodeURIComponent(String(content.address))}`}
+            href={`https://yandex.ru/maps/?text=${encodeURIComponent(s(content.address))}`}
             target="_blank"
             rel="noopener noreferrer"
             className="rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
@@ -274,7 +276,7 @@ function SectionMap({ content, primary }: { content: Record<string, unknown>; pr
             🗺 Яндекс.Карты
           </a>
           <a
-            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(String(content.address))}`}
+            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(s(content.address))}`}
             target="_blank"
             rel="noopener noreferrer"
             className="rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
@@ -293,7 +295,7 @@ function SectionFooter({ content, primary }: { content: Record<string, unknown>;
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <span className="text-base font-black" style={{ color: primary }}>
-            {String(content.company_name || "Компания")}
+            {s(content.company_name || "Компания")}
           </span>
           <p className="mt-1 text-xs text-slate-500">Профессиональные услуги</p>
         </div>
@@ -306,7 +308,7 @@ function SectionFooter({ content, primary }: { content: Record<string, unknown>;
         )}
       </div>
       <div className="mt-8 border-t border-slate-800 pt-5 text-xs text-slate-600">
-        © {new Date().getFullYear()} {String(content.company_name || "Компания")}. Все права защищены.
+        © {new Date().getFullYear()} {s(content.company_name || "Компания")}. Все права защищены.
       </div>
     </div>
   );
