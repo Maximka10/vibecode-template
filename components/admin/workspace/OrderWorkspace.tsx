@@ -86,13 +86,13 @@ export default function OrderWorkspace({
       </div>
 
       {/* Tab content */}
-      <div className="mx-auto max-w-5xl px-4 py-6">
+      <div className={`mx-auto px-4 py-6 ${activeTab === "development" ? "max-w-7xl" : "max-w-5xl"}`}>
         {activeTab === "overview" && <OverviewTab order={order} />}
         {activeTab === "chat" && (
           <ChatTab orderId={order.id} adminId={adminId} initialMessages={initialMessages} />
         )}
         {activeTab === "materials" && <MaterialsTab orderId={order.id} order={order} />}
-        {activeTab === "development" && <DevelopmentTab orderId={order.id} />}
+        {activeTab === "development" && <DevelopmentTab orderId={order.id} order={order} />}
         {activeTab === "preview" && <PreviewTab orderId={order.id} />}
         {activeTab === "history" && <HistoryTab order={order} messages={initialMessages} />}
       </div>

@@ -28,6 +28,9 @@ export type BuildData = {
   };
   content: {
     domain_name: string;
+    hero_cta?: string;
+    about_title?: string;
+    about_text?: string;
   };
 };
 
@@ -35,6 +38,11 @@ type TemplateSnapshot = {
   template_id?: string;
   template_name?: string;
   selected_options?: Record<string, unknown>;
+};
+
+type ContentEdits = {
+  hero?: { title?: string; subtitle?: string; cta?: string };
+  about?: { title?: string; text?: string };
 };
 
 type ProjectData = {
@@ -50,6 +58,7 @@ type ProjectData = {
   seo_title?: string | null;
   seo_description?: string | null;
   branding?: { primary_color?: string; secondary_color?: string } | null;
+  content_edits?: ContentEdits | null;
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -67,6 +76,7 @@ export function buildOrderSite(
     };
 
   const pd = projectData ?? {};
+  const ce = pd.content_edits ?? {};
 
   return {
     meta: {
@@ -77,8 +87,8 @@ export function buildOrderSite(
       order_id: order.id,
     },
     company: {
-      name: pd.company_name ?? order.template_name ?? "Компания",
-      description: pd.company_description ?? "",
+      name: ce.hero?.title || pd.company_name || order.template_name || "Компания",
+      description: ce.hero?.subtitle || pd.company_description || "",
       address: pd.address ?? "",
       working_hours: pd.working_hours ?? "",
     },
@@ -93,11 +103,14 @@ export function buildOrderSite(
       secondary_color: pd.branding?.secondary_color ?? "#8b5cf6",
     },
     seo: {
-      title: pd.seo_title ?? pd.company_name ?? order.template_name ?? "",
-      description: pd.seo_description ?? pd.company_description ?? "",
+      title: pd.seo_title ?? ce.hero?.title ?? pd.company_name ?? order.template_name ?? "",
+      description: pd.seo_description ?? ce.about?.text ?? pd.company_description ?? "",
     },
     content: {
       domain_name: pd.domain_name ?? "",
+      hero_cta: ce.hero?.cta,
+      about_title: ce.about?.title,
+      about_text: ce.about?.text || pd.company_description || undefined,
     },
   };
 }
