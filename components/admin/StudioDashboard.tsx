@@ -1,16 +1,19 @@
 "use client";
 import { useState } from "react";
-import Link from "next/link";
+import { Btn } from "@/components/ui/Btn";
+import { Card } from "@/components/ui/Card";
+import { Input } from "@/components/ui/Input";
 
 const PROJECT_STATUS = {
-  new: { label: "Черновик", color: "bg-slate-500/20 text-slate-300" },
-  contacted: { label: "Знакомство", color: "bg-purple-500/20 text-purple-300" },
-  in_progress: { label: "В работе", color: "bg-yellow-500/20 text-yellow-300" },
-  waiting_client: { label: "На согласовании", color: "bg-orange-500/20 text-orange-300" },
-  completed: { label: "Запущен", color: "bg-green-500/20 text-green-300" },
-  cancelled: { label: "Отменён", color: "bg-red-500/20 text-red-300" },
+  new: { label: "Черновик", color: "bg-slate-500/15 text-slate-300 border-slate-500/25" },
+  contacted: { label: "Знакомство", color: "bg-purple-500/15 text-purple-300 border-purple-500/25" },
+  in_progress: { label: "В работе", color: "bg-yellow-500/15 text-yellow-300 border-yellow-500/25" },
+  waiting_client: { label: "На согласовании", color: "bg-orange-500/15 text-orange-300 border-orange-500/25" },
+  completed: { label: "Запущен", color: "bg-green-500/15 text-green-300 border-green-500/25" },
+  cancelled: { label: "Отменён", color: "bg-red-500/15 text-red-300 border-red-500/25" },
 } as const;
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Project = Record<string, any>;
 
 async function patchOrder(id: string, update: Record<string, unknown>) {
@@ -21,14 +24,20 @@ async function patchOrder(id: string, update: Record<string, unknown>) {
   });
 }
 
-function ProjectCard({ project, onUpdate }: { project: Project; onUpdate: (id: string, update: Record<string, unknown>) => void }) {
+function ProjectCard({
+  project,
+  onUpdate,
+}: {
+  project: Project;
+  onUpdate: (id: string, update: Record<string, unknown>) => void;
+}) {
   const [editing, setEditing] = useState(false);
   const [url, setUrl] = useState(project.project_url ?? "");
   const [domain, setDomain] = useState(project.domain ?? "");
   const [saving, setSaving] = useState(false);
 
-  const cfg = PROJECT_STATUS[project.status as keyof typeof PROJECT_STATUS] ??
-    { label: project.status, color: "bg-white/10 text-white/60" };
+  const status = project.status as keyof typeof PROJECT_STATUS;
+  const cfg = PROJECT_STATUS[status] ?? { label: project.status, color: "bg-white/10 text-white/60 border-white/15" };
 
   async function save() {
     setSaving(true);
@@ -39,13 +48,13 @@ function ProjectCard({ project, onUpdate }: { project: Project; onUpdate: (id: s
   }
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
+    <Card variant="solid" padding="md" hover>
       {/* Top row */}
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="flex flex-wrap items-center gap-2">
             <h3 className="font-bold">{project.template_name ?? project.template_id ?? "Проект"}</h3>
-            <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${cfg.color}`}>
+            <span className={`rounded-full border px-2.5 py-0.5 text-xs font-semibold ${cfg.color}`}>
               {cfg.label}
             </span>
           </div>
@@ -58,56 +67,49 @@ function ProjectCard({ project, onUpdate }: { project: Project; onUpdate: (id: s
           </p>
         </div>
 
-        {/* Actions */}
         <div className="flex gap-2">
-          <Link
-            href={`/customize/${project.template_id}`}
-            className="rounded-full border border-white/20 px-3 py-1.5 text-xs hover:border-white/40"
-          >
+          <Btn href={`/customize/${project.template_id}`} variant="outline" size="sm">
             Редактор
-          </Link>
-          <Link
-            href={`/admin?order=${project.id}`}
-            className="rounded-full border border-white/20 px-3 py-1.5 text-xs hover:border-white/40"
-          >
+          </Btn>
+          <Btn href={`/admin?order=${project.id}`} variant="outline" size="sm">
             CRM →
-          </Link>
+          </Btn>
         </div>
       </div>
 
       {/* Project details */}
       <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-3">
-        {/* Domain */}
-        <div className="rounded-xl bg-white/5 px-3 py-2">
+        <div className="rounded-xl border border-white/6 bg-white/4 px-3 py-2">
           <p className="text-xs text-white/40">Домен</p>
           {editing ? (
-            <input
+            <Input
+              variant="inline"
               value={domain}
               onChange={(e) => setDomain(e.target.value)}
               placeholder="example.ru"
-              className="mt-1 w-full bg-transparent text-sm outline-none"
+              className="mt-1"
             />
           ) : (
             <p className="mt-1 text-sm">{project.domain ?? "—"}</p>
           )}
         </div>
 
-        {/* Site URL */}
-        <div className="rounded-xl bg-white/5 px-3 py-2">
+        <div className="rounded-xl border border-white/6 bg-white/4 px-3 py-2">
           <p className="text-xs text-white/40">Ссылка на сайт</p>
           {editing ? (
-            <input
+            <Input
+              variant="inline"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               placeholder="https://..."
-              className="mt-1 w-full bg-transparent text-sm outline-none"
+              className="mt-1"
             />
           ) : project.project_url ? (
             <a
               href={project.project_url}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-1 block text-sm text-cyan-400 hover:underline truncate"
+              className="mt-1 block truncate text-sm text-cyan-400 hover:underline"
             >
               {project.project_url}
             </a>
@@ -116,8 +118,7 @@ function ProjectCard({ project, onUpdate }: { project: Project; onUpdate: (id: s
           )}
         </div>
 
-        {/* Budget */}
-        <div className="rounded-xl bg-white/5 px-3 py-2">
+        <div className="rounded-xl border border-white/6 bg-white/4 px-3 py-2">
           <p className="text-xs text-white/40">Бюджет</p>
           <p className="mt-1 text-sm">
             {project.total_price
@@ -133,30 +134,20 @@ function ProjectCard({ project, onUpdate }: { project: Project; onUpdate: (id: s
       <div className="mt-3 flex gap-2">
         {editing ? (
           <>
-            <button
-              onClick={save}
-              disabled={saving}
-              className="rounded-full bg-white px-4 py-1.5 text-xs font-bold text-black disabled:opacity-40"
-            >
+            <Btn onClick={save} loading={saving} variant="primary" size="sm">
               {saving ? "Сохраняю..." : "Сохранить"}
-            </button>
-            <button
-              onClick={() => setEditing(false)}
-              className="rounded-full border border-white/20 px-4 py-1.5 text-xs"
-            >
+            </Btn>
+            <Btn onClick={() => setEditing(false)} variant="outline" size="sm">
               Отмена
-            </button>
+            </Btn>
           </>
         ) : (
-          <button
-            onClick={() => setEditing(true)}
-            className="rounded-full border border-white/20 px-4 py-1.5 text-xs hover:border-white/40"
-          >
+          <Btn onClick={() => setEditing(true)} variant="outline" size="sm">
             Редактировать
-          </button>
+          </Btn>
         )}
       </div>
-    </div>
+    </Card>
   );
 }
 
@@ -168,46 +159,45 @@ export default function StudioDashboard({ projects: initialProjects }: { project
     setProjects((prev) => prev.map((p) => (p.id === id ? { ...p, ...update } : p)));
   }
 
-  const filtered =
-    filter === "all" ? projects : projects.filter((p) => p.status === filter);
-
+  const filtered = filter === "all" ? projects : projects.filter((p) => p.status === filter);
   const statusGroups = Object.entries(PROJECT_STATUS);
 
   return (
     <main className="min-h-screen bg-slate-950 text-white">
       {/* Header */}
-      <div className="border-b border-white/10 px-4 py-4">
+      <div className="border-b border-white/8 px-4 py-4">
         <div className="mx-auto flex max-w-5xl items-center justify-between">
-          <h1 className="text-2xl font-black">⚡ Studio</h1>
-          <div className="flex items-center gap-3">
-            <Link
-              href="/admin"
-              className="rounded-full border border-white/20 px-3 py-1.5 text-sm hover:border-white/40"
-            >
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-widest text-cyan-400">Рабочее пространство</p>
+            <h1 className="mt-0.5 text-2xl font-black">⚡ Studio</h1>
+          </div>
+          <div className="flex items-center gap-2">
+            <Btn href="/admin" variant="outline" size="sm">
               CRM →
-            </Link>
+            </Btn>
             <form action="/api/auth/logout" method="POST">
-              <button className="rounded-full border border-white/10 px-3 py-1.5 text-sm text-white/50 hover:text-white">
+              <Btn type="submit" variant="ghost" size="sm">
                 Выйти
-              </button>
+              </Btn>
             </form>
           </div>
         </div>
       </div>
 
       <div className="mx-auto max-w-5xl px-4 py-6 space-y-6">
-        {/* Kanban-style status counts */}
+        {/* Kanban status filters */}
         <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
           {statusGroups.map(([key, cfg]) => {
             const count = projects.filter((p) => p.status === key).length;
+            const active = filter === key;
             return (
               <button
                 key={key}
-                onClick={() => setFilter(filter === key ? "all" : key)}
+                onClick={() => setFilter(active ? "all" : key)}
                 className={`rounded-2xl border p-3 text-center transition ${
-                  filter === key
+                  active
                     ? "border-white/30 bg-white/10"
-                    : "border-white/10 bg-white/5 hover:border-white/20"
+                    : "border-white/8 bg-white/4 hover:border-white/20"
                 }`}
               >
                 <p className="text-xl font-black">{count}</p>
@@ -219,15 +209,24 @@ export default function StudioDashboard({ projects: initialProjects }: { project
 
         {/* Projects */}
         {filtered.length === 0 ? (
-          <div className="py-16 text-center">
-            <p className="text-white/40">Проектов нет</p>
-            <Link
-              href="/templates"
-              className="mt-4 inline-block rounded-full border border-white/20 px-5 py-2 text-sm hover:border-white/40"
-            >
-              Создать проект из шаблона
-            </Link>
-          </div>
+          <Card variant="subtle" padding="none" radius="3xl">
+            <div className="flex flex-col items-center py-16 text-center">
+              <p className="text-white/40">
+                {filter === "all"
+                  ? "Проектов пока нет"
+                  : `Нет проектов со статусом «${PROJECT_STATUS[filter as keyof typeof PROJECT_STATUS]?.label ?? filter}»`}
+              </p>
+              {filter !== "all" ? (
+                <Btn variant="ghost" size="sm" onClick={() => setFilter("all")} className="mt-3">
+                  Показать все
+                </Btn>
+              ) : (
+                <Btn href="/templates" variant="outline" size="sm" className="mt-4">
+                  Создать из шаблона →
+                </Btn>
+              )}
+            </div>
+          </Card>
         ) : (
           <div className="space-y-3">
             {filtered.map((p) => (

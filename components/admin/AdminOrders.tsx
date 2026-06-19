@@ -1,20 +1,27 @@
 "use client";
 import { useState, useMemo } from "react";
-import Link from "next/link";
 import AdminChat from "@/components/chat/AdminChat";
+import { Btn } from "@/components/ui/Btn";
+import { Card } from "@/components/ui/Card";
+import { Input } from "@/components/ui/Input";
 
 const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
-  new: { label: "Новая", color: "bg-blue-500/20 text-blue-300 border-blue-500/30" },
-  contacted: { label: "Связались", color: "bg-purple-500/20 text-purple-300 border-purple-500/30" },
-  in_progress: { label: "В работе", color: "bg-yellow-500/20 text-yellow-300 border-yellow-500/30" },
-  waiting_client: { label: "Ожидает клиента", color: "bg-orange-500/20 text-orange-300 border-orange-500/30" },
-  completed: { label: "Готово", color: "bg-green-500/20 text-green-300 border-green-500/30" },
-  cancelled: { label: "Отменена", color: "bg-red-500/20 text-red-300 border-red-500/30" },
+  new: { label: "Новая", color: "bg-blue-500/15 text-blue-300 border-blue-500/30" },
+  contacted: { label: "Связались", color: "bg-purple-500/15 text-purple-300 border-purple-500/30" },
+  in_progress: { label: "В работе", color: "bg-yellow-500/15 text-yellow-300 border-yellow-500/30" },
+  waiting_client: { label: "Ожидает клиента", color: "bg-orange-500/15 text-orange-300 border-orange-500/30" },
+  completed: { label: "Готово", color: "bg-green-500/15 text-green-300 border-green-500/30" },
+  cancelled: { label: "Отменена", color: "bg-red-500/15 text-red-300 border-red-500/30" },
 };
 
 const ALL_STATUSES = Object.keys(STATUS_CONFIG);
 
+const SELECT_CLS =
+  "rounded-xl border border-white/12 bg-white/8 px-3 py-2.5 text-sm text-white outline-none transition focus:border-cyan-500/60 focus:ring-2 focus:ring-cyan-500/20";
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Order = Record<string, any>;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Profile = Record<string, any>;
 
 async function patchOrder(id: string, update: Record<string, unknown>) {
@@ -28,11 +35,11 @@ async function patchOrder(id: string, update: Record<string, unknown>) {
 
 function StatCard({ label, value, sub }: { label: string; value: string | number; sub?: string }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+    <Card variant="solid" padding="sm">
       <p className="text-2xl font-black">{value}</p>
       <p className="mt-1 text-xs text-white/50">{label}</p>
       {sub && <p className="mt-0.5 text-xs text-white/30">{sub}</p>}
-    </div>
+    </Card>
   );
 }
 
@@ -64,10 +71,8 @@ function OrderCard({
     setSaving(false);
   }
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "";
-
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/5">
+    <Card variant="solid" padding="none" hover>
       {/* Header */}
       <div
         className="flex cursor-pointer flex-wrap items-start justify-between gap-3 p-5"
@@ -98,7 +103,7 @@ function OrderCard({
 
       {/* Expanded */}
       {expanded && (
-        <div className="border-t border-white/10 p-5 space-y-4">
+        <div className="border-t border-white/8 p-5 space-y-5">
           {/* Details */}
           <div className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-3">
             {order.business_type && (
@@ -129,21 +134,13 @@ function OrderCard({
 
           {/* Project links */}
           <div className="flex flex-wrap gap-2">
-            <Link
-              href={`/customize/${order.template_id}`}
-              className="rounded-full border border-white/20 px-3 py-1.5 text-xs hover:border-white/40"
-            >
+            <Btn href={`/customize/${order.template_id}`} variant="outline" size="sm">
               Открыть шаблон →
-            </Link>
+            </Btn>
             {order.project_url && (
-              <a
-                href={order.project_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="rounded-full border border-green-500/30 bg-green-500/10 px-3 py-1.5 text-xs text-green-300"
-              >
+              <Btn href={order.project_url} variant="secondary" size="sm" external>
                 Сайт клиента ↗
-              </a>
+              </Btn>
             )}
           </div>
 
@@ -156,11 +153,11 @@ function OrderCard({
                   key={s}
                   disabled={saving || order.status === s}
                   onClick={() => handleStatus(s)}
-                  className={`rounded-full border px-3 py-1 text-xs transition ${
+                  className={`rounded-full border px-3 py-1 text-xs font-semibold transition disabled:opacity-40 ${
                     order.status === s
-                      ? (STATUS_CONFIG[s]?.color ?? "")
+                      ? (STATUS_CONFIG[s]?.color ?? "border-white/20 bg-white/8 text-white/60")
                       : "border-white/10 text-white/50 hover:border-white/30 hover:text-white"
-                  } disabled:opacity-40`}
+                  }`}
                 >
                   {STATUS_CONFIG[s]?.label ?? s}
                 </button>
@@ -172,7 +169,7 @@ function OrderCard({
           <AdminChat orderId={order.id} unread={unread} />
         </div>
       )}
-    </div>
+    </Card>
   );
 }
 
@@ -228,30 +225,29 @@ export default function AdminOrders({
     return result;
   }, [orders, filterStatus, search, sortBy]);
 
+  const clientProfiles = profiles.filter((p) => p.role === "client");
   const tabs = [
     { id: "orders", label: `Заказы (${orders.length})` },
-    { id: "clients", label: `Клиенты (${profiles.filter((p) => p.role === "client").length})` },
+    { id: "clients", label: `Клиенты (${clientProfiles.length})` },
   ];
 
   return (
     <main className="min-h-screen bg-slate-950 text-white">
       {/* Header */}
-      <div className="border-b border-white/10 px-4 py-4">
+      <div className="border-b border-white/8 px-4 py-4">
         <div className="mx-auto flex max-w-5xl items-center justify-between">
           <div>
-            <h1 className="text-2xl font-black">Админ-панель</h1>
+            <p className="text-xs font-semibold uppercase tracking-widest text-cyan-400">Управление</p>
+            <h1 className="mt-0.5 text-2xl font-black">Админ-панель</h1>
           </div>
-          <div className="flex items-center gap-3">
-            <a
-              href="/studio"
-              className="rounded-full border border-white/20 px-3 py-1.5 text-sm hover:border-white/40"
-            >
-              Studio →
-            </a>
+          <div className="flex items-center gap-2">
+            <Btn href="/studio" variant="outline" size="sm">
+              ⚡ Studio
+            </Btn>
             <form action="/api/auth/logout" method="POST">
-              <button className="rounded-full border border-white/10 px-3 py-1.5 text-sm text-white/50 hover:text-white">
+              <Btn type="submit" variant="ghost" size="sm">
                 Выйти
-              </button>
+              </Btn>
             </form>
           </div>
         </div>
@@ -272,13 +268,13 @@ export default function AdminOrders({
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1 rounded-2xl border border-white/10 bg-white/5 p-1 w-fit">
+        <div className="flex gap-1 rounded-2xl border border-white/8 bg-white/4 p-1 w-fit">
           {tabs.map((t) => (
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
-              className={`rounded-xl px-4 py-2 text-sm font-medium transition ${
-                tab === t.id ? "bg-white text-black" : "text-white/60 hover:text-white"
+              className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${
+                tab === t.id ? "bg-white text-black" : "text-white/55 hover:text-white"
               }`}
             >
               {t.label}
@@ -290,17 +286,18 @@ export default function AdminOrders({
           <>
             {/* Filters */}
             <div className="flex flex-wrap gap-3">
-              <input
-                type="text"
-                placeholder="Поиск по имени, телефону, ID..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="flex-1 min-w-48 rounded-xl bg-white/5 border border-white/10 px-4 py-2 text-sm outline-none focus:border-white/30"
-              />
+              <div className="flex-1 min-w-48">
+                <Input
+                  type="text"
+                  placeholder="Поиск по имени, телефону, ID..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
+              </div>
               <select
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value)}
-                className="rounded-xl bg-white/5 border border-white/10 px-3 py-2 text-sm outline-none"
+                className={SELECT_CLS}
               >
                 <option value="all">Все статусы</option>
                 {ALL_STATUSES.map((s) => (
@@ -310,7 +307,7 @@ export default function AdminOrders({
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
-                className="rounded-xl bg-white/5 border border-white/10 px-3 py-2 text-sm outline-none"
+                className={SELECT_CLS}
               >
                 <option value="date">По дате</option>
                 <option value="status">По статусу</option>
@@ -320,7 +317,16 @@ export default function AdminOrders({
 
             {/* Orders list */}
             {filtered.length === 0 ? (
-              <p className="py-12 text-center text-white/40">Заказов не найдено</p>
+              <Card variant="subtle" padding="none" radius="3xl">
+                <div className="py-16 text-center">
+                  <p className="text-white/40">Заказов не найдено</p>
+                  {search && (
+                    <Btn variant="ghost" size="sm" onClick={() => setSearch("")} className="mt-3">
+                      Сбросить поиск
+                    </Btn>
+                  )}
+                </div>
+              </Card>
             ) : (
               <div className="space-y-3">
                 {filtered.map((order) => (
@@ -337,40 +343,48 @@ export default function AdminOrders({
         )}
 
         {tab === "clients" && (
-          <div className="space-y-3">
-            {profiles
-              .filter((p) => p.role === "client")
-              .map((p) => {
-                const clientOrders = orders.filter((o) => o.user_id === p.id);
-                return (
-                  <div key={p.id} className="rounded-2xl border border-white/10 bg-white/5 p-5">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <p className="font-bold">{p.name ?? p.email}</p>
-                        <p className="mt-1 text-sm text-white/50">
-                          {p.email}
-                          {p.phone && ` · ${p.phone}`}
-                          {p.telegram && ` · @${p.telegram}`}
-                        </p>
-                        <p className="mt-0.5 text-xs text-white/30">
-                          Зарегистрирован: {new Date(p.created_at).toLocaleDateString("ru-RU")}
-                        </p>
+          <>
+            {clientProfiles.length === 0 ? (
+              <Card variant="subtle" padding="none" radius="3xl">
+                <div className="py-16 text-center">
+                  <p className="text-white/40">Клиентов пока нет</p>
+                </div>
+              </Card>
+            ) : (
+              <div className="space-y-3">
+                {clientProfiles.map((p) => {
+                  const clientOrders = orders.filter((o) => o.user_id === p.id);
+                  return (
+                    <Card key={p.id} variant="solid" hover>
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <p className="font-bold">{p.name ?? p.email}</p>
+                          <p className="mt-1 text-sm text-white/50">
+                            {p.email}
+                            {p.phone && ` · ${p.phone}`}
+                            {p.telegram && ` · @${p.telegram}`}
+                          </p>
+                          <p className="mt-0.5 text-xs text-white/30">
+                            Зарегистрирован: {new Date(p.created_at).toLocaleDateString("ru-RU")}
+                          </p>
+                        </div>
+                        <span className="text-sm text-white/40">{clientOrders.length} заказ(а)</span>
                       </div>
-                      <span className="text-sm text-white/40">{clientOrders.length} заказ(а)</span>
-                    </div>
-                    {clientOrders.length > 0 && (
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        {clientOrders.map((o) => (
-                          <span key={o.id} className="text-xs text-white/40">
-                            #{o.id.slice(0, 8)} <StatusBadge status={o.status} />
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-          </div>
+                      {clientOrders.length > 0 && (
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {clientOrders.map((o) => (
+                            <span key={o.id} className="text-xs text-white/40">
+                              #{o.id.slice(0, 8)} <StatusBadge status={o.status} />
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+          </>
         )}
       </div>
     </main>
