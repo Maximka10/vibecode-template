@@ -262,6 +262,7 @@ export default function DevelopmentTab({ orderId, order }: { orderId: string; or
   const [saved, setSaved] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const [aiAvailable, setAiAvailable] = useState(false);
   const [savingTemplate, setSavingTemplate] = useState(false);
   const [device, setDevice] = useState<Device>("desktop");
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -282,6 +283,13 @@ export default function DevelopmentTab({ orderId, order }: { orderId: string; or
         }
         setLoading(false);
       });
+  }, [orderId]);
+
+  useEffect(() => {
+    fetch(`/api/orders/${orderId}/generate-content`)
+      .then((r) => r.json())
+      .then((d) => setAiAvailable(!!d.available))
+      .catch(() => setAiAvailable(false));
   }, [orderId]);
 
   useEffect(() => {
@@ -315,7 +323,14 @@ export default function DevelopmentTab({ orderId, order }: { orderId: string; or
   }, [pd, order]);
 
   // ── Section operations ────────────────────────────────────────────────────
+  const UNIQUE_TYPES: SectionType[] = ["hero", "footer", "contacts", "map"];
+
+  function canAdd(type: SectionType) {
+    return !UNIQUE_TYPES.includes(type) || !sections.some((s) => s.type === type);
+  }
+
   function addSection(type: SectionType) {
+    if (!canAdd(type)) return;
     const newSection: SiteSection = { id: genId(), type, enabled: true, content: defaultContent(type) };
     setSections((prev) => [...prev, newSection]);
     setEditingId(newSection.id);
@@ -413,9 +428,11 @@ export default function DevelopmentTab({ orderId, order }: { orderId: string; or
       <div className="space-y-4 min-w-0">
         {/* Toolbar */}
         <div className="flex flex-wrap items-center gap-2">
-          <Btn onClick={handleGenerate} disabled={generating} loading={generating} variant="outline" size="sm">
-            {generating ? "Генерация…" : "✨ Сгенерировать контент"}
-          </Btn>
+          {aiAvailable && (
+            <Btn onClick={handleGenerate} disabled={generating} loading={generating} variant="outline" size="sm">
+              {generating ? "Генерация…" : "✨ Сгенерировать контент"}
+            </Btn>
+          )}
           <Btn onClick={() => setShowSaveTemplate(true)} variant="ghost" size="sm" disabled={sections.length === 0}>
             💾 Сохранить как шаблон
           </Btn>
@@ -470,15 +487,20 @@ export default function DevelopmentTab({ orderId, order }: { orderId: string; or
           {/* Add section picker */}
           {addOpen && (
             <div className="mb-4 grid grid-cols-3 gap-1.5 rounded-xl border border-white/10 bg-white/4 p-3 sm:grid-cols-4">
-              {ALL_SECTION_TYPES.map((type) => (
+              {ALL_SECTION_TYPES.map((type) => {
+                const disabled = !canAdd(type);
+                return (
                 <button
                   key={type}
                   onClick={() => addSection(type)}
-                  className="rounded-lg border border-white/10 px-2 py-1.5 text-xs text-white/60 hover:border-cyan-500/30 hover:bg-cyan-500/10 hover:text-cyan-300 transition"
+                  disabled={disabled}
+                  title={disabled ? "Секция уже добавлена" : undefined}
+                  className={`rounded-lg border px-2 py-1.5 text-xs transition ${disabled ? "border-white/5 text-white/20 cursor-not-allowed" : "border-white/10 text-white/60 hover:border-cyan-500/30 hover:bg-cyan-500/10 hover:text-cyan-300"}`}
                 >
                   {SECTION_TYPE_LABELS[type]}
                 </button>
-              ))}
+                );
+              })}
             </div>
           )}
 
