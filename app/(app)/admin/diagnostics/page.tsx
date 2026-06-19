@@ -55,7 +55,7 @@ export default async function DiagnosticsPage() {
   if (!auth) redirect("/auth/login");
   if (auth.role !== "admin") redirect("/dashboard");
 
-  const TABLES = ["orders", "project_data", "site_builds", "section_templates", "project_templates"];
+  const TABLES = ["orders", "project_data", "site_builds", "section_templates", "project_templates", "messages", "profiles"];
 
   const [tableResults, storage] = await Promise.all([
     Promise.all(TABLES.map((t) => checkTable(t).then((r) => ({ table: t, ...r })))),

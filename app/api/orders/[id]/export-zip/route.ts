@@ -63,6 +63,7 @@ export async function POST(
       phone: pd.phone ?? "",
       email: pd.email ?? "",
       telegram: pd.telegram ?? "",
+      whatsapp: pd.whatsapp ?? undefined,
     },
     sections,
   };

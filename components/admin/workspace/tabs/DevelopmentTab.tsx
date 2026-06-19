@@ -20,6 +20,7 @@ type ProjectData = {
   phone?: string;
   email?: string;
   telegram?: string;
+  whatsapp?: string;
   address?: string;
   working_hours?: string;
   domain_name?: string;
@@ -524,6 +525,9 @@ export default function DevelopmentTab({ orderId, order }: { orderId: string; or
             <Field label="Telegram">
               <input className={FIELD_CLS} value={pd.telegram ?? ""} onChange={(e) => { setPd((p) => ({ ...p, telegram: e.target.value })); setDirty(true); }} placeholder="@username" />
             </Field>
+            <Field label="WhatsApp">
+              <input className={FIELD_CLS} value={pd.whatsapp ?? ""} onChange={(e) => { setPd((p) => ({ ...p, whatsapp: e.target.value })); setDirty(true); }} placeholder="+7 (999) 000-00-00" />
+            </Field>
             <Field label="Адрес">
               <input className={FIELD_CLS} value={pd.address ?? ""} onChange={(e) => { setPd((p) => ({ ...p, address: e.target.value })); setDirty(true); }} placeholder="г. Москва, ул. Примерная, 1" />
             </Field>
@@ -575,21 +579,56 @@ export default function DevelopmentTab({ orderId, order }: { orderId: string; or
 
           {/* Add section picker */}
           {addOpen && (
-            <div className="mb-4 grid grid-cols-3 gap-1.5 rounded-xl border border-white/10 bg-white/4 p-3 sm:grid-cols-4">
-              {ALL_SECTION_TYPES.map((type) => {
-                const disabled = !canAdd(type);
-                return (
-                <button
-                  key={type}
-                  onClick={() => addSection(type)}
-                  disabled={disabled}
-                  title={disabled ? "Секция уже добавлена" : undefined}
-                  className={`rounded-lg border px-2 py-1.5 text-xs transition ${disabled ? "border-white/5 text-white/20 cursor-not-allowed" : "border-white/10 text-white/60 hover:border-cyan-500/30 hover:bg-cyan-500/10 hover:text-cyan-300"}`}
-                >
-                  {SECTION_TYPE_LABELS[type]}
-                </button>
-                );
-              })}
+            <div className="mb-4 rounded-xl border border-white/10 bg-white/4 p-3">
+              {/* Presets */}
+              <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-white/25">Пресеты</p>
+              <div className="mb-3 flex flex-wrap gap-1.5">
+                {[
+                  { label: "Hero Premium", type: "hero" as SectionType, content: { title: "Ваш бизнес — наш приоритет", subtitle: "Профессиональные услуги высокого качества. Работаем быстро и надёжно.", cta_text: "Оставить заявку" } },
+                  { label: "Hero SaaS", type: "hero" as SectionType, content: { title: "Автоматизируйте ваш бизнес", subtitle: "Умные инструменты для роста компании. Экономьте время и деньги.", cta_text: "Начать бесплатно" } },
+                  { label: "Услуги с иконками", type: "services" as SectionType, content: { title: "Что мы делаем", items: ["Консультация и анализ", "Разработка решения", "Внедрение и поддержка", "Обучение команды"] } },
+                  { label: "Отзывы Grid", type: "reviews" as SectionType, content: { title: "Что говорят клиенты", items: [{ author: "Алексей М.", text: "Отличная работа, всё сделали быстро и качественно!", rating: 5 }, { author: "Мария К.", text: "Профессиональный подход, рекомендую всем!", rating: 5 }, { author: "Игорь С.", text: "Результат превзошёл все ожидания.", rating: 5 }, { author: "Анна Д.", text: "Работаем уже 3 года, всегда довольны.", rating: 5 }] } },
+                  { label: "FAQ Базовый", type: "faq" as SectionType, content: { title: "Часто задаваемые вопросы", items: [{ question: "Как быстро вы приступаете к работе?", answer: "Обычно мы начинаем в течение 1-2 рабочих дней после согласования." }, { question: "Есть ли гарантия на ваши услуги?", answer: "Да, мы даём гарантию на все наши работы. Подробности уточняйте у менеджера." }, { question: "Как связаться с вами?", answer: "Позвоните нам или оставьте заявку на сайте — ответим в течение часа." }] } },
+                  { label: "Цены 3 тарифа", type: "pricing" as SectionType, content: { title: "Наши тарифы", plans: [{ name: "Базовый", price: "от 5 000 ₽", features: ["Базовый пакет услуг", "Поддержка по email", "1 месяц гарантии"] }, { name: "Стандарт", price: "от 15 000 ₽", features: ["Полный пакет услуг", "Приоритетная поддержка", "3 месяца гарантии", "Бесплатная консультация"] }, { name: "Премиум", price: "от 40 000 ₽", features: ["VIP обслуживание", "Личный менеджер", "6 месяцев гарантии", "Доступ 24/7"] }] } },
+                ].map((preset) => {
+                  const disabled = !canAdd(preset.type);
+                  return (
+                    <button
+                      key={preset.label}
+                      disabled={disabled}
+                      onClick={() => {
+                        if (disabled) return;
+                        const s: SiteSection = { id: genId(), type: preset.type, enabled: true, content: preset.content as SectionContent };
+                        setSections((prev) => [...prev, s]);
+                        setEditingId(s.id);
+                        setAddOpen(false);
+                        setDirty(true);
+                      }}
+                      className={`rounded-lg border px-3 py-1.5 text-xs font-semibold transition ${disabled ? "border-white/5 text-white/20 cursor-not-allowed" : "border-cyan-500/20 bg-cyan-500/8 text-cyan-300/80 hover:border-cyan-500/40 hover:bg-cyan-500/15 hover:text-cyan-200"}`}
+                    >
+                      ✦ {preset.label}
+                    </button>
+                  );
+                })}
+              </div>
+              {/* Section types */}
+              <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-white/25">Секции</p>
+              <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-4">
+                {ALL_SECTION_TYPES.map((type) => {
+                  const disabled = !canAdd(type);
+                  return (
+                    <button
+                      key={type}
+                      onClick={() => addSection(type)}
+                      disabled={disabled}
+                      title={disabled ? "Секция уже добавлена" : undefined}
+                      className={`rounded-lg border px-2 py-1.5 text-xs transition ${disabled ? "border-white/5 text-white/20 cursor-not-allowed" : "border-white/10 text-white/60 hover:border-cyan-500/30 hover:bg-cyan-500/10 hover:text-cyan-300"}`}
+                    >
+                      {SECTION_TYPE_LABELS[type]}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           )}
 

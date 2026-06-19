@@ -5,7 +5,7 @@ export type SiteJson = {
   branding: { primary: string; secondary: string; accent?: string };
   font?: string;
   company: { name: string; description: string; address: string; working_hours: string };
-  contacts: { phone: string; email: string; telegram: string; whatsapp?: string };
+  contacts: { phone: string; email: string; telegram: string; whatsapp?: string | undefined };
   sections: SiteSection[];
 };
 
@@ -477,14 +477,15 @@ export default function CTA({ section }: { section: SiteSection }) {
   contacts: () => `import { SiteSection } from "@/types";
 
 export default function Contacts({ section }: { section: SiteSection }) {
-  const { title, phone, email, telegram, address, working_hours } = section.content as {
-    title?: string; phone?: string; email?: string; telegram?: string;
+  const { title, phone, email, telegram, whatsapp, address, working_hours } = section.content as {
+    title?: string; phone?: string; email?: string; telegram?: string; whatsapp?: string;
     address?: string; working_hours?: string;
   };
   const items = [
     phone && { icon: "📞", label: "Телефон", value: phone, href: \`tel:\${phone}\` },
     email && { icon: "✉️", label: "Email", value: email, href: \`mailto:\${email}\` },
     telegram && { icon: "💬", label: "Telegram", value: telegram, href: \`https://t.me/\${telegram.replace("@", "")}\` },
+    whatsapp && { icon: "📱", label: "WhatsApp", value: whatsapp, href: \`https://wa.me/\${whatsapp.replace(/[^0-9]/g, "")}\` },
     address && { icon: "📍", label: "Адрес", value: address, href: null },
     working_hours && { icon: "🕐", label: "Режим работы", value: working_hours, href: null },
   ].filter(Boolean) as { icon: string; label: string; value: string; href: string | null }[];

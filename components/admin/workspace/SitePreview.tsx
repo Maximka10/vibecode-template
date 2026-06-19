@@ -9,29 +9,49 @@ const DEVICE_WIDTH: Record<PreviewDevice, string> = {
   mobile: "375px",
 };
 
+const ICONS = ["✦", "◈", "◆", "⬡", "◉", "⬟"];
+
 function SectionHero({ content, primary, secondary }: { content: Record<string, unknown>; primary: string; secondary: string }) {
   return (
-    <div className="px-8 py-14 text-white" style={{ background: `linear-gradient(135deg, ${primary}, ${secondary})` }}>
-      {!!(content.title || content.subtitle) && (
-        <>
-          <h1 className="text-3xl font-black leading-tight">{String(content.title || "Заголовок")}</h1>
-          {!!content.subtitle && <p className="mt-3 max-w-xl text-sm leading-relaxed opacity-85">{String(content.subtitle)}</p>}
-        </>
-      )}
-      {!!content.cta_text && (
-        <button className="mt-6 rounded-full border-2 border-white/40 bg-white/20 px-6 py-2 text-sm font-bold" style={{ cursor: "default" }}>
-          {String(content.cta_text)}
-        </button>
-      )}
+    <div
+      className="relative px-8 py-20 text-white"
+      style={{ background: `linear-gradient(135deg, ${primary}, ${secondary})` }}
+    >
+      <div className="relative mx-auto max-w-4xl">
+        {content.title && (
+          <h1 className="text-4xl font-black leading-tight sm:text-5xl">{String(content.title)}</h1>
+        )}
+        {content.subtitle && (
+          <p className="mt-4 max-w-2xl text-base leading-relaxed opacity-85">{String(content.subtitle)}</p>
+        )}
+        {content.cta_text && (
+          <div className="mt-8">
+            <span
+              className="inline-flex items-center gap-2 rounded-full px-8 py-3 text-sm font-bold shadow-lg"
+              style={{ backgroundColor: "white", color: primary }}
+            >
+              {String(content.cta_text)}
+            </span>
+          </div>
+        )}
+        <div className="mt-10 flex flex-wrap gap-6 opacity-70">
+          {[{ icon: "⭐", text: "5.0 рейтинг" }, { icon: "✓", text: "Гарантия" }, { icon: "🚀", text: "Быстро" }].map((b) => (
+            <div key={b.text} className="flex items-center gap-1.5 text-xs font-semibold">
+              <span>{b.icon}</span><span>{b.text}</span>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
 
 function SectionAbout({ content, primary }: { content: Record<string, unknown>; primary: string }) {
   return (
-    <div className="px-8 py-10 bg-white border-b border-slate-100">
-      <h2 className="mb-4 text-xl font-bold text-slate-800" style={{ color: primary }}>{String(content.title || "О нас")}</h2>
-      {!!content.text && <p className="text-sm leading-relaxed text-slate-600 whitespace-pre-line">{String(content.text)}</p>}
+    <div className="px-8 py-14 bg-white border-b border-slate-100">
+      <div className="mb-3 h-1 w-10 rounded-full" style={{ backgroundColor: primary }} />
+      {content.title && <h2 className="mb-5 text-2xl font-black text-slate-900">{String(content.title)}</h2>}
+      {content.text && <p className="text-sm leading-relaxed text-slate-600 whitespace-pre-line max-w-3xl">{String(content.text)}</p>}
     </div>
   );
 }
@@ -39,13 +59,19 @@ function SectionAbout({ content, primary }: { content: Record<string, unknown>; 
 function SectionServices({ content, primary }: { content: Record<string, unknown>; primary: string }) {
   const items = (content.items as string[]) ?? [];
   return (
-    <div className="px-8 py-10 bg-slate-50 border-b border-slate-100">
-      <h2 className="mb-5 text-xl font-bold text-slate-800">{String(content.title || "Наши услуги")}</h2>
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+    <div className="px-8 py-14 bg-slate-50 border-b border-slate-100">
+      <div className="mb-3 h-1 w-10 rounded-full" style={{ backgroundColor: primary }} />
+      {content.title && <h2 className="mb-7 text-2xl font-black text-slate-900">{String(content.title)}</h2>}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {items.map((s, i) => (
-          <div key={i} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-            <div className="mb-2 h-1 w-8 rounded-full" style={{ backgroundColor: primary }} />
-            <p className="font-semibold text-slate-800">{s}</p>
+          <div key={i} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div
+              className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl text-lg text-white"
+              style={{ backgroundColor: primary }}
+            >
+              {ICONS[i % ICONS.length]}
+            </div>
+            <p className="font-bold text-slate-800 leading-snug">{s}</p>
           </div>
         ))}
       </div>
@@ -56,33 +82,50 @@ function SectionServices({ content, primary }: { content: Record<string, unknown
 function SectionGallery({ content }: { content: Record<string, unknown> }) {
   const images = (content.images as string[]) ?? [];
   return (
-    <div className="px-8 py-10 bg-white border-b border-slate-100">
-      <h2 className="mb-5 text-xl font-bold text-slate-800">{String(content.title || "Галерея")}</h2>
+    <div className="px-8 py-14 bg-white border-b border-slate-100">
+      {content.title && <h2 className="mb-7 text-2xl font-black text-slate-900">{String(content.title)}</h2>}
       {images.length > 0 ? (
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           {images.map((img, i) => (
             // eslint-disable-next-line @next/next/no-img-element
-            <img key={i} src={img} alt="" className="rounded-xl object-cover w-full h-32" />
+            <img
+              key={i}
+              src={img}
+              alt=""
+              className="rounded-2xl object-cover w-full h-32"
+              onError={(e) => { (e.target as HTMLImageElement).src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='128'%3E%3Crect width='200' height='128' rx='16' fill='%23f1f5f9'/%3E%3Ctext x='50%25' y='55%25' dominant-baseline='middle' text-anchor='middle' font-size='32' fill='%23cbd5e1'%3E🖼%3C/text%3E%3C/svg%3E"; }}
+            />
           ))}
         </div>
       ) : (
-        <p className="text-sm text-slate-400">Нет изображений</p>
+        <div className="grid grid-cols-3 gap-3">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-32 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-300 text-2xl">🖼</div>
+          ))}
+        </div>
       )}
     </div>
   );
 }
 
-function SectionReviews({ content }: { content: Record<string, unknown> }) {
+function SectionReviews({ content, primary }: { content: Record<string, unknown>; primary: string }) {
   const items = (content.items as { author: string; text: string; rating: number }[]) ?? [];
   return (
-    <div className="px-8 py-10 bg-slate-50 border-b border-slate-100">
-      <h2 className="mb-5 text-xl font-bold text-slate-800">{String(content.title || "Отзывы")}</h2>
+    <div className="px-8 py-14 bg-slate-50 border-b border-slate-100">
+      <div className="mb-3 h-1 w-10 rounded-full" style={{ backgroundColor: primary }} />
+      {content.title && <h2 className="mb-7 text-2xl font-black text-slate-900">{String(content.title)}</h2>}
       <div className="grid gap-4 sm:grid-cols-2">
         {items.map((r, i) => (
-          <div key={i} className="rounded-xl border border-slate-200 bg-white p-4">
-            <p className="text-sm text-yellow-500">{"★".repeat(r.rating ?? 5)}</p>
-            <p className="mt-2 text-sm text-slate-600">{r.text}</p>
-            <p className="mt-3 text-xs font-semibold text-slate-500">— {r.author}</p>
+          <div key={i} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div className="flex gap-0.5">
+              {Array.from({ length: 5 }).map((_, j) => (
+                <svg key={j} className="h-4 w-4" viewBox="0 0 20 20" fill={j < (r.rating ?? 5) ? primary : "#e2e8f0"}>
+                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                </svg>
+              ))}
+            </div>
+            <p className="mt-3 text-sm leading-relaxed text-slate-600">«{r.text}»</p>
+            <p className="mt-4 text-xs font-bold text-slate-700">— {r.author}</p>
           </div>
         ))}
       </div>
@@ -90,16 +133,20 @@ function SectionReviews({ content }: { content: Record<string, unknown> }) {
   );
 }
 
-function SectionFAQ({ content }: { content: Record<string, unknown> }) {
+function SectionFAQ({ content, primary }: { content: Record<string, unknown>; primary: string }) {
   const items = (content.items as { question: string; answer: string }[]) ?? [];
   return (
-    <div className="px-8 py-10 bg-white border-b border-slate-100">
-      <h2 className="mb-5 text-xl font-bold text-slate-800">{String(content.title || "FAQ")}</h2>
-      <div className="space-y-4">
+    <div className="px-8 py-14 bg-white border-b border-slate-100">
+      <div className="mb-3 h-1 w-10 rounded-full" style={{ backgroundColor: primary }} />
+      {content.title && <h2 className="mb-7 text-2xl font-black text-slate-900">{String(content.title)}</h2>}
+      <div className="space-y-3 max-w-3xl">
         {items.map((f, i) => (
-          <div key={i} className="rounded-xl border border-slate-200 p-4">
-            <p className="font-semibold text-slate-800">{f.question}</p>
-            <p className="mt-2 text-sm text-slate-600">{f.answer}</p>
+          <div key={i} className="rounded-2xl border border-slate-200 overflow-hidden">
+            <div className="flex items-center justify-between gap-4 px-5 py-4">
+              <p className="font-bold text-slate-800 text-sm">{f.question}</p>
+              <span className="text-xl font-black shrink-0" style={{ color: primary }}>+</span>
+            </div>
+            <div className="border-t border-slate-100 px-5 py-4 text-sm text-slate-600">{f.answer}</div>
           </div>
         ))}
       </div>
@@ -110,15 +157,29 @@ function SectionFAQ({ content }: { content: Record<string, unknown> }) {
 function SectionPricing({ content, primary }: { content: Record<string, unknown>; primary: string }) {
   const plans = (content.plans as { name: string; price: string; features: string[] }[]) ?? [];
   return (
-    <div className="px-8 py-10 bg-slate-50 border-b border-slate-100">
-      <h2 className="mb-5 text-xl font-bold text-slate-800">{String(content.title || "Цены")}</h2>
-      <div className="grid gap-4 sm:grid-cols-3">
+    <div className="px-8 py-14 bg-slate-50 border-b border-slate-100">
+      <div className="mb-3 h-1 w-10 rounded-full" style={{ backgroundColor: primary }} />
+      {content.title && <h2 className="mb-7 text-2xl font-black text-slate-900">{String(content.title)}</h2>}
+      <div className="grid gap-5 sm:grid-cols-3">
         {plans.map((p, i) => (
-          <div key={i} className="rounded-xl border border-slate-200 bg-white p-5">
+          <div
+            key={i}
+            className="rounded-2xl border bg-white p-6 shadow-sm"
+            style={i === 1 ? { borderColor: primary, borderWidth: 2 } : { borderColor: "#e2e8f0" }}
+          >
+            {i === 1 && (
+              <span className="mb-3 inline-block rounded-full px-3 py-0.5 text-xs font-bold text-white" style={{ backgroundColor: primary }}>
+                Популярный
+              </span>
+            )}
             <p className="font-bold text-slate-800">{p.name}</p>
-            <p className="mt-1 text-2xl font-black" style={{ color: primary }}>{p.price}</p>
-            <ul className="mt-3 space-y-1">
-              {(p.features ?? []).map((f, j) => <li key={j} className="text-xs text-slate-600">✓ {f}</li>)}
+            <p className="mt-1 text-3xl font-black" style={{ color: primary }}>{p.price}</p>
+            <ul className="mt-4 space-y-2">
+              {(p.features ?? []).map((f, j) => (
+                <li key={j} className="flex items-start gap-2 text-xs text-slate-600">
+                  <span className="font-bold" style={{ color: primary }}>✓</span> {f}
+                </li>
+              ))}
             </ul>
           </div>
         ))}
@@ -129,51 +190,123 @@ function SectionPricing({ content, primary }: { content: Record<string, unknown>
 
 function SectionCTA({ content, primary, secondary }: { content: Record<string, unknown>; primary: string; secondary: string }) {
   return (
-    <div className="px-8 py-12 text-center text-white" style={{ background: `linear-gradient(135deg, ${primary}, ${secondary})` }}>
-      <h2 className="text-2xl font-black">{String(content.title || "Свяжитесь с нами")}</h2>
-      {!!content.subtitle && <p className="mt-2 text-sm opacity-80">{String(content.subtitle)}</p>}
-      {!!content.cta_text && (
-        <button className="mt-6 rounded-full bg-white px-8 py-3 text-sm font-bold" style={{ color: primary, cursor: "default" }}>
-          {String(content.cta_text)}
-        </button>
+    <div
+      className="px-8 py-20 text-center text-white"
+      style={{ background: `linear-gradient(135deg, ${primary}, ${secondary})` }}
+    >
+      {content.title && <h2 className="text-3xl font-black">{String(content.title)}</h2>}
+      {content.subtitle && <p className="mt-3 text-base opacity-80">{String(content.subtitle)}</p>}
+      {content.cta_text && (
+        <span
+          className="mt-8 inline-flex items-center gap-2 rounded-full px-10 py-4 text-sm font-bold shadow-lg"
+          style={{ backgroundColor: "white", color: primary }}
+        >
+          {String(content.cta_text)} →
+        </span>
       )}
     </div>
   );
 }
 
-function SectionContacts({ content }: { content: Record<string, unknown> }) {
+function SectionContacts({ content, primary }: { content: Record<string, unknown>; primary: string }) {
+  const items = [
+    content.phone && { icon: "📞", label: "Телефон", value: String(content.phone) },
+    content.email && { icon: "✉️", label: "Email", value: String(content.email) },
+    content.telegram && { icon: "💬", label: "Telegram", value: String(content.telegram) },
+    content.whatsapp && { icon: "📱", label: "WhatsApp", value: String(content.whatsapp) },
+    content.address && { icon: "📍", label: "Адрес", value: String(content.address) },
+    content.working_hours && { icon: "🕐", label: "Режим работы", value: String(content.working_hours) },
+  ].filter(Boolean) as { icon: string; label: string; value: string }[];
+
   return (
-    <div className="px-8 py-10 bg-white border-b border-slate-100">
-      <h2 className="mb-5 text-xl font-bold text-slate-800">{String(content.title || "Контакты")}</h2>
-      <div className="grid gap-3 sm:grid-cols-2">
-        {!!content.phone && <div className="flex gap-3"><span>📞</span><div><p className="text-xs text-slate-400">Телефон</p><p className="font-semibold text-slate-700">{String(content.phone)}</p></div></div>}
-        {!!content.email && <div className="flex gap-3"><span>✉️</span><div><p className="text-xs text-slate-400">Email</p><p className="font-semibold text-slate-700">{String(content.email)}</p></div></div>}
-        {!!content.telegram && <div className="flex gap-3"><span>💬</span><div><p className="text-xs text-slate-400">Telegram</p><p className="font-semibold text-slate-700">{String(content.telegram)}</p></div></div>}
-        {!!content.address && <div className="flex gap-3"><span>📍</span><div><p className="text-xs text-slate-400">Адрес</p><p className="font-semibold text-slate-700">{String(content.address)}</p></div></div>}
-        {!!content.working_hours && <div className="flex gap-3"><span>🕐</span><div><p className="text-xs text-slate-400">Режим работы</p><p className="font-semibold text-slate-700">{String(content.working_hours)}</p></div></div>}
+    <div className="px-8 py-14 bg-white border-b border-slate-100">
+      <div className="mb-3 h-1 w-10 rounded-full" style={{ backgroundColor: primary }} />
+      {content.title && <h2 className="mb-7 text-2xl font-black text-slate-900">{String(content.title)}</h2>}
+      <div className="grid gap-4 sm:grid-cols-2">
+        {items.map((item, i) => (
+          <div key={i} className="flex items-start gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-5">
+            <div
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-xl"
+              style={{ backgroundColor: `${primary}1a` }}
+            >
+              {item.icon}
+            </div>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">{item.label}</p>
+              <p className="mt-1 font-bold text-slate-800" style={{ color: primary }}>{item.value}</p>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
 }
 
-function SectionMap({ content }: { content: Record<string, unknown> }) {
+function SectionMap({ content, primary }: { content: Record<string, unknown>; primary: string }) {
+  const embedUrl = (content.embed_url as string) ||
+    (content.address ? `https://yandex.ru/map-widget/v1/?text=${encodeURIComponent(String(content.address))}&z=15&lang=ru_RU` : null);
+
   return (
-    <div className="px-8 py-10 bg-slate-50 border-b border-slate-100">
-      <h2 className="mb-4 text-xl font-bold text-slate-800">{String(content.title || "Как нас найти")}</h2>
-      {!!content.address && <p className="text-sm text-slate-600 mb-3">📍 {String(content.address)}</p>}
-      <div className="h-40 rounded-xl bg-slate-200 flex items-center justify-center text-slate-400 text-sm">
-        Карта
-      </div>
+    <div className="px-8 py-14 bg-slate-50 border-b border-slate-100">
+      <div className="mb-3 h-1 w-10 rounded-full" style={{ backgroundColor: primary }} />
+      {content.title && <h2 className="mb-4 text-2xl font-black text-slate-900">{String(content.title)}</h2>}
+      {content.address && <p className="mb-5 text-sm text-slate-600">📍 {String(content.address)}</p>}
+      {embedUrl ? (
+        <iframe
+          src={embedUrl}
+          className="h-64 w-full rounded-2xl border-0"
+          loading="lazy"
+          title="Карта"
+        />
+      ) : (
+        <div className="flex h-64 items-center justify-center rounded-2xl bg-slate-200 text-slate-400 text-sm">
+          Введите адрес для отображения карты
+        </div>
+      )}
+      {content.address && (
+        <div className="mt-4 flex gap-3">
+          <a
+            href={`https://yandex.ru/maps/?text=${encodeURIComponent(String(content.address))}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+          >
+            🗺 Яндекс.Карты
+          </a>
+          <a
+            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(String(content.address))}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+          >
+            📍 Маршрут
+          </a>
+        </div>
+      )}
     </div>
   );
 }
 
 function SectionFooter({ content, primary }: { content: Record<string, unknown>; primary: string }) {
   return (
-    <div className="px-8 py-6 text-slate-400 text-xs flex items-center justify-between" style={{ backgroundColor: "#1e293b" }}>
-      <span style={{ color: primary }}>{String(content.company_name || "Компания")}</span>
-      <div className="flex gap-4">
-        {(content.links as string[] ?? []).map((l, i) => <span key={i}>{l}</span>)}
+    <div className="bg-slate-900 px-8 py-10">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <span className="text-base font-black" style={{ color: primary }}>
+            {String(content.company_name || "Компания")}
+          </span>
+          <p className="mt-1 text-xs text-slate-500">Профессиональные услуги</p>
+        </div>
+        {(content.links as string[] ?? []).length > 0 && (
+          <div className="flex flex-wrap gap-5">
+            {(content.links as string[]).map((l, i) => (
+              <span key={i} className="text-xs text-slate-500">{l}</span>
+            ))}
+          </div>
+        )}
+      </div>
+      <div className="mt-8 border-t border-slate-800 pt-5 text-xs text-slate-600">
+        © {new Date().getFullYear()} {String(content.company_name || "Компания")}. Все права защищены.
       </div>
     </div>
   );
@@ -182,18 +315,18 @@ function SectionFooter({ content, primary }: { content: Record<string, unknown>;
 function renderSection(section: SiteSection, primary: string, secondary: string) {
   const c = section.content;
   switch (section.type) {
-    case "hero": return <SectionHero key={section.id} content={c} primary={primary} secondary={secondary} />;
-    case "about": return <SectionAbout key={section.id} content={c} primary={primary} />;
+    case "hero":     return <SectionHero     key={section.id} content={c} primary={primary} secondary={secondary} />;
+    case "about":    return <SectionAbout    key={section.id} content={c} primary={primary} />;
     case "services": return <SectionServices key={section.id} content={c} primary={primary} />;
-    case "gallery": return <SectionGallery key={section.id} content={c} />;
-    case "reviews": return <SectionReviews key={section.id} content={c} />;
-    case "faq": return <SectionFAQ key={section.id} content={c} />;
-    case "pricing": return <SectionPricing key={section.id} content={c} primary={primary} />;
-    case "cta": return <SectionCTA key={section.id} content={c} primary={primary} secondary={secondary} />;
-    case "contacts": return <SectionContacts key={section.id} content={c} />;
-    case "map": return <SectionMap key={section.id} content={c} />;
-    case "footer": return <SectionFooter key={section.id} content={c} primary={primary} />;
-    default: return null;
+    case "gallery":  return <SectionGallery  key={section.id} content={c} />;
+    case "reviews":  return <SectionReviews  key={section.id} content={c} primary={primary} />;
+    case "faq":      return <SectionFAQ      key={section.id} content={c} primary={primary} />;
+    case "pricing":  return <SectionPricing  key={section.id} content={c} primary={primary} />;
+    case "cta":      return <SectionCTA      key={section.id} content={c} primary={primary} secondary={secondary} />;
+    case "contacts": return <SectionContacts key={section.id} content={c} primary={primary} />;
+    case "map":      return <SectionMap      key={section.id} content={c} primary={primary} />;
+    case "footer":   return <SectionFooter   key={section.id} content={c} primary={primary} />;
+    default:         return null;
   }
 }
 
@@ -214,15 +347,15 @@ export default function SitePreview({
       className="mx-auto transition-all duration-300"
       style={{ maxWidth: DEVICE_WIDTH[device], width: "100%" }}
     >
-      <div className="rounded-2xl overflow-hidden border border-white/10 bg-white text-slate-900 text-sm shadow-2xl">
+      <div className="overflow-hidden rounded-2xl border border-white/10 bg-white text-slate-900 shadow-2xl">
         {/* Browser chrome */}
-        <div className="flex items-center gap-2 bg-slate-100 px-4 py-2.5 border-b border-slate-200">
+        <div className="flex items-center gap-2 border-b border-slate-200 bg-slate-100 px-4 py-2.5">
           <div className="flex gap-1.5">
             <div className="h-3 w-3 rounded-full bg-red-400" />
             <div className="h-3 w-3 rounded-full bg-yellow-400" />
             <div className="h-3 w-3 rounded-full bg-green-400" />
           </div>
-          <div className="flex-1 rounded-md bg-white border border-slate-200 px-3 py-1 text-xs text-slate-400">
+          <div className="flex-1 rounded-md border border-slate-200 bg-white px-3 py-1 text-xs text-slate-400">
             {data.content.domain_name ? `https://${data.content.domain_name}` : `preview — ${data.meta.template_name}`}
           </div>
           {device !== "desktop" && (
@@ -231,65 +364,30 @@ export default function SitePreview({
         </div>
 
         {/* Content */}
-        {sections && sections.length > 0 ? (
-          <div>
-            {sections.filter((s) => s.enabled).map((s) => renderSection(s, primary, secondary))}
-          </div>
-        ) : (
-          /* Legacy fallback */
-          <div>
-            <div className="px-8 py-12 text-white" style={{ background: `linear-gradient(135deg, ${primary}, ${secondary})` }}>
-              {data.content.domain_name && <p className="mb-2 text-xs font-semibold uppercase tracking-widest opacity-70">{data.content.domain_name}</p>}
-              <h1 className="text-3xl font-black leading-tight">{data.company.name || "Название компании"}</h1>
-              {data.company.description && <p className="mt-3 max-w-xl text-sm leading-relaxed opacity-85">{data.company.description}</p>}
-              {data.content.hero_cta && (
-                <button className="mt-6 rounded-full border-2 border-white/40 bg-white/20 px-6 py-2 text-sm font-bold" style={{ cursor: "default" }}>
-                  {data.content.hero_cta}
-                </button>
-              )}
-              {(data.contacts.phone || data.contacts.email) && (
-                <div className="mt-6 flex flex-wrap gap-3">
-                  {data.contacts.phone && <span className="rounded-full border border-white/30 bg-white/10 px-4 py-1.5 text-sm font-semibold backdrop-blur-sm">📞 {data.contacts.phone}</span>}
-                  {data.contacts.email && <span className="rounded-full border border-white/30 bg-white/10 px-4 py-1.5 text-sm font-semibold backdrop-blur-sm">✉️ {data.contacts.email}</span>}
-                </div>
-              )}
-            </div>
-            {data.content.about_text && (
-              <div className="px-8 py-8 border-b border-slate-100">
-                <h2 className="mb-3 text-lg font-bold text-slate-800">{data.content.about_title || "О нас"}</h2>
-                <p className="text-sm leading-relaxed text-slate-600">{data.content.about_text}</p>
-              </div>
-            )}
-            {data.services.length > 0 && (
-              <div className="px-8 py-8 bg-slate-50 border-b border-slate-100">
-                <h2 className="mb-4 text-lg font-bold text-slate-800">Наши услуги</h2>
-                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                  {data.services.map((s) => (
-                    <div key={s} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-                      <div className="mb-2 h-1 w-8 rounded-full" style={{ backgroundColor: primary }} />
-                      <p className="font-semibold text-slate-800">{s}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-            {(data.contacts.phone || data.contacts.email || data.contacts.telegram || data.company.address) && (
-              <div className="px-8 py-8 border-b border-slate-100">
-                <h2 className="mb-4 text-lg font-bold text-slate-800">Контакты</h2>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {data.contacts.phone && <div className="flex gap-3"><span>📞</span><div><p className="text-xs text-slate-400">Телефон</p><p className="font-semibold text-slate-700">{data.contacts.phone}</p></div></div>}
-                  {data.contacts.email && <div className="flex gap-3"><span>✉️</span><div><p className="text-xs text-slate-400">Email</p><p className="font-semibold text-slate-700">{data.contacts.email}</p></div></div>}
-                  {data.contacts.telegram && <div className="flex gap-3"><span>💬</span><div><p className="text-xs text-slate-400">Telegram</p><p className="font-semibold text-slate-700">{data.contacts.telegram}</p></div></div>}
-                  {data.company.address && <div className="flex gap-3"><span>📍</span><div><p className="text-xs text-slate-400">Адрес</p><p className="font-semibold text-slate-700">{data.company.address}</p></div></div>}
-                </div>
-              </div>
-            )}
-            <div className="px-8 py-4 bg-slate-800 text-slate-400 text-xs flex items-center justify-between">
-              <span>{data.company.name}</span>
-              {data.content.domain_name && <span>{data.content.domain_name}</span>}
-            </div>
-          </div>
-        )}
+        <div>
+          {sections && sections.length > 0
+            ? sections.filter((s) => s.enabled).map((s) => renderSection(s, primary, secondary))
+            : (
+              /* Fallback when no sections configured yet */
+              <>
+                <SectionHero
+                  content={{ title: data.company.name || "Название компании", subtitle: data.company.description, cta_text: data.content.hero_cta }}
+                  primary={primary} secondary={secondary}
+                />
+                {data.services.length > 0 && (
+                  <SectionServices content={{ title: "Наши услуги", items: data.services }} primary={primary} />
+                )}
+                {(data.contacts.phone || data.contacts.email || data.contacts.telegram || data.company.address) && (
+                  <SectionContacts
+                    content={{ title: "Контакты", phone: data.contacts.phone, email: data.contacts.email, telegram: data.contacts.telegram, address: data.company.address, working_hours: data.company.working_hours }}
+                    primary={primary}
+                  />
+                )}
+                <SectionFooter content={{ company_name: data.company.name }} primary={primary} />
+              </>
+            )
+          }
+        </div>
       </div>
     </div>
   );
