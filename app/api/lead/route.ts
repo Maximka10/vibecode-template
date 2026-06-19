@@ -14,16 +14,16 @@ export async function POST(req: NextRequest) {
       clientEmail,
       businessType,
       selectedServices,
+      selectedOptions,
       budget,
       notes,
-      selectedOptions,
-      totalPrice,
       primaryColor,
       bgColor,
+      totalPrice,
     } = body;
 
     // =========================
-    // 1. CREATE SUPABASE USER CONTEXT
+    // 1. AUTH CONTEXT (CRITICAL FIX)
     // =========================
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -40,6 +40,7 @@ export async function POST(req: NextRequest) {
       data: { user },
     } = await supabase.auth.getUser();
 
+    // HARD GUARD
     if (!user) {
       return NextResponse.json(
         { ok: false, error: "Unauthorized" },
@@ -48,12 +49,12 @@ export async function POST(req: NextRequest) {
     }
 
     // =========================
-    // 2. INSERT ORDER
+    // 2. INSERT ORDER (FIXED OWNERSHIP)
     // =========================
     const { data, error } = await supabase
       .from("orders")
       .insert({
-        user_id: user.id, // 🔥 FIX: critical ownership fix
+        user_id: user.id, // ✅ ONLY SOURCE OF TRUTH
 
         template_id: templateId ?? templateName,
         template_name: templateName,
@@ -75,7 +76,6 @@ export async function POST(req: NextRequest) {
 
         total_price: totalPrice ?? null,
         status: "new",
-        user_id: userId,
       })
       .select("id")
       .single();
@@ -103,7 +103,7 @@ export async function POST(req: NextRequest) {
         NEXT_PUBLIC_SITE_URL ??
         "https://vibecode-studio-pink.vercel.app";
 
-      const projectLink = `${siteUrl}/admin/orders/${orderId}`;
+      const orderLink = `${siteUrl}/admin/orders/${orderId}`;
 
       const servicesList = Array.isArray(selectedServices)
         ? selectedServices.join(", ")
@@ -113,7 +113,7 @@ export async function POST(req: NextRequest) {
         `🆕 *Новая заявка* #${orderId.slice(0, 8)}`,
         ``,
         `👤 *Клиент:* ${clientName ?? "—"}`,
-        `📞 *Телефон:* ${clientPhone ?? "—"}`,
+        `📞 *Тел:* ${clientPhone ?? "—"}`,
         `✈️ *Telegram:* ${
           clientTelegram ? `@${clientTelegram.replace("@", "")}` : "—"
         }`,
@@ -127,7 +127,7 @@ export async function POST(req: NextRequest) {
         }`,
         notes ? `💬 *Комментарий:* ${notes}` : null,
         ``,
-        `🔗 [Открыть заказ в системе](${projectLink})`,
+        `🔗 [Открыть заказ в системе](${orderLink})`,
       ]
         .filter(Boolean)
         .join("\n");
