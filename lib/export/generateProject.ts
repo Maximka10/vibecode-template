@@ -911,6 +911,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
 function genPage(sections: SiteSection[]): string {
   const enabled = sections.filter((s) => s.enabled);
+
+  // Deduplicate imports — multiple sections of same type share one component file
   const seenTypes = new Set<string>();
   const imports = enabled
     .filter((s) => {
@@ -924,15 +926,26 @@ function genPage(sections: SiteSection[]): string {
       return `import ${name} from "@/components/sections/${name}";`;
     })
     .join("\n");
-  const sectionComponents = enabled
-    .map((s) => {
-      const name = s.type.charAt(0).toUpperCase() + s.type.slice(1);
-      return `      <${name} section={siteData.sections.find(sec => sec.id === ${JSON.stringify(s.id)}) ?? siteData.sections[0]} />`;
+
+  // Inline each section's data as a typed constant to avoid JSON module import issues
+  const sectionConstants = enabled
+    .map((s, i) => {
+      const varName = `section${i}`;
+      return `const ${varName}: SiteSection = ${JSON.stringify(s)};`;
     })
     .join("\n");
 
-  return `import siteData from "@/content/site.json";
+  const sectionComponents = enabled
+    .map((s, i) => {
+      const name = s.type.charAt(0).toUpperCase() + s.type.slice(1);
+      return `      <${name} section={section${i}} />`;
+    })
+    .join("\n");
+
+  return `import type { SiteSection } from "@/types";
 ${imports}
+
+${sectionConstants}
 
 export default function Home() {
   return (
