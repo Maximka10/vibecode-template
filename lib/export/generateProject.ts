@@ -732,6 +732,7 @@ function genPostcssConfig(): string {
 }
 
 const FONT_IMPORTS: Record<string, string> = {
+  Inter:       "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap",
   Manrope:     "https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap",
   Montserrat:  "https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;900&display=swap",
   Roboto:      "https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap",
