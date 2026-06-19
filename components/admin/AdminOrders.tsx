@@ -89,7 +89,7 @@ function OrderCard({
             )}
           </div>
           <p className="mt-1 text-sm text-white/50">
-            {order.client_name ?? order.client_email ?? "Аноним"}
+            {order.client_name ?? "Аноним"}
             {order.client_phone && ` · ${order.client_phone}`}
             {order.client_telegram && ` · @${order.client_telegram}`}
           </p>

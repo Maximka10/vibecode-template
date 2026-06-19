@@ -27,7 +27,6 @@ export interface Order {
   client_name: string | null;
   client_phone: string | null;
   client_telegram: string | null;
-  client_email: string | null;
 
   // Order details
   selected_services: string[] | null;
@@ -56,7 +55,6 @@ export const ORDER_ALLOWED_INSERT_KEYS: ReadonlyArray<keyof Omit<Order, "id" | "
   "client_name",
   "client_phone",
   "client_telegram",
-  "client_email",
   "selected_services",
   "selected_options",
   "notes",

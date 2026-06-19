@@ -5,7 +5,7 @@ import { safeInsertOrder } from "@/lib/supabase/safeInsert";
 // Allowed camelCase keys from the frontend (mapped to snake_case before DB write)
 const ALLOWED_BODY_KEYS = new Set([
   "templateId", "templateName", "clientName", "clientPhone", "clientTelegram",
-  "clientEmail", "selectedServices", "notes", "selectedOptions",
+  "selectedServices", "notes", "selectedOptions",
   "totalPrice", "primaryColor", "bgColor",
 ]);
 
@@ -28,7 +28,6 @@ export async function POST(req: NextRequest) {
       clientName,
       clientPhone,
       clientTelegram,
-      clientEmail,
       selectedServices,
       notes,
       selectedOptions,
@@ -58,7 +57,6 @@ export async function POST(req: NextRequest) {
       client_name: clientName ?? null,
       client_phone: clientPhone ?? null,
       client_telegram: clientTelegram ?? null,
-      client_email: clientEmail ?? null,
       selected_services: selectedServices ?? null,
       notes: notes ?? null,
       selected_options: selectedOptions ?? null,
@@ -92,7 +90,6 @@ export async function POST(req: NextRequest) {
         `👤 ${clientName ?? "—"}`,
         clientPhone ? `📞 ${clientPhone}` : null,
         clientTelegram ? `✈️ @${clientTelegram.replace("@", "")}` : null,
-        clientEmail ? `📧 ${clientEmail}` : null,
         ``,
         `📐 Шаблон: *${templateName ?? "—"}*`,
         totalPrice ? `💰 ${Number(totalPrice).toLocaleString("ru-RU")} ₽` : null,

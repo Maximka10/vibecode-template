@@ -124,7 +124,6 @@ export default function CustomizeClient({
         clientName: leadForm.clientName,
         clientPhone: leadForm.clientPhone,
         clientTelegram: leadForm.clientTelegram,
-        clientEmail: leadForm.clientEmail,
         selectedServices: leadForm.selectedServices,
         notes: leadForm.notes,
         selectedOptions: template,

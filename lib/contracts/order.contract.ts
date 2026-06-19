@@ -24,7 +24,6 @@ export const ORDER_SCHEMA = {
   // Client contact
   client_name: "string | null",
   client_phone: "string | null",
-  client_email: "string | null",
   client_telegram: "string | null",
 
   // Template
@@ -60,7 +59,6 @@ export const INSERT_ALLOWED_KEYS = new Set<OrderSchemaKey>([
   "status",
   "client_name",
   "client_phone",
-  "client_email",
   "client_telegram",
   "template_id",
   "template_name",
@@ -90,6 +88,7 @@ export const FORBIDDEN_FIELDS = new Set([
   "price_total",
   "amount",
   "business_type",
+  "client_email",
 ]);
 
 // ── Valid statuses (mirrors types/orders.ts — kept in sync here for runtime use) ─
