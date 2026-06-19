@@ -11,7 +11,7 @@ import { validateInsertPayload } from "@/lib/contracts/order.validate";
 
 type SafeInsertResult =
   | { ok: true; id: string }
-  | { ok: false; error: string; fields?: string[]; code: "FORBIDDEN" | "DB_ERROR" };
+  | { ok: false; error: string; fields?: string[]; code: "FORBIDDEN" | "DB_ERROR"; rawError?: unknown; payload?: Record<string, unknown> };
 
 export async function safeInsertOrder(
   raw: Record<string, unknown>
@@ -56,10 +56,7 @@ export async function safeInsertOrder(
     .single();
 
   if (error) {
-    console.error("[SUPABASE INSERT ERROR FULL]", JSON.stringify(error, null, 2));
-    console.log("[INSERT PAYLOAD]", JSON.stringify(validation.payload, null, 2));
-    console.log("[INSERT PAYLOAD KEYS]", Object.keys(validation.payload));
-    return { ok: false, error: error.message, code: "DB_ERROR" };
+    return { ok: false, error: error.message, code: "DB_ERROR", rawError: error, payload: validation.payload };
   }
 
   return { ok: true, id: data.id };
