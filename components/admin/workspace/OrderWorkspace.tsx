@@ -6,6 +6,7 @@ import OverviewTab from "./tabs/OverviewTab";
 import ChatTab from "./tabs/ChatTab";
 import MaterialsTab from "./tabs/MaterialsTab";
 import DevelopmentTab from "./tabs/DevelopmentTab";
+import PreviewTab from "./tabs/PreviewTab";
 import HistoryTab from "./tabs/HistoryTab";
 
 const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
@@ -22,6 +23,7 @@ const TABS = [
   { id: "chat", label: "Чат" },
   { id: "materials", label: "Материалы" },
   { id: "development", label: "Разработка" },
+  { id: "preview", label: "Предпросмотр" },
   { id: "history", label: "История" },
 ] as const;
 
@@ -91,6 +93,7 @@ export default function OrderWorkspace({
         )}
         {activeTab === "materials" && <MaterialsTab orderId={order.id} />}
         {activeTab === "development" && <DevelopmentTab orderId={order.id} />}
+        {activeTab === "preview" && <PreviewTab orderId={order.id} />}
         {activeTab === "history" && <HistoryTab order={order} messages={initialMessages} />}
       </div>
     </main>
