@@ -7,15 +7,13 @@
  * Status changes MUST go through POST /api/orders/transition → transitionOrder()
  *
  * Allowed fields: project_url, domain, notes, launch_date, admin_url
+ * Validation enforced by lib/contracts/order.validate.ts
  */
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getUserRole } from "@/lib/supabase/role";
-import { ORDER_METADATA_PATCH_KEYS } from "@/types/orders";
-
-const METADATA_FIELDS = ORDER_METADATA_PATCH_KEYS;
-type MetadataField = (typeof METADATA_FIELDS)[number];
+import { validatePatchPayload } from "@/lib/contracts/order.validate";
 
 export async function PATCH(
   req: NextRequest,
@@ -46,40 +44,19 @@ export async function PATCH(
     return NextResponse.json({ ok: false, error: "Invalid JSON body" }, { status: 400 });
   }
 
-  // ── Hard block on status field ────────────────────────────────────────────
-  if ("status" in body) {
-    console.warn(
-      `[PATCH /api/orders/${id}] Blocked attempt to set status directly. Use POST /api/orders/transition.`
-    );
+  // ── Validate via contract layer ───────────────────────────────────────────
+  const validation = validatePatchPayload(body);
+  if (!validation.ok) {
     return NextResponse.json(
-      {
-        ok: false,
-        error:
-          'Direct status updates are not allowed. Use POST /api/orders/transition with the appropriate action.',
-      },
-      { status: 422 }
+      { ok: false, error: validation.error, fields: validation.fields },
+      { status: validation.fields?.includes("status") ? 422 : 400 }
     );
   }
 
-  // ── Build safe update payload ─────────────────────────────────────────────
-  const update: Partial<Record<MetadataField, unknown>> & { updated_at: string } = {
+  const update = {
+    ...validation.payload,
     updated_at: new Date().toISOString(),
   };
-
-  let hasFields = false;
-  for (const key of METADATA_FIELDS) {
-    if (key in body) {
-      update[key] = body[key];
-      hasFields = true;
-    }
-  }
-
-  if (!hasFields) {
-    return NextResponse.json(
-      { ok: false, error: `No updatable fields provided. Allowed: ${METADATA_FIELDS.join(", ")}` },
-      { status: 400 }
-    );
-  }
 
   // ── Apply update ──────────────────────────────────────────────────────────
   const admin = createAdminClient();
@@ -95,6 +72,5 @@ export async function PATCH(
     return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
   }
 
-  console.log(`[PATCH /api/orders/${id}] metadata updated by admin=${user.id} fields=${Object.keys(update).filter(k => k !== "updated_at").join(",")}`);
   return NextResponse.json({ ok: true, order: data });
 }
