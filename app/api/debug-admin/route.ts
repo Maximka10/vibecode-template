@@ -1,6 +1,9 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export async function GET() {
+  const serviceRolePrefix = process.env.SUPABASE_SERVICE_ROLE_KEY?.slice(0, 20) ?? null;
+  const anonKeyPrefix = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.slice(0, 20) ?? null;
+
   const admin = createAdminClient();
   const insert = await admin
     .from("orders")
@@ -14,5 +17,10 @@ export async function GET() {
     .select()
     .single();
 
-  return Response.json({ error: insert.error, data: insert.data });
+  return Response.json({
+    serviceRolePrefix,
+    anonKeyPrefix,
+    error: insert.error,
+    data: insert.data,
+  });
 }
