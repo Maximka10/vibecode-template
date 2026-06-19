@@ -2,47 +2,38 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { safeInsertOrder } from "@/lib/supabase/safeInsert";
 
-// Allowed camelCase keys from the frontend (mapped to snake_case before DB write)
+// Allowed camelCase body keys — maps to DB schema fields only
 const ALLOWED_BODY_KEYS = new Set([
-  "templateId", "templateName", "clientName", "clientPhone", "clientTelegram",
-  "selectedServices", "notes", "selectedOptions",
-  "totalPrice", "primaryColor", "bgColor",
+  "templateId",
+  "templateName",
+  "selectedOptions",
+  "totalPrice",
+  "primaryColor",
+  "bgColor",
+  "notes",
 ]);
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
+    console.log("[lead] payload keys:", Object.keys(body));
 
-    // Reject unknown/forbidden camelCase keys before any processing
+    // Hard reject any field not in allowed set
     const unknown = Object.keys(body).filter((k) => !ALLOWED_BODY_KEYS.has(k));
     if (unknown.length > 0) {
+      console.error("[lead] FIELD_NOT_IN_DB_SCHEMA:", unknown.join(", "));
       return NextResponse.json(
-        { ok: false, error: `Unknown fields: ${unknown.join(", ")}` },
+        { ok: false, error: `FIELD_NOT_IN_DB_SCHEMA: ${unknown.join(", ")}` },
         { status: 400 }
       );
     }
 
-    const {
-      templateId,
-      templateName,
-      clientName,
-      clientPhone,
-      clientTelegram,
-      selectedServices,
-      notes,
-      selectedOptions,
-      totalPrice,
-      primaryColor,
-      bgColor,
-    } = body;
+    const { templateId, templateName, selectedOptions, totalPrice, primaryColor, bgColor, notes } = body;
 
-    console.log("[lead] payload keys:", Object.keys(body));
-
-    // Step 1: resolve authenticated user from Bearer token
+    // Step 1: resolve user from Bearer token
     const admin = createAdminClient();
     let userId: string | null = null;
-    const authHeader = req.headers.get("Authorization");
-    const token = authHeader?.replace("Bearer ", "").trim();
+    const token = req.headers.get("Authorization")?.replace("Bearer ", "").trim();
     if (token) {
       const { data: { user }, error: userError } = await admin.auth.getUser(token);
       if (userError) {
@@ -53,25 +44,21 @@ export async function POST(req: NextRequest) {
     }
     console.log("[lead] resolved userId:", userId ?? "anonymous");
 
-    // Step 2: validated insert via contract layer
+    // Step 2: insert via contract-validated wrapper
     const insert = await safeInsertOrder({
       template_id: templateId ?? templateName,
       template_name: templateName ?? null,
-      client_name: clientName ?? null,
-      client_phone: clientPhone ?? null,
-      client_telegram: clientTelegram ?? null,
-      selected_services: selectedServices ?? null,
-      notes: notes ?? null,
       selected_options: selectedOptions ?? null,
+      total_price: totalPrice ?? null,
       primary_color: primaryColor ?? null,
       bg_color: bgColor ?? null,
-      total_price: totalPrice ?? null,
+      notes: notes ?? null,
       status: "new",
       user_id: userId,
     });
 
     if (!insert.ok) {
-      console.error("[lead] insert failed:", insert.error, insert.fields ?? "");
+      console.error("[lead] insert failed:", insert.error);
       return NextResponse.json(
         { ok: false, savedToDb: false, error: insert.error },
         { status: insert.code === "FORBIDDEN" ? 400 : 500 }
@@ -81,25 +68,19 @@ export async function POST(req: NextRequest) {
     const orderId = insert.id;
     console.log("[lead] order created:", orderId);
 
-    // Step 3: Telegram — only fires after confirmed insert, never blocks response
+    // Step 3: Telegram — non-blocking, only fires after confirmed insert
     const { TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, NEXT_PUBLIC_SITE_URL } = process.env;
     let telegramSent = false;
 
     if (TELEGRAM_BOT_TOKEN && TELEGRAM_CHAT_ID) {
       const siteUrl = NEXT_PUBLIC_SITE_URL ?? "https://vibecode-studio-pink.vercel.app";
-      const projectLink = `${siteUrl}/admin/orders/${orderId}`;
-
       const lines = [
         `🆕 *Новая заявка* #${orderId.slice(0, 8)}`,
-        ``,
-        `👤 ${clientName ?? "—"}`,
-        clientPhone ? `📞 ${clientPhone}` : null,
-        clientTelegram ? `✈️ @${clientTelegram.replace("@", "")}` : null,
-        ``,
         `📐 Шаблон: *${templateName ?? "—"}*`,
         totalPrice ? `💰 ${Number(totalPrice).toLocaleString("ru-RU")} ₽` : null,
+        notes ? `📝 ${notes}` : null,
         ``,
-        `🔗 [Открыть заказ в системе](${projectLink})`,
+        `🔗 [Открыть заказ](${siteUrl}/admin/orders/${orderId})`,
       ]
         .filter(Boolean)
         .join("\n");
@@ -128,7 +109,7 @@ export async function POST(req: NextRequest) {
         console.error("[lead] Telegram network error:", tgErr instanceof Error ? tgErr.message : tgErr);
       }
     } else {
-      console.warn("[lead] Telegram not configured — TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID missing");
+      console.warn("[lead] Telegram not configured");
     }
 
     return NextResponse.json({ ok: true, savedToDb: true, orderId, telegramSent });

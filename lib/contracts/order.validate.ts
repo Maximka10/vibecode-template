@@ -1,8 +1,8 @@
 /**
- * order.validate.ts — runtime payload validation before any DB write.
+ * order.validate.ts — runtime validation before any DB write.
  *
- * Used by /api/lead (insert) and /api/orders/[id] (metadata patch).
- * Throws structured errors — callers must handle them and return HTTP 400.
+ * HARD RULE: any field not in the allowed set throws immediately.
+ * NO silent stripping. NO fallback. Unknown field = error with field name.
  */
 
 import {
@@ -12,18 +12,8 @@ import {
   type OrderSchemaKey,
 } from "./order.contract";
 
-export class ValidationError extends Error {
-  constructor(
-    message: string,
-    public readonly fields?: string[]
-  ) {
-    super(message);
-    this.name = "ValidationError";
-  }
-}
-
 type ValidationResult =
-  | { ok: true; payload: Record<OrderSchemaKey, unknown> }
+  | { ok: true; payload: Record<string, unknown> }
   | { ok: false; error: string; fields: string[] };
 
 function checkForbidden(keys: string[]): string[] {
@@ -32,37 +22,28 @@ function checkForbidden(keys: string[]): string[] {
 
 /**
  * Validates a raw insert payload (from /api/lead).
- * - Rejects any field not in INSERT_ALLOWED_KEYS.
- * - Rejects any FORBIDDEN_FIELDS (budget, price, etc.).
- * - Strips undefined values.
- * Returns a clean payload safe to pass to Supabase.
+ * Hard fails on any field not in INSERT_ALLOWED_KEYS.
  */
-export function validateInsertPayload(
-  raw: Record<string, unknown>
-): ValidationResult {
+export function validateInsertPayload(raw: Record<string, unknown>): ValidationResult {
   const keys = Object.keys(raw);
 
-  // 1. Check forbidden fields first (clearer error message)
+  // 1. Forbidden fields (removed CRM fields, legacy aliases)
   const forbidden = checkForbidden(keys);
   if (forbidden.length > 0) {
-    return {
-      ok: false,
-      error: `Forbidden fields are not allowed: ${forbidden.join(", ")}`,
-      fields: forbidden,
-    };
+    const msg = `FIELD_NOT_IN_DB_SCHEMA: ${forbidden.join(", ")}`;
+    console.error(`[validate] ${msg}`);
+    return { ok: false, error: msg, fields: forbidden };
   }
 
-  // 2. Check for unknown fields
+  // 2. Unknown fields (not in allowed set)
   const unknown = keys.filter((k) => !INSERT_ALLOWED_KEYS.has(k as OrderSchemaKey));
   if (unknown.length > 0) {
-    return {
-      ok: false,
-      error: `Unknown fields rejected: ${unknown.join(", ")}`,
-      fields: unknown,
-    };
+    const msg = `FIELD_NOT_IN_DB_SCHEMA: ${unknown.join(", ")}`;
+    console.error(`[validate] ${msg}`);
+    return { ok: false, error: msg, fields: unknown };
   }
 
-  // 3. Build clean payload (only allowed keys, drop undefineds)
+  // 3. Build clean payload
   const payload: Record<string, unknown> = {};
   for (const key of INSERT_ALLOWED_KEYS) {
     if (key in raw && raw[key] !== undefined) {
@@ -70,20 +51,16 @@ export function validateInsertPayload(
     }
   }
 
-  return { ok: true, payload: payload as Record<OrderSchemaKey, unknown> };
+  return { ok: true, payload };
 }
 
 /**
- * Validates a metadata-only PATCH payload (from /api/orders/[id]).
- * - Rejects status (must use workflow engine).
- * - Rejects any field not in METADATA_PATCH_ALLOWED_KEYS.
+ * Validates a metadata PATCH payload (from /api/orders/[id]).
+ * Status is hard-blocked — must use workflow engine.
  */
-export function validatePatchPayload(
-  raw: Record<string, unknown>
-): ValidationResult {
+export function validatePatchPayload(raw: Record<string, unknown>): ValidationResult {
   const keys = Object.keys(raw);
 
-  // Status is hard-blocked
   if ("status" in raw) {
     return {
       ok: false,
@@ -94,22 +71,18 @@ export function validatePatchPayload(
 
   const forbidden = checkForbidden(keys);
   if (forbidden.length > 0) {
-    return {
-      ok: false,
-      error: `Forbidden fields are not allowed: ${forbidden.join(", ")}`,
-      fields: forbidden,
-    };
+    const msg = `FIELD_NOT_IN_DB_SCHEMA: ${forbidden.join(", ")}`;
+    console.error(`[validate] ${msg}`);
+    return { ok: false, error: msg, fields: forbidden };
   }
 
   const unknown = keys.filter(
     (k) => !METADATA_PATCH_ALLOWED_KEYS.has(k as OrderSchemaKey)
   );
   if (unknown.length > 0) {
-    return {
-      ok: false,
-      error: `Unknown fields rejected: ${unknown.join(", ")}`,
-      fields: unknown,
-    };
+    const msg = `FIELD_NOT_IN_DB_SCHEMA: ${unknown.join(", ")}`;
+    console.error(`[validate] ${msg}`);
+    return { ok: false, error: msg, fields: unknown };
   }
 
   const payload: Record<string, unknown> = {};
@@ -119,5 +92,5 @@ export function validatePatchPayload(
     }
   }
 
-  return { ok: true, payload: payload as Record<OrderSchemaKey, unknown> };
+  return { ok: true, payload };
 }

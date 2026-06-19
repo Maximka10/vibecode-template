@@ -78,9 +78,6 @@ async function sendTelegramNotification(
 
   const lines = [
     `${ACTION_LABELS[action]} #${orderId.slice(0, 8)}`,
-    ``,
-    `👤 ${order.client_name ?? "—"}`,
-    order.client_phone ? `📞 ${order.client_phone}` : null,
     `📐 Шаблон: *${order.template_name ?? order.template_id ?? "—"}*`,
     `📊 Статус: *${newStatus}*`,
     order.total_price
@@ -140,7 +137,7 @@ export async function transitionOrder(input: TransitionInput): Promise<Transitio
     const { data: order, error: fetchError } = await admin
       .from("orders")
       .select(
-        "id, status, user_id, client_name, client_phone, template_id, template_name, total_price"
+        "id, status, user_id, template_id, template_name, total_price"
       )
       .eq("id", orderId)
       .single();
