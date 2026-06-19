@@ -60,6 +60,7 @@ export default function CustomizeClient({
   const [tab, setTab] = useState<Tab>("hero");
   const [viewPane, setViewPane] = useState<"editor" | "preview">("editor");
   const [submitting, setSubmitting] = useState(false);
+  const [orderError, setOrderError] = useState<string | null>(null);
   const [orderStep, setOrderStep] = useState<OrderStep>("form");
 
   const [leadForm, setLeadForm] = useState({
@@ -108,17 +109,16 @@ export default function CustomizeClient({
 
   async function handleOrder() {
     setSubmitting(true);
-    const supabase = createClient();
-    const { data } = await supabase.auth.getSession();
-    const token = data.session?.access_token;
+    setOrderError(null);
+    console.log("[handleOrder] starting order submission");
 
-    const res = await fetch("/api/lead", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-      body: JSON.stringify({
+    try {
+      const supabase = createClient();
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      console.log("[handleOrder] session token present:", !!token);
+
+      const payload = {
         templateId: template.id,
         templateName: template.name,
         clientName: leadForm.clientName,
@@ -133,14 +133,42 @@ export default function CustomizeClient({
         totalPrice: breakdown.total,
         primaryColor: template.theme.primary,
         bgColor: template.theme.bgBase,
-      }),
-    });
+      };
 
-    setSubmitting(false);
-    if (res.ok) {
+      const res = await fetch("/api/lead", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify(payload),
+      });
+
+      console.log("[handleOrder] API response status:", res.status);
+
+      if (!res.ok) {
+        let errMsg = `Ошибка сервера (${res.status})`;
+        try {
+          const body = await res.json();
+          console.error("[handleOrder] API error body:", body);
+          if (body?.error) errMsg = body.error;
+        } catch { /* non-JSON response */ }
+        setOrderError(errMsg);
+        return;
+      }
+
+      const result = await res.json();
+      console.log("[handleOrder] success:", result);
+
       setOrderStep("done");
       try { localStorage.removeItem(`draft-${template.id}`); } catch { /* ignore */ }
       if (token) setTimeout(() => (location.href = "/dashboard"), 2500);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Неизвестная ошибка";
+      console.error("[handleOrder] fetch threw:", msg);
+      setOrderError(`Ошибка соединения: ${msg}`);
+    } finally {
+      setSubmitting(false);
     }
   }
 
@@ -481,6 +509,12 @@ export default function CustomizeClient({
 
                   <p className="text-center text-xs text-white/30">Предоплата — 0 ₽. Оплата после приёмки сайта.</p>
 
+                  {orderError && (
+                    <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+                      {orderError}
+                    </div>
+                  )}
+
                   <Btn
                     onClick={handleOrder}
                     loading={submitting}
@@ -491,7 +525,7 @@ export default function CustomizeClient({
                     {submitting ? "Отправляю..." : `Подтвердить — ${breakdown.total.toLocaleString("ru-RU")} ₽`}
                   </Btn>
 
-                  <Btn onClick={() => setOrderStep("form")} variant="ghost" size="sm" className="w-full">
+                  <Btn onClick={() => { setOrderStep("form"); setOrderError(null); }} variant="ghost" size="sm" className="w-full">
                     ← Назад к форме
                   </Btn>
                 </div>
