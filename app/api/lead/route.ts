@@ -59,27 +59,24 @@ export async function POST(req: NextRequest) {
     const { TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, NEXT_PUBLIC_SITE_URL } = process.env;
     if (TELEGRAM_BOT_TOKEN && TELEGRAM_CHAT_ID) {
       const siteUrl = NEXT_PUBLIC_SITE_URL ?? "https://vibecode-studio-pink.vercel.app";
-      const projectLink = orderId ? `${siteUrl}/admin?order=${orderId}` : siteUrl;
-
-      const servicesList = Array.isArray(selectedServices)
-        ? selectedServices.join(", ")
-        : selectedServices ?? "—";
+      // Link directly to the order workflow page — Telegram is notification-only
+      const projectLink = orderId
+        ? `${siteUrl}/admin/orders/${orderId}`
+        : `${siteUrl}/admin`;
 
       const lines = [
         `🆕 *Новая заявка* #${orderId?.slice(0, 8) ?? "—"}`,
         ``,
-        `👤 *Клиент:* ${clientName ?? "—"}`,
-        `📞 *Телефон:* ${clientPhone ?? "—"}`,
-        `✈️ *Telegram:* ${clientTelegram ? `@${clientTelegram.replace("@", "")}` : "—"}`,
-        `📧 *Email:* ${clientEmail ?? "—"}`,
+        `👤 ${clientName ?? "—"}`,
+        clientPhone ? `📞 ${clientPhone}` : null,
+        clientTelegram ? `✈️ @${clientTelegram.replace("@", "")}` : null,
+        clientEmail ? `📧 ${clientEmail}` : null,
         ``,
-        `🏪 *Бизнес:* ${businessType ?? "—"}`,
-        `📐 *Шаблон:* ${templateName ?? "—"}`,
-        `🛠 *Услуги:* ${servicesList}`,
-        `💰 *Бюджет:* ${budget ? `${Number(budget).toLocaleString("ru-RU")} ₽` : "—"}`,
-        notes ? `💬 *Комментарий:* ${notes}` : null,
+        `📐 Шаблон: *${templateName ?? "—"}*`,
+        businessType ? `🏪 ${businessType}` : null,
+        budget ? `💰 ${Number(budget).toLocaleString("ru-RU")} ₽` : null,
         ``,
-        `🔗 [Открыть заказ](${projectLink})`,
+        `🔗 [Открыть заказ в системе](${projectLink})`,
       ]
         .filter((l) => l !== null)
         .join("\n");
