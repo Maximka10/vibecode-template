@@ -56,12 +56,9 @@ export async function safeInsertOrder(
     .single();
 
   if (error) {
-    console.error("[safeInsert] Supabase INSERT failed:", {
-      message: error.message,
-      code: error.code,
-      details: error.details,
-      hint: error.hint,
-    });
+    console.error("[SUPABASE INSERT ERROR FULL]", JSON.stringify(error, null, 2));
+    console.log("[INSERT PAYLOAD]", JSON.stringify(validation.payload, null, 2));
+    console.log("[INSERT PAYLOAD KEYS]", Object.keys(validation.payload));
     return { ok: false, error: error.message, code: "DB_ERROR" };
   }
 

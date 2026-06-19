@@ -118,7 +118,9 @@ export async function POST(req: NextRequest) {
     const insert = await safeInsertOrder(insertPayload);
 
     if (!insert.ok) {
-      console.error("[lead] insert failed:", insert.error);
+      console.error("[SUPABASE INSERT ERROR FULL]", JSON.stringify(insert, null, 2));
+      console.log("[INSERT PAYLOAD]", JSON.stringify(insertPayload, null, 2));
+      console.log("[INSERT PAYLOAD KEYS]", Object.keys(insertPayload));
       return NextResponse.json(
         { ok: false, savedToDb: false, error: insert.error },
         { status: insert.code === "FORBIDDEN" ? 400 : 500 }
