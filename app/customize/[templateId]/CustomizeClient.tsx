@@ -118,7 +118,8 @@ export default function CustomizeClient({
       const token = sessionData.session?.access_token;
       console.log("[handleOrder] session token present:", !!token);
 
-      const payload = {
+      // Step 1: create the order record
+      const leadPayload = {
         templateId: template.id,
         templateName: template.name,
         clientName: leadForm.clientName,
@@ -135,30 +136,52 @@ export default function CustomizeClient({
         bgColor: template.theme.bgBase,
       };
 
-      const res = await fetch("/api/lead", {
+      const leadRes = await fetch("/api/lead", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(leadPayload),
       });
 
-      console.log("[handleOrder] API response status:", res.status);
+      console.log("[handleOrder] /api/lead status:", leadRes.status);
 
-      if (!res.ok) {
-        let errMsg = `Ошибка сервера (${res.status})`;
+      if (!leadRes.ok) {
+        let errMsg = `Ошибка при создании заказа (${leadRes.status})`;
         try {
-          const body = await res.json();
-          console.error("[handleOrder] API error body:", body);
-          if (body?.error) errMsg = body.error;
-        } catch { /* non-JSON response */ }
+          const errBody = await leadRes.json();
+          console.error("[handleOrder] /api/lead error:", errBody);
+          if (errBody?.error) errMsg = errBody.error;
+        } catch { /* non-JSON */ }
         setOrderError(errMsg);
         return;
       }
 
-      const result = await res.json();
-      console.log("[handleOrder] success:", result);
+      const { orderId } = await leadRes.json();
+      console.log("[handleOrder] order created:", orderId);
+
+      // Step 2: confirm via workflow engine (only if authenticated)
+      if (token && orderId) {
+        const transitionRes = await fetch("/api/orders/transition", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ orderId, action: "CONFIRM_PAYMENT" }),
+        });
+
+        console.log("[handleOrder] /api/orders/transition status:", transitionRes.status);
+
+        if (!transitionRes.ok) {
+          // Non-fatal: order was created. Log but don't block the user.
+          try {
+            const errBody = await transitionRes.json();
+            console.warn("[handleOrder] transition failed (non-fatal):", errBody);
+          } catch { /* ignore */ }
+        } else {
+          const transitionResult = await transitionRes.json();
+          console.log("[handleOrder] transition result:", transitionResult);
+        }
+      }
 
       setOrderStep("done");
       try { localStorage.removeItem(`draft-${template.id}`); } catch { /* ignore */ }

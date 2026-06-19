@@ -127,15 +127,50 @@ export default function OrderWorkflow({
     });
   }
 
-  async function updateStatus(status: string) {
+  async function applyTransition(action: string) {
     setStatusSaving(true);
-    const res = await fetch(`/api/orders/${order.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status }),
-    });
-    if (res.ok) setOrder((prev) => ({ ...prev, status }));
-    setStatusSaving(false);
+    console.log("[OrderWorkflow] transition:", action, "for order:", order.id);
+    try {
+      const res = await fetch("/api/orders/transition", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId: order.id, action }),
+      });
+      const result = await res.json();
+      console.log("[OrderWorkflow] transition result:", result);
+      if (result.ok) {
+        setOrder((prev) => ({ ...prev, status: result.status }));
+      } else {
+        console.error("[OrderWorkflow] transition error:", result.error);
+        alert(`Ошибка: ${result.error}`);
+      }
+    } catch (err) {
+      console.error("[OrderWorkflow] transition threw:", err);
+      alert("Ошибка соединения при смене статуса");
+    } finally {
+      setStatusSaving(false);
+    }
+  }
+
+  // Escape hatch: admin can force any valid status via direct PATCH
+  async function forceStatus(status: string) {
+    setStatusSaving(true);
+    console.log("[OrderWorkflow] forceStatus:", status, "for order:", order.id);
+    try {
+      const res = await fetch(`/api/orders/${order.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+      const result = await res.json();
+      console.log("[OrderWorkflow] forceStatus result:", result);
+      if (res.ok) setOrder((prev) => ({ ...prev, status }));
+      else console.error("[OrderWorkflow] forceStatus error:", result);
+    } catch (err) {
+      console.error("[OrderWorkflow] forceStatus threw:", err);
+    } finally {
+      setStatusSaving(false);
+    }
   }
 
   const statusCfg = STATUS_CONFIG[order.status] ?? { label: order.status, color: "bg-white/10 text-white/60 border-white/10" };
@@ -318,7 +353,7 @@ export default function OrderWorkflow({
                     <button
                       key={s}
                       disabled={statusSaving || active}
-                      onClick={() => updateStatus(s)}
+                      onClick={() => forceStatus(s)}
                       className={`rounded-xl border px-2.5 py-2 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 ${
                         active
                           ? cfg.color
@@ -358,18 +393,32 @@ export default function OrderWorkflow({
                   </Btn>
                 )}
                 <button
+                  disabled={statusSaving || order.status === "in_progress"}
+                  onClick={() => applyTransition("START_WORK")}
+                  className="w-full rounded-full border border-yellow-500/30 bg-yellow-500/10 px-4 py-2 text-xs font-semibold text-yellow-300 transition hover:bg-yellow-500/20 disabled:opacity-40"
+                >
+                  🔨 Начать работу
+                </button>
+                <button
                   disabled={statusSaving || order.status === "waiting_client"}
-                  onClick={() => updateStatus("waiting_client")}
+                  onClick={() => applyTransition("REQUEST_CLIENT_INPUT")}
                   className="w-full rounded-full border border-orange-500/30 bg-orange-500/10 px-4 py-2 text-xs font-semibold text-orange-300 transition hover:bg-orange-500/20 disabled:opacity-40"
                 >
-                  Запросить правки
+                  ⏳ Запросить правки
                 </button>
                 <button
                   disabled={statusSaving || order.status === "completed"}
-                  onClick={() => updateStatus("completed")}
+                  onClick={() => applyTransition("COMPLETE_ORDER")}
                   className="w-full rounded-full border border-green-500/30 bg-green-500/10 px-4 py-2 text-xs font-semibold text-green-300 transition hover:bg-green-500/20 disabled:opacity-40"
                 >
                   ✓ Завершить заказ
+                </button>
+                <button
+                  disabled={statusSaving || order.status === "cancelled"}
+                  onClick={() => applyTransition("CANCEL_ORDER")}
+                  className="w-full rounded-full border border-red-500/30 bg-red-500/10 px-4 py-2 text-xs font-semibold text-red-300 transition hover:bg-red-500/20 disabled:opacity-40"
+                >
+                  ✕ Отменить
                 </button>
               </div>
             </Card>
