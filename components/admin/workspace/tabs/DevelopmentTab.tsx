@@ -26,6 +26,7 @@ type ProjectData = {
   services?: string[];
   seo_title?: string;
   seo_description?: string;
+  font?: string;
   branding?: { primary_color?: string; secondary_color?: string };
   content_edits?: {
     hero?: { title?: string; subtitle?: string; cta?: string };
@@ -33,6 +34,8 @@ type ProjectData = {
     sections?: SiteSection[];
   };
 };
+
+const FONTS = ["Inter", "Manrope", "Montserrat", "Roboto", "Open Sans"] as const;
 
 type Device = "desktop" | "tablet" | "mobile";
 
@@ -231,8 +234,36 @@ function SectionEditor({
       return (
         <div className="space-y-3">
           <Field label="Заголовок"><input className={FIELD_CLS} value={String(c.title ?? "")} onChange={(e) => set("title", e.target.value)} /></Field>
-          <Field label="Адрес"><input className={FIELD_CLS} value={String(c.address ?? "")} onChange={(e) => set("address", e.target.value)} /></Field>
-          <Field label="URL embed карты (необязательно)" hint="iframe src от Яндекс.Карт или Google Maps"><input className={FIELD_CLS} value={String(c.embed_url ?? "")} onChange={(e) => set("embed_url", e.target.value)} /></Field>
+          <Field label="Адрес" hint="Карта сгенерируется автоматически по адресу">
+            <input
+              className={FIELD_CLS}
+              value={String(c.address ?? "")}
+              onChange={(e) => {
+                const addr = e.target.value;
+                set("address", addr);
+                if (addr.trim() && !c.embed_url) {
+                  set("embed_url", `https://yandex.ru/map-widget/v1/?text=${encodeURIComponent(addr)}&z=15&lang=ru_RU`);
+                }
+              }}
+            />
+          </Field>
+          <Field label="URL embed (перезаписывает автоматический)" hint="Оставьте пустым для автогенерации по адресу">
+            <input
+              className={FIELD_CLS}
+              value={String(c.embed_url ?? "")}
+              onChange={(e) => set("embed_url", e.target.value)}
+              placeholder="https://yandex.ru/map-widget/v1/..."
+            />
+          </Field>
+          {c.address && (
+            <button
+              type="button"
+              className="text-xs text-cyan-400/70 hover:text-cyan-300 underline"
+              onClick={() => set("embed_url", `https://yandex.ru/map-widget/v1/?text=${encodeURIComponent(String(c.address))}&z=15&lang=ru_RU`)}
+            >
+              ↺ Пересгенерировать embed по адресу
+            </button>
+          )}
         </div>
       );
     case "footer": {
@@ -476,6 +507,64 @@ export default function DevelopmentTab({ orderId, order }: { orderId: string; or
             </div>
           </Card>
         )}
+
+        {/* Global Settings */}
+        <Card variant="solid" padding="md">
+          <h3 className="mb-4 text-xs font-semibold uppercase tracking-widest text-white/40">Настройки сайта</h3>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Field label="Название компании">
+              <input className={FIELD_CLS} value={pd.company_name ?? ""} onChange={(e) => { setPd((p) => ({ ...p, company_name: e.target.value })); setDirty(true); }} placeholder="ООО «Компания»" />
+            </Field>
+            <Field label="Телефон">
+              <input className={FIELD_CLS} value={pd.phone ?? ""} onChange={(e) => { setPd((p) => ({ ...p, phone: e.target.value })); setDirty(true); }} placeholder="+7 (999) 000-00-00" />
+            </Field>
+            <Field label="Email">
+              <input className={FIELD_CLS} value={pd.email ?? ""} onChange={(e) => { setPd((p) => ({ ...p, email: e.target.value })); setDirty(true); }} placeholder="info@company.ru" />
+            </Field>
+            <Field label="Telegram">
+              <input className={FIELD_CLS} value={pd.telegram ?? ""} onChange={(e) => { setPd((p) => ({ ...p, telegram: e.target.value })); setDirty(true); }} placeholder="@username" />
+            </Field>
+            <Field label="Адрес">
+              <input className={FIELD_CLS} value={pd.address ?? ""} onChange={(e) => { setPd((p) => ({ ...p, address: e.target.value })); setDirty(true); }} placeholder="г. Москва, ул. Примерная, 1" />
+            </Field>
+            <Field label="Режим работы">
+              <input className={FIELD_CLS} value={pd.working_hours ?? ""} onChange={(e) => { setPd((p) => ({ ...p, working_hours: e.target.value })); setDirty(true); }} placeholder="Пн-Пт 9:00–18:00" />
+            </Field>
+            <div className="col-span-full">
+              <Field label="Описание компании">
+                <textarea className={`${FIELD_CLS} resize-none`} rows={2} value={pd.company_description ?? ""} onChange={(e) => { setPd((p) => ({ ...p, company_description: e.target.value })); setDirty(true); }} placeholder="Чем занимается компания…" />
+              </Field>
+            </div>
+          </div>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <Field label="Основной цвет">
+              <div className="flex items-center gap-2">
+                <input type="color" className="h-9 w-12 cursor-pointer rounded-lg border border-white/10 bg-transparent p-0.5" value={pd.branding?.primary_color ?? "#6366f1"} onChange={(e) => { setPd((p) => ({ ...p, branding: { ...p.branding, primary_color: e.target.value } })); setDirty(true); }} />
+                <input className={`${FIELD_CLS} flex-1`} value={pd.branding?.primary_color ?? "#6366f1"} onChange={(e) => { setPd((p) => ({ ...p, branding: { ...p.branding, primary_color: e.target.value } })); setDirty(true); }} />
+              </div>
+            </Field>
+            <Field label="Дополнительный цвет">
+              <div className="flex items-center gap-2">
+                <input type="color" className="h-9 w-12 cursor-pointer rounded-lg border border-white/10 bg-transparent p-0.5" value={pd.branding?.secondary_color ?? "#8b5cf6"} onChange={(e) => { setPd((p) => ({ ...p, branding: { ...p.branding, secondary_color: e.target.value } })); setDirty(true); }} />
+                <input className={`${FIELD_CLS} flex-1`} value={pd.branding?.secondary_color ?? "#8b5cf6"} onChange={(e) => { setPd((p) => ({ ...p, branding: { ...p.branding, secondary_color: e.target.value } })); setDirty(true); }} />
+              </div>
+            </Field>
+            <Field label="Шрифт">
+              <select className={FIELD_CLS} value={pd.font ?? "Inter"} onChange={(e) => { setPd((p) => ({ ...p, font: e.target.value })); setDirty(true); }}>
+                {FONTS.map((f) => <option key={f} value={f}>{f}</option>)}
+              </select>
+            </Field>
+            <Field label="Домен сайта">
+              <input className={FIELD_CLS} value={pd.domain_name ?? ""} onChange={(e) => { setPd((p) => ({ ...p, domain_name: e.target.value })); setDirty(true); }} placeholder="example.ru" />
+            </Field>
+            <Field label="SEO заголовок">
+              <input className={FIELD_CLS} value={pd.seo_title ?? ""} onChange={(e) => { setPd((p) => ({ ...p, seo_title: e.target.value })); setDirty(true); }} />
+            </Field>
+            <Field label="SEO описание">
+              <input className={FIELD_CLS} value={pd.seo_description ?? ""} onChange={(e) => { setPd((p) => ({ ...p, seo_description: e.target.value })); setDirty(true); }} />
+            </Field>
+          </div>
+        </Card>
 
         {/* Section List */}
         <Card variant="solid" padding="md">

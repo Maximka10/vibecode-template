@@ -199,6 +199,45 @@ export default function OverviewTab({ order: initialOrder }: { order: Record<str
           </div>
         </Card>
 
+        {/* Telegram */}
+        <Card variant="subtle" padding="md">
+          <h2 className="mb-3 text-xs font-semibold uppercase tracking-widest text-white/40">Telegram</h2>
+          {order.telegram_username ? (
+            <div className="space-y-1.5 text-xs">
+              <div className="flex items-center gap-2">
+                <span className="inline-block h-2 w-2 rounded-full bg-green-400" />
+                <span className="text-green-400 font-semibold">Привязан</span>
+              </div>
+              <p className="text-white/50">@{order.telegram_username}</p>
+              {order.telegram_linked_at && (
+                <p className="text-white/30">С {new Date(order.telegram_linked_at).toLocaleDateString("ru-RU")}</p>
+              )}
+              <a
+                href={`https://t.me/${order.telegram_username}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-2 inline-block rounded-lg border border-cyan-500/30 bg-cyan-500/10 px-3 py-1.5 text-xs font-semibold text-cyan-300 hover:bg-cyan-500/20"
+              >
+                Написать клиенту ↗
+              </a>
+            </div>
+          ) : (
+            <div className="space-y-2 text-xs text-white/40">
+              <p>Клиент не привязан к Telegram</p>
+              {process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME && (
+                <a
+                  href={`https://t.me/${process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME}?start=order_${order.id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-block rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white/50 hover:text-white/70"
+                >
+                  Ссылка для клиента ↗
+                </a>
+              )}
+            </div>
+          )}
+        </Card>
+
         {/* Meta */}
         <Card variant="subtle" padding="md">
           <h2 className="mb-3 text-xs font-semibold uppercase tracking-widest text-white/40">Системная информация</h2>

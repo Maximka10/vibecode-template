@@ -2,16 +2,160 @@ import { SiteSection, SectionType } from "@/types/sections";
 
 export type SiteJson = {
   meta: { title: string; description: string; domain: string };
-  branding: { primary: string; secondary: string };
+  branding: { primary: string; secondary: string; accent?: string };
+  font?: string;
   company: { name: string; description: string; address: string; working_hours: string };
-  contacts: { phone: string; email: string; telegram: string };
+  contacts: { phone: string; email: string; telegram: string; whatsapp?: string };
   sections: SiteSection[];
 };
+
+// ── Section nav labels ─────────────────────────────────────────────────────────
+
+const SECTION_NAV: Partial<Record<SectionType, { href: string; label: string }>> = {
+  about:    { href: "#about",    label: "О нас" },
+  services: { href: "#services", label: "Услуги" },
+  gallery:  { href: "#gallery",  label: "Галерея" },
+  reviews:  { href: "#reviews",  label: "Отзывы" },
+  pricing:  { href: "#pricing",  label: "Цены" },
+  faq:      { href: "#faq",      label: "FAQ" },
+  contacts: { href: "#contacts", label: "Контакты" },
+};
+
+// ── Navigation component ───────────────────────────────────────────────────────
+
+function genNavigation(site: SiteJson, sections: SiteSection[]): string {
+  const navItems = sections
+    .filter((s) => s.enabled && SECTION_NAV[s.type as SectionType])
+    .map((s) => SECTION_NAV[s.type as SectionType]!);
+
+  const itemsJson = JSON.stringify(navItems);
+  const companyName = JSON.stringify(site.company.name || "Компания");
+
+  return `"use client";
+import { useState, useEffect } from "react";
+
+const NAV_ITEMS = ${itemsJson};
+
+export default function Navigation() {
+  const [open, setOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 20);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  const close = () => setOpen(false);
+
+  return (
+    <header
+      className={\`fixed inset-x-0 top-0 z-50 transition-all duration-300 \${
+        scrolled ? "bg-white/90 shadow-sm backdrop-blur-md" : "bg-transparent"
+      }\`}
+    >
+      <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
+        <a
+          href="#"
+          onClick={close}
+          className="text-lg font-black"
+          style={{ color: "var(--primary)" }}
+        >
+          {${companyName}}
+        </a>
+
+        {/* Desktop nav */}
+        <nav className="hidden items-center gap-7 md:flex">
+          {NAV_ITEMS.map((item) => (
+            <a
+              key={item.href}
+              href={item.href}
+              className="text-sm font-semibold text-slate-700 transition hover:opacity-70"
+              style={{ color: scrolled ? undefined : "inherit" }}
+            >
+              {item.label}
+            </a>
+          ))}
+        </nav>
+
+        {/* Burger */}
+        <button
+          className="flex flex-col items-center justify-center gap-1.5 md:hidden p-2"
+          onClick={() => setOpen(!open)}
+          aria-label="Меню"
+        >
+          <span className={\`block h-0.5 w-6 bg-slate-800 transition-all duration-300 \${open ? "translate-y-2 rotate-45" : ""}\`} />
+          <span className={\`block h-0.5 w-6 bg-slate-800 transition-all duration-300 \${open ? "opacity-0" : ""}\`} />
+          <span className={\`block h-0.5 w-6 bg-slate-800 transition-all duration-300 \${open ? "-translate-y-2 -rotate-45" : ""}\`} />
+        </button>
+      </div>
+
+      {/* Mobile drawer */}
+      {open && (
+        <div className="border-t border-slate-100 bg-white/95 backdrop-blur-md md:hidden">
+          <nav className="flex flex-col px-6 py-4">
+            {NAV_ITEMS.map((item) => (
+              <a
+                key={item.href}
+                href={item.href}
+                onClick={close}
+                className="border-b border-slate-100 py-3.5 text-sm font-semibold text-slate-700 last:border-0"
+              >
+                {item.label}
+              </a>
+            ))}
+          </nav>
+        </div>
+      )}
+    </header>
+  );
+}
+`;
+}
+
+// ── Sticky mobile CTA ──────────────────────────────────────────────────────────
+
+function genStickyMobileCTA(contacts: SiteJson["contacts"]): string {
+  const hasPhone = !!contacts.phone;
+  const hasTelegram = !!contacts.telegram;
+  if (!hasPhone && !hasTelegram) return "";
+
+  const phone = JSON.stringify(contacts.phone || "");
+  const tg = JSON.stringify((contacts.telegram || "").replace("@", ""));
+
+  return `export default function MobileCTA() {
+  return (
+    <div className="fixed bottom-0 inset-x-0 z-40 md:hidden">
+      <div
+        className="flex gap-0 border-t border-white/20"
+        style={{ background: "var(--primary)" }}
+      >
+        ${hasPhone ? `<a
+          href={\`tel:${phone.slice(1, -1)}\`}
+          className="flex flex-1 items-center justify-center gap-2 py-4 text-sm font-bold text-white"
+        >
+          <span>📞</span> Позвонить
+        </a>` : ""}
+        ${hasPhone && hasTelegram ? `<div className="w-px bg-white/20" />` : ""}
+        ${hasTelegram ? `<a
+          href={\`https://t.me/${tg.slice(1, -1)}\`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex flex-1 items-center justify-center gap-2 py-4 text-sm font-bold text-white"
+        >
+          <span>💬</span> Telegram
+        </a>` : ""}
+      </div>
+    </div>
+  );
+}
+`;
+}
 
 // ── Component templates ───────────────────────────────────────────────────────
 
 const COMPONENT_TEMPLATES: Record<SectionType, (s: SiteSection) => string> = {
-  hero: (s) => `import { SiteSection } from "@/types";
+  hero: () => `import { SiteSection } from "@/types";
 
 export default function Hero({ section }: { section: SiteSection }) {
   const { title, subtitle, cta_text } = section.content as {
@@ -19,19 +163,74 @@ export default function Hero({ section }: { section: SiteSection }) {
   };
   return (
     <section
-      className="px-8 py-20 text-white"
-      style={{ background: \`linear-gradient(135deg, var(--primary), var(--secondary))\` }}
+      className="relative flex min-h-[90svh] flex-col items-center justify-center px-6 py-24 text-center text-white sm:py-32"
+      style={{ background: \`linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%)\` }}
     >
-      <div className="mx-auto max-w-4xl">
-        {title && <h1 className="text-4xl font-black leading-tight sm:text-5xl">{title}</h1>}
-        {subtitle && <p className="mt-4 max-w-2xl text-lg leading-relaxed opacity-85">{subtitle}</p>}
+      {/* Decorative blobs */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute -top-1/4 left-1/4 h-[600px] w-[600px] rounded-full bg-white/5 blur-3xl" />
+        <div className="absolute -bottom-1/4 right-1/4 h-[400px] w-[400px] rounded-full bg-black/10 blur-3xl" />
+      </div>
+
+      <div className="relative mx-auto max-w-4xl">
+        {title && (
+          <h1 className="text-5xl font-black leading-[1.1] tracking-tight sm:text-6xl lg:text-7xl">
+            {title}
+          </h1>
+        )}
+        {subtitle && (
+          <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed opacity-85 sm:text-xl">
+            {subtitle}
+          </p>
+        )}
         {cta_text && (
-          <a
-            href="#contacts"
-            className="mt-8 inline-block rounded-full border-2 border-white/40 bg-white/20 px-8 py-3 font-bold backdrop-blur-sm transition hover:bg-white/30"
-          >
-            {cta_text}
-          </a>
+          <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
+            <a
+              href="#contacts"
+              className="inline-flex items-center gap-2 rounded-full bg-white px-10 py-4 text-base font-bold shadow-lg transition hover:-translate-y-0.5 hover:shadow-xl active:scale-95"
+              style={{ color: "var(--primary)" }}
+            >
+              {cta_text}
+            </a>
+          </div>
+        )}
+
+        {/* Trust badges */}
+        <div className="mt-14 flex flex-wrap items-center justify-center gap-8 opacity-70">
+          {[
+            { icon: "⭐", text: "5.0 рейтинг" },
+            { icon: "✓", text: "Гарантия качества" },
+            { icon: "🚀", text: "Быстрый старт" },
+          ].map((b) => (
+            <div key={b.text} className="flex items-center gap-2 text-sm font-semibold">
+              <span>{b.icon}</span>
+              <span>{b.text}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+`,
+
+  about: () => `import { SiteSection } from "@/types";
+
+export default function About({ section }: { section: SiteSection }) {
+  const { title, text } = section.content as { title?: string; text?: string };
+  return (
+    <section className="px-6 py-20 bg-white" id="about">
+      <div className="mx-auto max-w-4xl">
+        <div className="mb-3 h-1 w-12 rounded-full" style={{ backgroundColor: "var(--primary)" }} />
+        {title && (
+          <h2 className="mb-6 text-3xl font-black leading-tight text-slate-900 sm:text-4xl">
+            {title}
+          </h2>
+        )}
+        {text && (
+          <p className="text-lg leading-relaxed text-slate-600 whitespace-pre-line max-w-3xl">
+            {text}
+          </p>
         )}
       </div>
     </section>
@@ -39,35 +238,39 @@ export default function Hero({ section }: { section: SiteSection }) {
 }
 `,
 
-  about: (s) => `import { SiteSection } from "@/types";
+  services: () => `import { SiteSection } from "@/types";
 
-export default function About({ section }: { section: SiteSection }) {
-  const { title, text } = section.content as { title?: string; text?: string };
-  return (
-    <section className="px-8 py-16 bg-white" id="about">
-      <div className="mx-auto max-w-4xl">
-        {title && <h2 className="mb-6 text-3xl font-black text-slate-800">{title}</h2>}
-        {text && <p className="text-lg leading-relaxed text-slate-600 whitespace-pre-line">{text}</p>}
-      </div>
-    </section>
-  );
-}
-`,
-
-  services: (s) => `import { SiteSection } from "@/types";
+const ICONS = ["✦", "◈", "◆", "⬡", "◉", "⬟"];
 
 export default function Services({ section }: { section: SiteSection }) {
   const { title, items } = section.content as { title?: string; items?: string[] };
   if (!items?.length) return null;
   return (
-    <section className="px-8 py-16 bg-slate-50" id="services">
-      <div className="mx-auto max-w-4xl">
-        {title && <h2 className="mb-8 text-3xl font-black text-slate-800">{title}</h2>}
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    <section className="px-6 py-20 bg-slate-50" id="services">
+      <div className="mx-auto max-w-5xl">
+        <div className="mb-3 h-1 w-12 rounded-full" style={{ backgroundColor: "var(--primary)" }} />
+        {title && (
+          <h2 className="mb-10 text-3xl font-black text-slate-900 sm:text-4xl">
+            {title}
+          </h2>
+        )}
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {items.map((item, i) => (
-            <div key={i} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-              <div className="mb-3 h-1 w-10 rounded-full" style={{ backgroundColor: "var(--primary)" }} />
-              <p className="font-semibold text-slate-800">{item}</p>
+            <div
+              key={i}
+              className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-7 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
+            >
+              <div
+                className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl text-xl text-white"
+                style={{ backgroundColor: "var(--primary)" }}
+              >
+                {ICONS[i % ICONS.length]}
+              </div>
+              <p className="font-bold text-slate-800 leading-snug">{item}</p>
+              <div
+                className="absolute bottom-0 left-0 h-1 w-0 transition-all duration-300 group-hover:w-full"
+                style={{ backgroundColor: "var(--secondary)" }}
+              />
             </div>
           ))}
         </div>
@@ -77,20 +280,23 @@ export default function Services({ section }: { section: SiteSection }) {
 }
 `,
 
-  gallery: (s) => `import { SiteSection } from "@/types";
+  gallery: () => `import { SiteSection } from "@/types";
 import Image from "next/image";
 
 export default function Gallery({ section }: { section: SiteSection }) {
   const { title, images } = section.content as { title?: string; images?: string[] };
   if (!images?.length) return null;
   return (
-    <section className="px-8 py-16 bg-white" id="gallery">
-      <div className="mx-auto max-w-4xl">
-        {title && <h2 className="mb-8 text-3xl font-black text-slate-800">{title}</h2>}
+    <section className="px-6 py-20 bg-white" id="gallery">
+      <div className="mx-auto max-w-5xl">
+        <div className="mb-3 h-1 w-12 rounded-full" style={{ backgroundColor: "var(--primary)" }} />
+        {title && (
+          <h2 className="mb-10 text-3xl font-black text-slate-900 sm:text-4xl">{title}</h2>
+        )}
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           {images.map((src, i) => (
-            <div key={i} className="relative aspect-square overflow-hidden rounded-2xl bg-slate-100">
-              <Image src={src} alt={\`Gallery \${i + 1}\`} fill className="object-cover" />
+            <div key={i} className="relative aspect-square overflow-hidden rounded-2xl bg-slate-100 transition hover:scale-[1.01]">
+              <Image src={src} alt={\`Фото \${i + 1}\`} fill className="object-cover" />
             </div>
           ))}
         </div>
@@ -100,7 +306,7 @@ export default function Gallery({ section }: { section: SiteSection }) {
 }
 `,
 
-  reviews: (s) => `import { SiteSection } from "@/types";
+  reviews: () => `import { SiteSection } from "@/types";
 
 type Review = { author: string; text: string; rating: number };
 
@@ -108,15 +314,24 @@ export default function Reviews({ section }: { section: SiteSection }) {
   const { title, items } = section.content as { title?: string; items?: Review[] };
   if (!items?.length) return null;
   return (
-    <section className="px-8 py-16 bg-slate-50" id="reviews">
-      <div className="mx-auto max-w-4xl">
-        {title && <h2 className="mb-8 text-3xl font-black text-slate-800">{title}</h2>}
-        <div className="grid gap-4 sm:grid-cols-2">
+    <section className="px-6 py-20 bg-slate-50" id="reviews">
+      <div className="mx-auto max-w-5xl">
+        <div className="mb-3 h-1 w-12 rounded-full" style={{ backgroundColor: "var(--primary)" }} />
+        {title && (
+          <h2 className="mb-10 text-3xl font-black text-slate-900 sm:text-4xl">{title}</h2>
+        )}
+        <div className="grid gap-5 sm:grid-cols-2">
           {items.map((r, i) => (
-            <div key={i} className="rounded-2xl border border-slate-200 bg-white p-6">
-              <p className="text-yellow-500">{"★".repeat(r.rating ?? 5)}</p>
-              <p className="mt-3 leading-relaxed text-slate-600">"{r.text}"</p>
-              <p className="mt-4 text-sm font-semibold text-slate-500">— {r.author}</p>
+            <div key={i} className="rounded-2xl border border-slate-200 bg-white p-7 shadow-sm">
+              <div className="flex gap-0.5">
+                {Array.from({ length: 5 }).map((_, j) => (
+                  <svg key={j} className="h-5 w-5" viewBox="0 0 20 20" fill={j < (r.rating ?? 5) ? "var(--primary)" : "#e2e8f0"}>
+                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                  </svg>
+                ))}
+              </div>
+              <p className="mt-4 leading-relaxed text-slate-600">«{r.text}»</p>
+              <p className="mt-5 text-sm font-bold text-slate-700">— {r.author}</p>
             </div>
           ))}
         </div>
@@ -126,7 +341,7 @@ export default function Reviews({ section }: { section: SiteSection }) {
 }
 `,
 
-  faq: (s) => `"use client";
+  faq: () => `"use client";
 import { useState } from "react";
 import { SiteSection } from "@/types";
 
@@ -137,21 +352,31 @@ export default function FAQ({ section }: { section: SiteSection }) {
   const [open, setOpen] = useState<number | null>(null);
   if (!items?.length) return null;
   return (
-    <section className="px-8 py-16 bg-white" id="faq">
+    <section className="px-6 py-20 bg-white" id="faq">
       <div className="mx-auto max-w-3xl">
-        {title && <h2 className="mb-8 text-3xl font-black text-slate-800">{title}</h2>}
+        <div className="mb-3 h-1 w-12 rounded-full" style={{ backgroundColor: "var(--primary)" }} />
+        {title && (
+          <h2 className="mb-10 text-3xl font-black text-slate-900 sm:text-4xl">{title}</h2>
+        )}
         <div className="space-y-3">
           {items.map((f, i) => (
-            <div key={i} className="rounded-2xl border border-slate-200 overflow-hidden">
+            <div key={i} className="overflow-hidden rounded-2xl border border-slate-200 transition-shadow hover:shadow-sm">
               <button
-                className="flex w-full items-center justify-between px-6 py-4 text-left font-semibold text-slate-800 hover:bg-slate-50"
+                className="flex w-full items-center justify-between gap-4 px-6 py-5 text-left font-bold text-slate-800 hover:bg-slate-50"
                 onClick={() => setOpen(open === i ? null : i)}
               >
-                <span>{f.question}</span>
-                <span className="ml-4 text-slate-400">{open === i ? "−" : "+"}</span>
+                <span className="text-base leading-snug">{f.question}</span>
+                <span
+                  className="shrink-0 text-xl font-black transition-transform duration-200"
+                  style={{ color: "var(--primary)", transform: open === i ? "rotate(45deg)" : "none" }}
+                >
+                  +
+                </span>
               </button>
               {open === i && (
-                <div className="border-t border-slate-100 px-6 py-4 text-slate-600">{f.answer}</div>
+                <div className="border-t border-slate-100 px-6 py-5 text-slate-600 leading-relaxed">
+                  {f.answer}
+                </div>
               )}
             </div>
           ))}
@@ -162,7 +387,7 @@ export default function FAQ({ section }: { section: SiteSection }) {
 }
 `,
 
-  pricing: (s) => `import { SiteSection } from "@/types";
+  pricing: () => `import { SiteSection } from "@/types";
 
 type Plan = { name: string; price: string; features: string[] };
 
@@ -170,21 +395,43 @@ export default function Pricing({ section }: { section: SiteSection }) {
   const { title, plans } = section.content as { title?: string; plans?: Plan[] };
   if (!plans?.length) return null;
   return (
-    <section className="px-8 py-16 bg-slate-50" id="pricing">
-      <div className="mx-auto max-w-4xl">
-        {title && <h2 className="mb-8 text-3xl font-black text-slate-800">{title}</h2>}
+    <section className="px-6 py-20 bg-slate-50" id="pricing">
+      <div className="mx-auto max-w-5xl">
+        <div className="mb-3 h-1 w-12 rounded-full" style={{ backgroundColor: "var(--primary)" }} />
+        {title && (
+          <h2 className="mb-10 text-3xl font-black text-slate-900 sm:text-4xl">{title}</h2>
+        )}
         <div className="grid gap-6 sm:grid-cols-3">
           {plans.map((p, i) => (
-            <div key={i} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-              <p className="font-bold text-slate-800">{p.name}</p>
-              <p className="mt-2 text-3xl font-black" style={{ color: "var(--primary)" }}>{p.price}</p>
-              <ul className="mt-4 space-y-2">
+            <div
+              key={i}
+              className="rounded-2xl border bg-white p-7 shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
+              style={i === 1 ? { borderColor: "var(--primary)", borderWidth: 2 } : { borderColor: "#e2e8f0" }}
+            >
+              {i === 1 && (
+                <p className="mb-3 inline-block rounded-full px-3 py-1 text-xs font-bold text-white" style={{ backgroundColor: "var(--primary)" }}>
+                  Популярный
+                </p>
+              )}
+              <p className="text-lg font-bold text-slate-800">{p.name}</p>
+              <p className="mt-2 text-4xl font-black" style={{ color: "var(--primary)" }}>{p.price}</p>
+              <ul className="mt-6 space-y-3">
                 {(p.features ?? []).map((f, j) => (
-                  <li key={j} className="flex items-center gap-2 text-sm text-slate-600">
-                    <span style={{ color: "var(--primary)" }}>✓</span> {f}
+                  <li key={j} className="flex items-start gap-3 text-sm text-slate-600">
+                    <span className="mt-0.5 shrink-0 font-bold" style={{ color: "var(--primary)" }}>✓</span>
+                    <span>{f}</span>
                   </li>
                 ))}
               </ul>
+              <a
+                href="#contacts"
+                className="mt-7 block rounded-full py-3 text-center text-sm font-bold transition hover:opacity-80"
+                style={i === 1
+                  ? { backgroundColor: "var(--primary)", color: "white" }
+                  : { backgroundColor: "#f1f5f9", color: "var(--primary)" }}
+              >
+                Выбрать
+              </a>
             </div>
           ))}
         </div>
@@ -194,7 +441,7 @@ export default function Pricing({ section }: { section: SiteSection }) {
 }
 `,
 
-  cta: (s) => `import { SiteSection } from "@/types";
+  cta: () => `import { SiteSection } from "@/types";
 
 export default function CTA({ section }: { section: SiteSection }) {
   const { title, subtitle, cta_text } = section.content as {
@@ -202,19 +449,23 @@ export default function CTA({ section }: { section: SiteSection }) {
   };
   return (
     <section
-      className="px-8 py-20 text-center text-white"
-      style={{ background: \`linear-gradient(135deg, var(--primary), var(--secondary))\` }}
+      className="relative overflow-hidden px-6 py-24 text-center text-white"
+      style={{ background: \`linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%)\` }}
     >
-      <div className="mx-auto max-w-2xl">
-        {title && <h2 className="text-3xl font-black">{title}</h2>}
-        {subtitle && <p className="mt-3 text-lg opacity-80">{subtitle}</p>}
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute left-1/4 top-0 h-80 w-80 rounded-full bg-white/5 blur-3xl" />
+        <div className="absolute bottom-0 right-1/4 h-60 w-60 rounded-full bg-black/10 blur-3xl" />
+      </div>
+      <div className="relative mx-auto max-w-2xl">
+        {title && <h2 className="text-3xl font-black sm:text-4xl">{title}</h2>}
+        {subtitle && <p className="mt-4 text-lg opacity-80">{subtitle}</p>}
         {cta_text && (
           <a
             href="#contacts"
-            className="mt-8 inline-block rounded-full bg-white px-10 py-4 font-bold transition hover:opacity-90"
+            className="mt-10 inline-flex items-center gap-2 rounded-full bg-white px-12 py-4 text-base font-bold shadow-lg transition hover:-translate-y-0.5 hover:shadow-xl active:scale-95"
             style={{ color: "var(--primary)" }}
           >
-            {cta_text}
+            {cta_text} →
           </a>
         )}
       </div>
@@ -223,7 +474,7 @@ export default function CTA({ section }: { section: SiteSection }) {
 }
 `,
 
-  contacts: (s) => `import { SiteSection } from "@/types";
+  contacts: () => `import { SiteSection } from "@/types";
 
 export default function Contacts({ section }: { section: SiteSection }) {
   const { title, phone, email, telegram, address, working_hours } = section.content as {
@@ -239,17 +490,31 @@ export default function Contacts({ section }: { section: SiteSection }) {
   ].filter(Boolean) as { icon: string; label: string; value: string; href: string | null }[];
 
   return (
-    <section className="px-8 py-16 bg-white" id="contacts">
+    <section className="px-6 py-20 bg-white" id="contacts">
       <div className="mx-auto max-w-4xl">
-        {title && <h2 className="mb-8 text-3xl font-black text-slate-800">{title}</h2>}
+        <div className="mb-3 h-1 w-12 rounded-full" style={{ backgroundColor: "var(--primary)" }} />
+        {title && (
+          <h2 className="mb-10 text-3xl font-black text-slate-900 sm:text-4xl">{title}</h2>
+        )}
         <div className="grid gap-4 sm:grid-cols-2">
           {items.map((item, i) => (
-            <div key={i} className="flex items-start gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-5">
-              <span className="text-2xl">{item.icon}</span>
+            <div key={i} className="group flex items-start gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-5 transition hover:border-slate-300 hover:bg-white hover:shadow-sm">
+              <div
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-xl"
+                style={{ backgroundColor: "color-mix(in srgb, var(--primary) 12%, white)" }}
+              >
+                {item.icon}
+              </div>
               <div>
                 <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">{item.label}</p>
                 {item.href ? (
-                  <a href={item.href} className="mt-1 font-semibold text-slate-700 hover:underline" style={{ color: "var(--primary)" }}>{item.value}</a>
+                  <a
+                    href={item.href}
+                    className="mt-1 font-bold text-slate-800 hover:underline"
+                    style={{ color: "var(--primary)" }}
+                  >
+                    {item.value}
+                  </a>
                 ) : (
                   <p className="mt-1 font-semibold text-slate-700">{item.value}</p>
                 )}
@@ -263,22 +528,64 @@ export default function Contacts({ section }: { section: SiteSection }) {
 }
 `,
 
-  map: (s) => `import { SiteSection } from "@/types";
+  map: () => `import { SiteSection } from "@/types";
+
+function buildYandexEmbed(address: string): string {
+  return \`https://yandex.ru/map-widget/v1/?text=\${encodeURIComponent(address)}&z=15&lang=ru_RU\`;
+}
+
+function buildYandexLink(address: string): string {
+  return \`https://yandex.ru/maps/?text=\${encodeURIComponent(address)}\`;
+}
+
+function buildGoogleLink(address: string): string {
+  return \`https://www.google.com/maps/search/?api=1&query=\${encodeURIComponent(address)}\`;
+}
 
 export default function Map({ section }: { section: SiteSection }) {
   const { title, address, embed_url } = section.content as {
     title?: string; address?: string; embed_url?: string;
   };
+  const src = embed_url || (address ? buildYandexEmbed(address) : null);
   return (
-    <section className="px-8 py-16 bg-slate-50" id="map">
+    <section className="px-6 py-20 bg-slate-50" id="map">
       <div className="mx-auto max-w-4xl">
-        {title && <h2 className="mb-4 text-3xl font-black text-slate-800">{title}</h2>}
+        <div className="mb-3 h-1 w-12 rounded-full" style={{ backgroundColor: "var(--primary)" }} />
+        {title && <h2 className="mb-4 text-3xl font-black text-slate-900 sm:text-4xl">{title}</h2>}
         {address && <p className="mb-6 text-slate-600">📍 {address}</p>}
-        {embed_url ? (
-          <iframe src={embed_url} className="h-72 w-full rounded-2xl border-0" loading="lazy" allowFullScreen />
+        {src ? (
+          <div className="overflow-hidden rounded-2xl shadow-sm">
+            <iframe
+              src={src}
+              className="h-80 w-full border-0"
+              loading="lazy"
+              allowFullScreen
+              title="Карта"
+            />
+          </div>
         ) : (
-          <div className="flex h-72 items-center justify-center rounded-2xl bg-slate-200 text-slate-400">
-            Карта будет здесь
+          <div className="flex h-80 items-center justify-center rounded-2xl bg-slate-200 text-slate-400">
+            Укажите адрес для отображения карты
+          </div>
+        )}
+        {address && (
+          <div className="mt-4 flex flex-wrap gap-3">
+            <a
+              href={buildYandexLink(address)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
+            >
+              🗺 Открыть в Яндекс.Картах
+            </a>
+            <a
+              href={buildGoogleLink(address)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
+            >
+              📍 Построить маршрут
+            </a>
           </div>
         )}
       </div>
@@ -287,20 +594,42 @@ export default function Map({ section }: { section: SiteSection }) {
 }
 `,
 
-  footer: (s) => `import { SiteSection } from "@/types";
+  footer: () => `import { SiteSection } from "@/types";
 
 export default function Footer({ section }: { section: SiteSection }) {
   const { company_name, links } = section.content as { company_name?: string; links?: string[] };
+  const year = new Date().getFullYear();
   return (
-    <footer className="px-8 py-8 bg-slate-900 text-slate-400">
-      <div className="mx-auto flex max-w-4xl flex-wrap items-center justify-between gap-4">
-        <span className="font-semibold" style={{ color: "var(--primary)" }}>{company_name}</span>
-        <div className="flex flex-wrap gap-6 text-sm">
-          {(links ?? []).map((l, i) => <span key={i}>{l}</span>)}
+    <footer className="bg-slate-900 px-6 pt-12 pb-8 text-slate-400">
+      <div className="mx-auto max-w-5xl">
+        <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <span className="text-lg font-black" style={{ color: "var(--primary)" }}>
+              {company_name}
+            </span>
+            <p className="mt-2 text-sm text-slate-500 max-w-xs">
+              Профессиональные услуги для вашего бизнеса
+            </p>
+          </div>
+          {(links ?? []).length > 0 && (
+            <div className="flex flex-wrap gap-x-8 gap-y-2">
+              {(links ?? []).map((l, i) => (
+                <span key={i} className="text-sm text-slate-500 hover:text-slate-300 cursor-pointer transition">
+                  {l}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
-        <p className="w-full text-center text-xs text-slate-600 sm:w-auto sm:text-left">
-          © {new Date().getFullYear()} {company_name}. Все права защищены.
-        </p>
+        <div className="mt-10 flex flex-col items-center justify-between gap-3 border-t border-slate-800 pt-6 sm:flex-row">
+          <p className="text-xs text-slate-600">
+            © {year} {company_name}. Все права защищены.
+          </p>
+          <p className="text-xs text-slate-700">
+            Создано в{" "}
+            <span className="text-slate-500">Vibecode Studio</span>
+          </p>
+        </div>
       </div>
     </footer>
   );
@@ -401,14 +730,29 @@ function genPostcssConfig(): string {
 `;
 }
 
-function genGlobalsCSS(primary: string, secondary: string): string {
-  return `@tailwind base;
+const FONT_IMPORTS: Record<string, string> = {
+  Manrope:     "https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap",
+  Montserrat:  "https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;900&display=swap",
+  Roboto:      "https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap",
+  "Open Sans": "https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&display=swap",
+};
+
+function genGlobalsCSS(primary: string, secondary: string, font?: string): string {
+  const fontImport = font && FONT_IMPORTS[font]
+    ? `@import url("${FONT_IMPORTS[font]}");\n`
+    : "";
+  const fontFamily = font && font !== "Inter"
+    ? `  --font: "${font}", sans-serif;`
+    : `  --font: "Inter", "system-ui", sans-serif;`;
+
+  return `${fontImport}@tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
   --primary: ${primary};
   --secondary: ${secondary};
+${fontFamily}
 }
 
 * {
@@ -417,6 +761,17 @@ function genGlobalsCSS(primary: string, secondary: string): string {
 
 html {
   scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 `;
 }
@@ -431,20 +786,44 @@ function genTypes(): string {
 `;
 }
 
-function genLayout(site: SiteJson): string {
+function genLayout(site: SiteJson, hasNav: boolean, hasMobileCTA: boolean): string {
+  const title = JSON.stringify(site.meta.title || site.company.name || "Сайт компании");
+  const description = JSON.stringify(site.meta.description || site.company.description || "");
+  const domain = site.meta.domain ? `https://${site.meta.domain}` : "";
+  const ogImage = domain ? `${domain}/og-image.jpg` : "";
+
   return `import type { Metadata } from "next";
 import "./globals.css";
+${hasNav ? `import Navigation from "@/components/Navigation";` : ""}
+${hasMobileCTA ? `import MobileCTA from "@/components/MobileCTA";` : ""}
 
 export const metadata: Metadata = {
-  title: ${JSON.stringify(site.meta.title || site.company.name || "Сайт компании")},
-  description: ${JSON.stringify(site.meta.description || site.company.description || "")},
-  ${site.meta.domain ? `metadataBase: new URL("https://${site.meta.domain}"),` : ""}
+  title: ${title},
+  description: ${description},
+  ${domain ? `metadataBase: new URL(${JSON.stringify(domain)}),` : ""}
+  openGraph: {
+    title: ${title},
+    description: ${description},
+    type: "website",
+    locale: "ru_RU",
+    ${ogImage ? `images: [{ url: ${JSON.stringify(ogImage)} }],` : ""}
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: ${title},
+    description: ${description},
+  },
+  robots: { index: true, follow: true },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ru">
-      <body className="bg-white text-slate-900 antialiased">{children}</body>
+      <body className="bg-white text-slate-900 antialiased">
+        ${hasNav ? `<Navigation />` : ""}
+        <div${hasNav ? ` className="pt-[72px]"` : ""}>{children}</div>
+        ${hasMobileCTA ? `<MobileCTA />` : ""}
+      </body>
     </html>
   );
 }
@@ -482,7 +861,7 @@ ${sectionComponents}
 function genReadme(site: SiteJson): string {
   return `# ${site.company.name || "Сайт компании"}
 
-Сгенерировано автоматически — [Vibecode Studio](https://vibecode-studio-pink.vercel.app)
+Сгенерировано — [Vibecode Studio](https://vibecode-studio-pink.vercel.app)
 
 ## Запуск
 
@@ -501,12 +880,6 @@ npm start
 \`\`\`
 
 Или задеплойте на [Vercel](https://vercel.com).
-
-## Структура
-
-- \`app/\` — Next.js App Router
-- \`components/sections/\` — компоненты секций
-- \`content/site.json\` — контент сайта (редактируйте здесь)
 `;
 }
 
@@ -517,6 +890,9 @@ export function generateProject(site: SiteJson): Record<string, string> {
   const primary = site.branding.primary || "#6366f1";
   const secondary = site.branding.secondary || "#8b5cf6";
   const enabledSections = site.sections.filter((s) => s.enabled);
+
+  const hasNav = enabledSections.some((s) => SECTION_NAV[s.type as SectionType]);
+  const hasMobileCTA = !!(site.contacts.phone || site.contacts.telegram);
 
   // Config files
   files["package.json"] = genPackageJson(site.company.name);
@@ -534,9 +910,19 @@ export function generateProject(site: SiteJson): Record<string, string> {
   files["content/site.json"] = JSON.stringify(site, null, 2);
 
   // App shell
-  files["app/layout.tsx"] = genLayout(site);
+  files["app/layout.tsx"] = genLayout(site, hasNav, hasMobileCTA);
   files["app/page.tsx"] = genPage(enabledSections);
-  files["app/globals.css"] = genGlobalsCSS(primary, secondary);
+  files["app/globals.css"] = genGlobalsCSS(primary, secondary, site.font);
+
+  // Navigation
+  if (hasNav) {
+    files["components/Navigation.tsx"] = genNavigation(site, enabledSections);
+  }
+
+  // Sticky mobile CTA
+  if (hasMobileCTA) {
+    files["components/MobileCTA.tsx"] = genStickyMobileCTA(site.contacts);
+  }
 
   // Section components
   for (const section of enabledSections) {

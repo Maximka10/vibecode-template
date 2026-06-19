@@ -109,7 +109,13 @@ export default function MaterialsTab({ orderId, order }: { orderId: string; orde
             {clientAssets.map((url, i) => (
               <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="group relative overflow-hidden rounded-xl bg-white/5">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={url} alt="" className="h-24 w-full object-cover transition group-hover:opacity-80" />
+                <img
+                  src={url}
+                  alt=""
+                  className="h-24 w-full object-cover transition group-hover:opacity-80"
+                  onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; (e.target as HTMLImageElement).nextElementSibling?.removeAttribute("hidden"); }}
+                />
+                <div hidden className="flex h-24 w-full items-center justify-center text-2xl text-white/20">🖼</div>
               </a>
             ))}
           </div>
@@ -179,7 +185,12 @@ export default function MaterialsTab({ orderId, order }: { orderId: string; orde
                       <div className="min-w-0 flex items-center gap-3">
                         {folder !== "documents" ? (
                           // eslint-disable-next-line @next/next/no-img-element
-                          <img src={f.url} alt={f.name} className="h-10 w-10 rounded-lg object-cover bg-white/10 shrink-0" />
+                          <img
+                            src={f.url}
+                            alt={f.name}
+                            className="h-10 w-10 rounded-lg object-cover bg-white/10 shrink-0"
+                            onError={(e) => { (e.target as HTMLImageElement).src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Crect width='40' height='40' rx='8' fill='%23ffffff10'/%3E%3Ctext x='50%25' y='55%25' dominant-baseline='middle' text-anchor='middle' font-size='18' fill='%23ffffff30'%3E🖼%3C/text%3E%3C/svg%3E"; }}
+                          />
                         ) : (
                           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white/8 text-lg">📄</div>
                         )}

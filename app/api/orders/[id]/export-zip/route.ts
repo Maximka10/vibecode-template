@@ -52,6 +52,7 @@ export async function POST(
       primary: pd.branding?.primary_color ?? "#6366f1",
       secondary: pd.branding?.secondary_color ?? "#8b5cf6",
     },
+    font: pd.font ?? undefined,
     company: {
       name: pd.company_name ?? order.template_name ?? "Компания",
       description: pd.company_description ?? "",
