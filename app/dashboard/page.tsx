@@ -2,6 +2,8 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import ClientChat from "@/components/chat/ClientChat";
+import { Btn } from "@/components/ui/Btn";
+import { Card } from "@/components/ui/Card";
 
 const STATUS_LABEL: Record<string, string> = {
   new: "Новая",
@@ -46,18 +48,17 @@ export default async function DashboardPage() {
             <p className="mt-1 text-sm text-white/40">{user.email}</p>
           </div>
           <form action="/api/auth/logout" method="POST">
-            <button className="rounded-full border border-white/15 bg-white/5 px-4 py-2 text-xs font-medium text-white/50 transition hover:border-white/30 hover:text-white/80">
+            <Btn type="submit" variant="outline" size="sm">
               Выйти
-            </button>
+            </Btn>
           </form>
         </div>
 
-        {/* Divider */}
         <div className="mt-8 h-px bg-white/8" />
 
         {/* Content */}
         {!orders?.length ? (
-          <div className="mt-12 flex flex-col items-center rounded-3xl border border-white/8 bg-white/3 px-8 py-16 text-center">
+          <Card variant="subtle" padding="none" radius="3xl" className="mt-12 flex flex-col items-center px-8 py-16 text-center">
             <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-full border border-white/10 bg-white/5">
               <svg className="h-7 w-7 text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
@@ -67,20 +68,14 @@ export default async function DashboardPage() {
             <p className="mt-2 max-w-sm text-sm leading-relaxed text-white/45">
               Выберите шаблон, настройте его под свой бизнес — и мы запустим сайт за 3 дня.
             </p>
-            <Link
-              href="/templates"
-              className="mt-7 inline-flex items-center gap-2 rounded-full bg-white px-7 py-3 text-sm font-bold text-black transition hover:bg-white/90"
-            >
+            <Btn href="/templates" variant="primary" size="lg" className="mt-7">
               Выбрать шаблон →
-            </Link>
-          </div>
+            </Btn>
+          </Card>
         ) : (
           <div className="mt-8 space-y-4">
             {orders.map((order) => (
-              <div
-                key={order.id}
-                className="rounded-2xl border border-white/8 bg-white/4 p-5 transition hover:border-white/15 hover:bg-white/6"
-              >
+              <Card key={order.id} variant="solid" padding="md" hover>
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="font-bold text-white">{order.template_name ?? order.template_id}</p>
@@ -104,7 +99,7 @@ export default async function DashboardPage() {
                   </span>
                 </div>
                 <ClientChat orderId={order.id} />
-              </div>
+              </Card>
             ))}
           </div>
         )}

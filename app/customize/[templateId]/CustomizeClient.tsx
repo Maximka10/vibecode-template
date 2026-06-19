@@ -5,6 +5,8 @@ import type { Template } from "@/types";
 import { createClient } from "@/lib/supabase/client";
 import ImageUpload from "@/components/ui/ImageUpload";
 import { isImageUrl } from "@/lib/supabase/storage";
+import { Input, Textarea } from "@/components/ui/Input";
+import { Btn } from "@/components/ui/Btn";
 
 const PALETTES = [
   "#d97706","#be185d","#eab308","#0ea5e9","#b45309",
@@ -201,39 +203,27 @@ export default function CustomizeClient({
             {/* Hero editor */}
             {tab === "hero" && (
               <>
-                <div>
-                  <label className="text-xs text-white/50">Заголовок</label>
-                  <input
-                    className="mt-1 w-full rounded-xl bg-white/10 p-3 text-sm outline-none"
-                    value={String(hero.headline ?? "")}
-                    onChange={(e) => setTemplate(updateSectionContent(template, "hero", "headline", e.target.value))}
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-white/50">Подзаголовок</label>
-                  <textarea
-                    rows={3}
-                    className="mt-1 w-full rounded-xl bg-white/10 p-3 text-sm outline-none resize-none"
-                    value={String(hero.subheadline ?? "")}
-                    onChange={(e) => setTemplate(updateSectionContent(template, "hero", "subheadline", e.target.value))}
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-white/50">Кнопка CTA</label>
-                  <input
-                    className="mt-1 w-full rounded-xl bg-white/10 p-3 text-sm outline-none"
-                    value={String(hero.cta ?? "")}
-                    onChange={(e) => setTemplate(updateSectionContent(template, "hero", "cta", e.target.value))}
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-white/50">Бейдж</label>
-                  <input
-                    className="mt-1 w-full rounded-xl bg-white/10 p-3 text-sm outline-none"
-                    value={String(hero.badge ?? "")}
-                    onChange={(e) => setTemplate(updateSectionContent(template, "hero", "badge", e.target.value))}
-                  />
-                </div>
+                <Input
+                  label="Заголовок"
+                  value={String(hero.headline ?? "")}
+                  onChange={(e) => setTemplate(updateSectionContent(template, "hero", "headline", e.target.value))}
+                />
+                <Textarea
+                  label="Подзаголовок"
+                  rows={3}
+                  value={String(hero.subheadline ?? "")}
+                  onChange={(e) => setTemplate(updateSectionContent(template, "hero", "subheadline", e.target.value))}
+                />
+                <Input
+                  label="Кнопка CTA"
+                  value={String(hero.cta ?? "")}
+                  onChange={(e) => setTemplate(updateSectionContent(template, "hero", "cta", e.target.value))}
+                />
+                <Input
+                  label="Бейдж"
+                  value={String(hero.badge ?? "")}
+                  onChange={(e) => setTemplate(updateSectionContent(template, "hero", "badge", e.target.value))}
+                />
                 <ImageUpload
                   label="Фото для главного экрана (необязательно)"
                   value={hero.heroImage as string | undefined}
@@ -247,23 +237,17 @@ export default function CustomizeClient({
             {/* About editor */}
             {tab === "about" && (
               <>
-                <div>
-                  <label className="text-xs text-white/50">Заголовок раздела</label>
-                  <input
-                    className="mt-1 w-full rounded-xl bg-white/10 p-3 text-sm outline-none"
-                    value={String(about.title ?? "")}
-                    onChange={(e) => setTemplate(updateSectionContent(template, "about", "title", e.target.value))}
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-white/50">Описание</label>
-                  <textarea
-                    rows={4}
-                    className="mt-1 w-full rounded-xl bg-white/10 p-3 text-sm outline-none resize-none"
-                    value={String(about.text ?? "")}
-                    onChange={(e) => setTemplate(updateSectionContent(template, "about", "text", e.target.value))}
-                  />
-                </div>
+                <Input
+                  label="Заголовок раздела"
+                  value={String(about.title ?? "")}
+                  onChange={(e) => setTemplate(updateSectionContent(template, "about", "title", e.target.value))}
+                />
+                <Textarea
+                  label="Описание"
+                  rows={4}
+                  value={String(about.text ?? "")}
+                  onChange={(e) => setTemplate(updateSectionContent(template, "about", "text", e.target.value))}
+                />
                 <ImageUpload
                   label="Обложка раздела «О нас» (необязательно)"
                   value={about.coverImage as string | undefined}
@@ -277,32 +261,27 @@ export default function CustomizeClient({
             {/* Services editor */}
             {tab === "services" && (
               <>
-                <div>
-                  <label className="text-xs text-white/50">Заголовок раздела</label>
-                  <input
-                    className="mt-1 w-full rounded-xl bg-white/10 p-3 text-sm outline-none"
-                    value={String(services.title ?? "")}
-                    onChange={(e) => setTemplate(updateSectionContent(template, "services", "title", e.target.value))}
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-white/50">Услуги (по одной в строку)</label>
-                  <textarea
-                    rows={8}
-                    className="mt-1 w-full rounded-xl bg-white/10 p-3 text-sm outline-none resize-none font-mono"
-                    value={((services.items as string[]) ?? []).join("\n")}
-                    onChange={(e) =>
-                      setTemplate(
-                        updateSectionContent(
-                          template,
-                          "services",
-                          "items",
-                          e.target.value.split("\n").filter(Boolean)
-                        )
+                <Input
+                  label="Заголовок раздела"
+                  value={String(services.title ?? "")}
+                  onChange={(e) => setTemplate(updateSectionContent(template, "services", "title", e.target.value))}
+                />
+                <Textarea
+                  label="Услуги (по одной в строку)"
+                  rows={8}
+                  className="font-mono"
+                  value={((services.items as string[]) ?? []).join("\n")}
+                  onChange={(e) =>
+                    setTemplate(
+                      updateSectionContent(
+                        template,
+                        "services",
+                        "items",
+                        e.target.value.split("\n").filter(Boolean)
                       )
-                    }
-                  />
-                </div>
+                    )
+                  }
+                />
               </>
             )}
 
@@ -444,50 +423,46 @@ export default function CustomizeClient({
                 <>
                   <p className="text-xs text-white/50">Оставьте контакты — мы свяжемся и запустим сайт за 3 дня</p>
                   <div className="space-y-3">
-                    <input
-                      className="w-full rounded-xl bg-white/10 p-3 text-sm outline-none"
+                    <Input
                       placeholder="Ваше имя"
                       value={leadForm.clientName}
                       onChange={(e) => setLeadForm((f) => ({ ...f, clientName: e.target.value }))}
                     />
-                    <input
-                      className="w-full rounded-xl bg-white/10 p-3 text-sm outline-none"
+                    <Input
                       placeholder="Телефон *"
                       value={leadForm.clientPhone}
                       onChange={(e) => setLeadForm((f) => ({ ...f, clientPhone: e.target.value }))}
                     />
-                    <input
-                      className="w-full rounded-xl bg-white/10 p-3 text-sm outline-none"
+                    <Input
                       placeholder="Telegram (например @username)"
                       value={leadForm.clientTelegram}
                       onChange={(e) => setLeadForm((f) => ({ ...f, clientTelegram: e.target.value }))}
                     />
-                    <input
-                      className="w-full rounded-xl bg-white/10 p-3 text-sm outline-none"
+                    <Input
                       placeholder="Email (необязательно)"
                       value={leadForm.clientEmail}
                       onChange={(e) => setLeadForm((f) => ({ ...f, clientEmail: e.target.value }))}
                     />
-                    <input
-                      className="w-full rounded-xl bg-white/10 p-3 text-sm outline-none"
+                    <Input
                       placeholder="Тип бизнеса (кофейня, салон...)"
                       value={leadForm.businessType}
                       onChange={(e) => setLeadForm((f) => ({ ...f, businessType: e.target.value }))}
                     />
-                    <textarea
+                    <Textarea
                       rows={3}
-                      className="w-full rounded-xl bg-white/10 p-3 text-sm outline-none resize-none"
                       placeholder="Комментарий, пожелания..."
                       value={leadForm.notes}
                       onChange={(e) => setLeadForm((f) => ({ ...f, notes: e.target.value }))}
                     />
-                    <button
+                    <Btn
                       onClick={handleOrder}
-                      disabled={submitting}
-                      className="w-full rounded-full bg-white px-5 py-3 font-bold text-black disabled:opacity-50"
+                      loading={submitting}
+                      variant="primary"
+                      size="lg"
+                      className="w-full"
                     >
                       {submitting ? "Отправляю..." : `Заказать от ${template.priceFrom?.toLocaleString("ru-RU")} ₽`}
-                    </button>
+                    </Btn>
                     <p className="text-xs text-white/30 text-center">
                       Нажимая кнопку, вы соглашаетесь на обработку данных. Предоплата — 0 ₽.
                     </p>

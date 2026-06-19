@@ -3,6 +3,9 @@ export const dynamic = "force-dynamic";
 import { useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { Btn } from "@/components/ui/Btn";
+import { Card } from "@/components/ui/Card";
+import { Input } from "@/components/ui/Input";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -47,8 +50,7 @@ export default function LoginPage() {
           <p className="mt-2 text-sm text-white/40">Сайты для малого бизнеса</p>
         </div>
 
-        {/* Card */}
-        <div className="rounded-3xl border border-white/10 bg-white/5 p-8 shadow-2xl shadow-black/40 backdrop-blur-xl">
+        <Card variant="glass" padding="lg" radius="3xl">
           {sent ? (
             <div className="py-4 text-center">
               <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full border border-green-500/30 bg-green-500/10">
@@ -82,20 +84,15 @@ export default function LoginPage() {
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <label htmlFor="auth-email" className="mb-1.5 block text-xs font-medium text-white/60">
-                    Email адрес
-                  </label>
-                  <input
-                    id="auth-email"
-                    type="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="you@example.com"
-                    className="w-full rounded-xl border border-white/12 bg-white/8 px-4 py-3 text-sm text-white placeholder-white/30 outline-none transition focus:border-cyan-500/60 focus:bg-white/10 focus:ring-2 focus:ring-cyan-500/20"
-                  />
-                </div>
+                <Input
+                  id="auth-email"
+                  type="email"
+                  required
+                  label="Email адрес"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@example.com"
+                />
 
                 {error && (
                   <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3">
@@ -103,20 +100,15 @@ export default function LoginPage() {
                   </div>
                 )}
 
-                <button
+                <Btn
                   type="submit"
-                  disabled={loading}
-                  className="w-full rounded-xl bg-white py-3.5 text-sm font-bold text-black transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-50"
+                  loading={loading}
+                  variant="primary"
+                  size="lg"
+                  className="w-full"
                 >
-                  {loading ? (
-                    <span className="flex items-center justify-center gap-2">
-                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-black/20 border-t-black" />
-                      Отправка...
-                    </span>
-                  ) : (
-                    "Получить ссылку для входа →"
-                  )}
-                </button>
+                  {loading ? "Отправка..." : "Получить ссылку для входа →"}
+                </Btn>
               </form>
 
               <div className="mt-6 flex items-center gap-3">
@@ -131,7 +123,7 @@ export default function LoginPage() {
               </p>
             </>
           )}
-        </div>
+        </Card>
 
         <p className="mt-6 text-center text-xs text-white/25">
           <Link href="/" className="transition hover:text-white/50">← На главную</Link>
