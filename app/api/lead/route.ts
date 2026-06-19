@@ -75,6 +75,7 @@ export async function POST(req: NextRequest) {
 
         total_price: totalPrice ?? null,
         status: "new",
+        user_id: userId,
       })
       .select("id")
       .single();
@@ -126,7 +127,7 @@ export async function POST(req: NextRequest) {
         }`,
         notes ? `💬 *Комментарий:* ${notes}` : null,
         ``,
-        `🔗 [Открыть заказ](${projectLink})`,
+        `🔗 [Открыть заказ в системе](${projectLink})`,
       ]
         .filter(Boolean)
         .join("\n");

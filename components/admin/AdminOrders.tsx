@@ -233,26 +233,6 @@ export default function AdminOrders({
 
   return (
     <main className="min-h-screen bg-slate-950 text-white">
-      {/* Header */}
-      <div className="border-b border-white/8 px-4 py-4">
-        <div className="mx-auto flex max-w-5xl items-center justify-between">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-widest text-cyan-400">Управление</p>
-            <h1 className="mt-0.5 text-2xl font-black">Админ-панель</h1>
-          </div>
-          <div className="flex items-center gap-2">
-            <Btn href="/studio" variant="outline" size="sm">
-              ⚡ Studio
-            </Btn>
-            <form action="/api/auth/logout" method="POST">
-              <Btn type="submit" variant="ghost" size="sm">
-                Выйти
-              </Btn>
-            </form>
-          </div>
-        </div>
-      </div>
-
       <div className="mx-auto max-w-5xl px-4 py-6 space-y-6">
         {/* Stats */}
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">

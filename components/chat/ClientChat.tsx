@@ -22,7 +22,11 @@ export default function ClientChat({ orderId }: { orderId: string }) {
     if (!open) return;
     const supabase = createClient();
 
-    supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id ?? null));
+    supabase.auth.getUser().then(({ data, error }) => {
+      if (error) console.error("[ClientChat] getUser error:", error.message);
+      console.log("[ClientChat] userId:", data.user?.id ?? null);
+      setUserId(data.user?.id ?? null);
+    });
 
     supabase
       .from("messages")
@@ -49,13 +53,18 @@ export default function ClientChat({ orderId }: { orderId: string }) {
 
   async function send(e: React.FormEvent) {
     e.preventDefault();
-    if (!text.trim() || !userId) return;
+    if (!text.trim()) return;
+    if (!userId) {
+      console.warn("[ClientChat] send blocked: userId is null");
+      return;
+    }
     const supabase = createClient();
-    await supabase.from("messages").insert({
+    const { error } = await supabase.from("messages").insert({
       order_id: orderId,
       sender_id: userId,
       text: text.trim(),
     });
+    if (error) console.error("[ClientChat] INSERT error:", error.message);
     setText("");
   }
 
