@@ -30,11 +30,13 @@ export default function OverviewTab({ order: initialOrder }: { order: Record<str
   const [cancelOpen, setCancelOpen] = useState(false);
   const [cancelLoading, setCancelLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const statusCfg = STATUS_CONFIG[order.status] ?? { label: order.status, color: "bg-white/10 text-white/60 border-white/10" };
 
   async function applyTransition(action: string) {
     setStatusSaving(true);
+    setActionError(null);
     try {
       const res = await fetch("/api/orders/transition", {
         method: "POST",
@@ -43,13 +45,14 @@ export default function OverviewTab({ order: initialOrder }: { order: Record<str
       });
       const result = await res.json();
       if (result.ok) setOrder((prev) => ({ ...prev, status: result.status }));
-      else alert(`Ошибка: ${result.error}`);
-    } catch { alert("Ошибка соединения"); }
+      else setActionError("Не удалось выполнить действие. Попробуйте ещё раз.");
+    } catch { setActionError("Ошибка соединения. Проверьте подключение к сети."); }
     finally { setStatusSaving(false); }
   }
 
   async function handleCancel() {
     setCancelLoading(true);
+    setActionError(null);
     try {
       const res = await fetch("/api/orders/transition", {
         method: "POST",
@@ -60,20 +63,21 @@ export default function OverviewTab({ order: initialOrder }: { order: Record<str
       if (result.ok) {
         setOrder((prev) => ({ ...prev, status: "cancelled" }));
         setCancelOpen(false);
-      } else alert(`Ошибка отмены: ${result.error}`);
-    } catch { alert("Ошибка соединения"); }
+      } else setActionError("Не удалось выполнить действие. Попробуйте ещё раз.");
+    } catch { setActionError("Ошибка соединения. Проверьте подключение к сети."); }
     finally { setCancelLoading(false); }
   }
 
   async function handleDelete() {
     if (!window.confirm("Удалить заказ безвозвратно?")) return;
     setDeleting(true);
+    setActionError(null);
     try {
       const res = await fetch(`/api/orders/${order.id}/delete`, { method: "DELETE" });
       const result = await res.json();
       if (result.ok) router.push("/admin/orders");
-      else { alert(`Ошибка: ${result.error}`); setDeleting(false); }
-    } catch { alert("Ошибка соединения"); setDeleting(false); }
+      else { setActionError("Не удалось выполнить действие. Попробуйте ещё раз."); setDeleting(false); }
+    } catch { setActionError("Ошибка соединения. Проверьте подключение к сети."); setDeleting(false); }
   }
 
   return (
@@ -135,6 +139,14 @@ export default function OverviewTab({ order: initialOrder }: { order: Record<str
 
       {/* RIGHT */}
       <div className="space-y-5">
+        {/* Error banner */}
+        {actionError && (
+          <div className="flex items-center justify-between rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm text-red-300">
+            <span>{actionError}</span>
+            <button onClick={() => setActionError(null)} className="ml-4 text-red-400 hover:text-red-200">✕</button>
+          </div>
+        )}
+
         {/* Status */}
         <Card variant="solid" padding="md">
           <h2 className="mb-3 text-xs font-semibold uppercase tracking-widest text-white/40">Статус</h2>

@@ -20,7 +20,7 @@ export async function DELETE(
   const { error } = await admin.from("orders").delete().eq("id", id);
   if (error) {
     console.error("[delete order] failed:", error.message);
-    return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
+    return NextResponse.json({ ok: false, error: "Failed to delete order" }, { status: 500 });
   }
 
   return NextResponse.json({ ok: true });

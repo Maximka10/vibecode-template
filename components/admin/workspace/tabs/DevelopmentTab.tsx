@@ -251,6 +251,17 @@ function SectionEditor({
   }
 }
 
+// ── Unique section types ──────────────────────────────────────────────────────
+
+const UNIQUE_SECTION_TYPES = ["hero", "footer", "contacts", "map"] as const;
+
+function canAddSection(type: string, existingSections: SiteSection[]): boolean {
+  if ((UNIQUE_SECTION_TYPES as readonly string[]).includes(type)) {
+    return !existingSections.some(s => s.type === type);
+  }
+  return true;
+}
+
 // ── Main Component ────────────────────────────────────────────────────────────
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -269,6 +280,7 @@ export default function DevelopmentTab({ orderId, order }: { orderId: string; or
   const [templateName, setTemplateName] = useState("");
   const [showSaveTemplate, setShowSaveTemplate] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [aiAvailable, setAiAvailable] = useState<boolean | null>(null);
 
   useEffect(() => {
     fetch(`/api/orders/${orderId}/project-data`)
@@ -282,6 +294,10 @@ export default function DevelopmentTab({ orderId, order }: { orderId: string; or
         }
         setLoading(false);
       });
+    fetch(`/api/orders/${orderId}/generate-content`)
+      .then((r) => r.json())
+      .then((d) => setAiAvailable(!!d.available))
+      .catch(() => setAiAvailable(false));
   }, [orderId]);
 
   useEffect(() => {
@@ -413,9 +429,11 @@ export default function DevelopmentTab({ orderId, order }: { orderId: string; or
       <div className="space-y-4 min-w-0">
         {/* Toolbar */}
         <div className="flex flex-wrap items-center gap-2">
-          <Btn onClick={handleGenerate} disabled={generating} loading={generating} variant="outline" size="sm">
-            {generating ? "Генерация…" : "✨ Сгенерировать контент"}
-          </Btn>
+          {aiAvailable === true && (
+            <Btn onClick={handleGenerate} disabled={generating} loading={generating} variant="outline" size="sm">
+              {generating ? "Генерация…" : "✨ Сгенерировать контент"}
+            </Btn>
+          )}
           <Btn onClick={() => setShowSaveTemplate(true)} variant="ghost" size="sm" disabled={sections.length === 0}>
             💾 Сохранить как шаблон
           </Btn>
@@ -470,15 +488,20 @@ export default function DevelopmentTab({ orderId, order }: { orderId: string; or
           {/* Add section picker */}
           {addOpen && (
             <div className="mb-4 grid grid-cols-3 gap-1.5 rounded-xl border border-white/10 bg-white/4 p-3 sm:grid-cols-4">
-              {ALL_SECTION_TYPES.map((type) => (
-                <button
-                  key={type}
-                  onClick={() => addSection(type)}
-                  className="rounded-lg border border-white/10 px-2 py-1.5 text-xs text-white/60 hover:border-cyan-500/30 hover:bg-cyan-500/10 hover:text-cyan-300 transition"
-                >
-                  {SECTION_TYPE_LABELS[type]}
-                </button>
-              ))}
+              {ALL_SECTION_TYPES.map((type) => {
+                const allowed = canAddSection(type, sections);
+                return (
+                  <button
+                    key={type}
+                    onClick={() => allowed && addSection(type)}
+                    disabled={!allowed}
+                    title={!allowed ? "Секция уже добавлена" : undefined}
+                    className="rounded-lg border border-white/10 px-2 py-1.5 text-xs text-white/60 hover:border-cyan-500/30 hover:bg-cyan-500/10 hover:text-cyan-300 transition disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-white/10 disabled:hover:bg-transparent disabled:hover:text-white/60"
+                  >
+                    {SECTION_TYPE_LABELS[type]}
+                  </button>
+                );
+              })}
             </div>
           )}
 

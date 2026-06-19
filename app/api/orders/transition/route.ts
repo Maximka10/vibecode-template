@@ -7,7 +7,9 @@ const VALID_ACTIONS = new Set<OrderAction>([
   "CONFIRM_PAYMENT",
   "START_WORK",
   "REQUEST_CLIENT_INPUT",
+  "RESUME_WORK",
   "COMPLETE_ORDER",
+  "REOPEN_ORDER",
   "CANCEL_ORDER",
 ]);
 

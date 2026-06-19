@@ -31,6 +31,12 @@ const ADMIN_SECTIONS: { title: string; items: NavItem[] }[] = [
       { href: "/templates", label: "Шаблоны", icon: "▣" },
     ],
   },
+  {
+    title: "Система",
+    items: [
+      { href: "/admin/diagnostics", label: "Диагностика", icon: "⊙" },
+    ],
+  },
 ];
 
 const CLIENT_SECTIONS: { title: string; items: NavItem[] }[] = [

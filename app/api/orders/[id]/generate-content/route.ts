@@ -13,7 +13,7 @@ export async function POST(
   if (auth.role !== "admin") return NextResponse.json({ ok: false, error: "FORBIDDEN" }, { status: 403 });
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) return NextResponse.json({ ok: false, error: "ANTHROPIC_API_KEY not configured" }, { status: 500 });
+  if (!apiKey) return NextResponse.json({ ok: false, error: "AI_NOT_CONFIGURED" }, { status: 503 });
 
   const admin = createAdminClient();
   const [orderRes, pdRes] = await Promise.all([
@@ -82,8 +82,11 @@ export async function POST(
 
     const generated = JSON.parse(jsonMatch[0]);
     return NextResponse.json({ ok: true, generated });
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    return NextResponse.json({ ok: false, error: msg }, { status: 500 });
+  } catch {
+    return NextResponse.json({ ok: false, error: "Content generation failed. Please try again." }, { status: 500 });
   }
+}
+
+export async function GET() {
+  return NextResponse.json({ available: !!process.env.ANTHROPIC_API_KEY });
 }
