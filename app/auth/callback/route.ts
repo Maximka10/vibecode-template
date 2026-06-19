@@ -6,35 +6,55 @@ export async function GET(req: NextRequest) {
   const code = searchParams.get("code");
   const next = searchParams.get("next") ?? "/dashboard";
 
-  if (code) {
-    const redirectUrl = new URL(next, req.url);
-    const response = NextResponse.redirect(redirectUrl);
+  // Build redirect target exclusively from NEXT_PUBLIC_SITE_URL — never from req.url
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL!;
 
-    // Route Handler cannot use cookies() from next/headers to write cookie into the
-    // HTTP response. Must use createServerClient with a cookie adapter that writes
-    // directly into the NextResponse object being returned.
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() {
-            return req.cookies.getAll();
-          },
-          setAll(cookiesToSet) {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              response.cookies.set(name, value, options)
-            );
-          },
-        },
-      }
-    );
+  // Validate `next` is a safe relative path to prevent open redirects
+  const safePath = next.startsWith("/") && !next.startsWith("//") ? next : "/dashboard";
+  const redirectUrl = new URL(safePath, siteUrl);
 
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
-    if (!error) {
-      return response;
-    }
+  if (!code) {
+    console.error("[auth/callback] No code param — redirecting to login");
+    return NextResponse.redirect(new URL("/auth/login?error=missing_code", siteUrl));
   }
 
-  return NextResponse.redirect(new URL("/auth/login?error=auth_failed", req.url));
+  // Create redirect response BEFORE supabase client so cookies land on this response
+  const response = NextResponse.redirect(redirectUrl);
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return req.cookies.getAll();
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) =>
+            response.cookies.set(name, value, {
+              ...options,
+              path: "/",
+              sameSite: "lax",
+              secure: process.env.NODE_ENV === "production",
+            })
+          );
+        },
+      },
+    }
+  );
+
+  const { error } = await supabase.auth.exchangeCodeForSession(code);
+
+  if (error) {
+    console.error("[auth/callback] exchangeCodeForSession error:", error.message);
+    return NextResponse.redirect(new URL("/auth/login?error=auth_failed", siteUrl));
+  }
+
+  // Log cookie count for debug — remove after stability confirmed
+  if (process.env.NODE_ENV !== "production") {
+    const cookieCount = [...response.cookies.getAll()].length;
+    console.log(`[auth/callback] success — ${cookieCount} cookies written → ${redirectUrl.toString()}`);
+  }
+
+  return response;
 }
