@@ -202,9 +202,6 @@ export default function OrderWorkflow({
                 Информация о заказе
               </h2>
               <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-                <InfoRow label="Клиент" value={order.client_name} />
-                <InfoRow label="Телефон" value={order.client_phone} />
-                <InfoRow label="Telegram" value={order.client_telegram ? `@${order.client_telegram.replace("@", "")}` : null} />
                 <InfoRow
                   label="Стоимость"
                   value={order.total_price ? `${Number(order.total_price).toLocaleString("ru-RU")} ₽` : null}
@@ -215,16 +212,7 @@ export default function OrderWorkflow({
                     <p className="mt-0.5 text-sm text-white/85">{order.notes}</p>
                   </div>
                 )}
-                {order.selected_services && (
-                  <div className="col-span-full">
-                    <p className="text-xs text-white/40">Услуги</p>
-                    <p className="mt-0.5 text-sm text-white/85">
-                      {Array.isArray(order.selected_services)
-                        ? order.selected_services.join(", ")
-                        : String(order.selected_services)}
-                    </p>
-                  </div>
-                )}
+
               </div>
               <p className="mt-4 text-xs text-white/25">
                 Создан: {new Date(order.created_at).toLocaleString("ru-RU")}

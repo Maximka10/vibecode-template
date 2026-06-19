@@ -64,12 +64,7 @@ export default function CustomizeClient({
   const [orderStep, setOrderStep] = useState<OrderStep>("form");
 
   const [leadForm, setLeadForm] = useState({
-    clientName: "",
-    clientPhone: "",
-    clientTelegram: "",
-    clientEmail: "",
     notes: "",
-    selectedServices: [] as string[],
   });
 
   const iframe = useRef<HTMLIFrameElement>(null);
@@ -121,10 +116,6 @@ export default function CustomizeClient({
       const leadPayload = {
         templateId: template.id,
         templateName: template.name,
-        clientName: leadForm.clientName,
-        clientPhone: leadForm.clientPhone,
-        clientTelegram: leadForm.clientTelegram,
-        selectedServices: leadForm.selectedServices,
         notes: leadForm.notes,
         selectedOptions: template,
         totalPrice: breakdown.total,
@@ -520,25 +511,14 @@ export default function CustomizeClient({
                     </div>
                   </div>
 
-                  {/* Contact summary */}
-                  <div className="rounded-2xl border border-white/10 bg-white/4 p-4 space-y-2 text-sm">
-                    <p className="mb-2 text-xs font-medium uppercase tracking-widest text-white/35">
-                      Куда свяжемся
-                    </p>
-                    {[
-                      { label: "Имя", value: leadForm.clientName },
-                      { label: "Телефон", value: leadForm.clientPhone },
-                      { label: "Telegram", value: leadForm.clientTelegram ? `@${leadForm.clientTelegram.replace("@", "")}` : "" },
-                      { label: "Email", value: leadForm.clientEmail },
-                    ]
-                      .filter((r) => r.value)
-                      .map((r) => (
-                        <div key={r.label} className="flex justify-between">
-                          <span className="text-white/45">{r.label}</span>
-                          <span className="text-white/85">{r.value}</span>
-                        </div>
-                      ))}
-                  </div>
+                  {leadForm.notes && (
+                    <div className="rounded-2xl border border-white/10 bg-white/4 p-4 text-sm">
+                      <p className="mb-1 text-xs font-medium uppercase tracking-widest text-white/35">
+                        Пожелания
+                      </p>
+                      <p className="text-white/75">{leadForm.notes}</p>
+                    </div>
+                  )}
 
                   <div className="rounded-xl border border-white/8 bg-white/3 px-4 py-3 text-xs text-white/40 leading-relaxed">
                     Предоплата — <strong className="text-white/60">0 ₽</strong>.
@@ -569,9 +549,9 @@ export default function CustomizeClient({
                 /* Form */
                 <div className="space-y-3">
                   <div className="rounded-xl border border-cyan-500/20 bg-cyan-500/8 p-3">
-                    <p className="text-xs font-semibold text-cyan-400">Шаг 1 из 2 — Контактные данные</p>
+                    <p className="text-xs font-semibold text-cyan-400">Шаг 1 из 2 — Детали заказа</p>
                     <p className="mt-1 text-xs text-white/45">
-                      Укажите, как с вами связаться. Менеджер свяжется в течение 1 часа.
+                      Менеджер свяжется с вами через аккаунт после получения заявки.
                     </p>
                     <div className="mt-2 flex items-center gap-1.5">
                       <span className="text-xs text-white/35">Стоимость:</span>
@@ -580,30 +560,6 @@ export default function CustomizeClient({
                       </span>
                     </div>
                   </div>
-                  <Input
-                    label="Ваше имя"
-                    placeholder="Иван Петров"
-                    value={leadForm.clientName}
-                    onChange={(e) => setLeadForm((f) => ({ ...f, clientName: e.target.value }))}
-                  />
-                  <Input
-                    label="Телефон *"
-                    placeholder="+7 (999) 000-00-00"
-                    value={leadForm.clientPhone}
-                    onChange={(e) => setLeadForm((f) => ({ ...f, clientPhone: e.target.value }))}
-                  />
-                  <Input
-                    label="Telegram"
-                    placeholder="@username"
-                    value={leadForm.clientTelegram}
-                    onChange={(e) => setLeadForm((f) => ({ ...f, clientTelegram: e.target.value }))}
-                  />
-                  <Input
-                    label="Email"
-                    placeholder="email@example.com (необязательно)"
-                    value={leadForm.clientEmail}
-                    onChange={(e) => setLeadForm((f) => ({ ...f, clientEmail: e.target.value }))}
-                  />
                   <Textarea
                     label="Пожелания к сайту"
                     rows={3}
@@ -612,13 +568,7 @@ export default function CustomizeClient({
                     onChange={(e) => setLeadForm((f) => ({ ...f, notes: e.target.value }))}
                   />
                   <Btn
-                    onClick={() => {
-                      if (!leadForm.clientPhone && !leadForm.clientTelegram) {
-                        alert("Укажите телефон или Telegram — нам нужно как с вами связаться.");
-                        return;
-                      }
-                      setOrderStep("confirm");
-                    }}
+                    onClick={() => setOrderStep("confirm")}
                     variant="primary"
                     size="lg"
                     className="w-full"

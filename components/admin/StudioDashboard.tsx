@@ -59,8 +59,7 @@ function ProjectCard({
             </span>
           </div>
           <p className="mt-1 text-sm text-white/50">
-            {project.client_name ?? "Клиент неизвестен"}
-            {project.client_phone && ` · ${project.client_phone}`}
+            {project.notes ? project.notes.slice(0, 60) : "Нет комментария"}
           </p>
           <p className="mt-0.5 text-xs text-white/30">
             #{project.id.slice(0, 8)} · {new Date(project.created_at).toLocaleDateString("ru-RU")}

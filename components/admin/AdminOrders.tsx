@@ -89,9 +89,7 @@ function OrderCard({
             )}
           </div>
           <p className="mt-1 text-sm text-white/50">
-            {order.client_name ?? "Аноним"}
-            {order.client_phone && ` · ${order.client_phone}`}
-            {order.client_telegram && ` · @${order.client_telegram}`}
+            {order.template_name ?? order.template_id ?? "—"}
           </p>
           <p className="mt-0.5 text-xs text-white/30">
             #{order.id.slice(0, 8)} · {new Date(order.created_at).toLocaleString("ru-RU")}
@@ -112,13 +110,7 @@ function OrderCard({
                 <p>{Number(order.total_price).toLocaleString("ru-RU")} ₽</p>
               </div>
             )}
-            {order.selected_services && (
-              <div className="col-span-full">
-                <p className="text-white/40">Услуги</p>
-                <p>{Array.isArray(order.selected_services) ? order.selected_services.join(", ") : JSON.stringify(order.selected_services)}</p>
-              </div>
-            )}
-            {order.notes && (
+{order.notes && (
               <div className="col-span-full">
                 <p className="text-white/40">Комментарий</p>
                 <p className="text-white/80">{order.notes}</p>
@@ -204,9 +196,6 @@ export default function AdminOrders({
       const q = search.toLowerCase();
       result = result.filter(
         (o) =>
-          o.client_name?.toLowerCase().includes(q) ||
-          o.client_phone?.includes(q) ||
-          o.client_telegram?.toLowerCase().includes(q) ||
           o.template_name?.toLowerCase().includes(q) ||
           o.id.includes(q)
       );
