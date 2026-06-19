@@ -81,12 +81,63 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
 
 // ── Section Content Editor ────────────────────────────────────────────────────
 
+function GalleryPicker({ orderId, onPick }: { orderId: string; onPick: (url: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const [imgs, setImgs] = useState<{ name: string; url: string }[]>([]);
+
+  async function load() {
+    const res = await fetch(`/api/orders/${orderId}/files`);
+    const data = await res.json();
+    if (!data.ok) return;
+    const photos: { name: string; url: string }[] = [
+      ...(data.files.logo ?? []),
+      ...(data.files.photos ?? []),
+    ].filter((f: { name: string }) => /\.(jpg|jpeg|png|webp|gif|svg)$/i.test(f.name));
+    setImgs(photos);
+  }
+
+  function toggle() {
+    if (!open) load();
+    setOpen((p) => !p);
+  }
+
+  return (
+    <div className="mt-1">
+      <button
+        type="button"
+        onClick={toggle}
+        className="text-xs text-cyan-400/70 hover:text-cyan-400 underline"
+      >
+        {open ? "Скрыть материалы" : "Выбрать из материалов"}
+      </button>
+      {open && (
+        <div className="mt-2 grid grid-cols-4 gap-1.5 rounded-xl border border-white/10 bg-white/4 p-2">
+          {imgs.length === 0 && <p className="col-span-4 py-3 text-center text-xs text-white/30">Нет загруженных фото</p>}
+          {imgs.map((img) => (
+            // eslint-disable-next-line @next/next/no-img-element
+            <button
+              key={img.url}
+              type="button"
+              onClick={() => { onPick(img.url); setOpen(false); }}
+              className="overflow-hidden rounded-lg border border-white/10 transition hover:border-cyan-500/60"
+            >
+              <img src={img.url} alt={img.name} className="w-full aspect-square object-cover" />
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function SectionEditor({
   section,
   onChange,
+  orderId,
 }: {
   section: SiteSection;
   onChange: (content: SectionContent) => void;
+  orderId: string;
 }) {
   const c = section.content;
 
@@ -142,6 +193,10 @@ function SectionEditor({
               value={images.join("\n")}
               onChange={(e) => set("images", e.target.value.split("\n").map((s) => s.trim()).filter(Boolean))}
               placeholder="https://..."
+            />
+            <GalleryPicker
+              orderId={orderId}
+              onPick={(url) => set("images", [...images, url])}
             />
           </Field>
         </div>
@@ -302,6 +357,7 @@ export default function DevelopmentTab({ orderId, order }: { orderId: string; or
   const [templateName, setTemplateName] = useState("");
   const [showSaveTemplate, setShowSaveTemplate] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [aiDisabled, setAiDisabled] = useState(false);
 
   useEffect(() => {
     fetch(`/api/orders/${orderId}/project-data`)
@@ -416,7 +472,16 @@ export default function DevelopmentTab({ orderId, order }: { orderId: string; or
   async function handleGenerate() {
     setGenerating(true);
     setError(null);
+    setAiDisabled(false);
     const res = await fetch(`/api/orders/${orderId}/generate-content`, { method: "POST" });
+    if (res.status === 503) {
+      const result = await res.json();
+      const msg: string = result.error ?? "AI временно недоступен";
+      if (msg.includes("временно недоступен")) setAiDisabled(true);
+      else setError(msg);
+      setGenerating(false);
+      return;
+    }
     const result = await res.json();
     if (result.ok) {
       const g = result.generated;
@@ -487,6 +552,11 @@ export default function DevelopmentTab({ orderId, order }: { orderId: string; or
           </div>
         </div>
 
+        {aiDisabled && (
+          <div className="rounded-xl border border-yellow-500/30 bg-yellow-500/10 px-4 py-2 text-sm text-yellow-300">
+            ⚠ AI временно недоступен. Обратитесь к администратору.
+          </div>
+        )}
         {error && (
           <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm text-red-300">{error}</div>
         )}
@@ -674,6 +744,7 @@ export default function DevelopmentTab({ orderId, order }: { orderId: string; or
                         <SectionEditor
                           section={s}
                           onChange={(content) => updateSectionContent(s.id, content)}
+                          orderId={orderId}
                         />
                       </div>
                     )}

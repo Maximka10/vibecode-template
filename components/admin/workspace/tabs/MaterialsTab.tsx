@@ -3,7 +3,8 @@ import { useEffect, useRef, useState } from "react";
 import { Card } from "@/components/ui/Card";
 import { Btn } from "@/components/ui/Btn";
 
-type FileEntry = { name: string; url: string; size?: number; created_at?: string };
+type FileMeta = { type?: string; title?: string; description?: string; placement_notes?: string };
+type FileEntry = { name: string; url: string; size?: number; created_at?: string; path?: string; metadata?: FileMeta };
 type FolderFiles = { logo: FileEntry[]; photos: FileEntry[]; documents: FileEntry[] };
 
 type Category = "all" | "logo" | "photos" | "documents" | "other";
@@ -15,6 +16,16 @@ const CATEGORY_LABELS: Record<Category, string> = {
   documents: "Документы",
   other: "Прочее",
 };
+
+const MATERIAL_TYPES = [
+  { value: "logo", label: "Логотип" },
+  { value: "hero", label: "Hero-фото" },
+  { value: "gallery", label: "Галерея" },
+  { value: "background", label: "Фон" },
+  { value: "team", label: "Команда" },
+  { value: "document", label: "Документ" },
+  { value: "other", label: "Другое" },
+];
 
 function extractClientAssets(order: Record<string, unknown>): string[] {
   const opts = order.selected_options as Record<string, unknown> | null | undefined;
@@ -32,9 +43,9 @@ function extractClientAssets(order: Record<string, unknown>): string[] {
 }
 
 const FOLDER_CONFIG = {
-  logo: { label: "Логотип", accept: "image/*", hint: "PNG, SVG, WebP — до 5 MB" },
-  photos: { label: "Фотографии", accept: "image/*", hint: "JPG, PNG, WebP — до 10 MB каждый" },
-  documents: { label: "Документы", accept: ".pdf,.doc,.docx,.txt", hint: "PDF, DOC, TXT — до 20 MB" },
+  logo: { label: "Логотип", accept: "image/*", hint: "PNG, SVG, WebP — до 5 MB", defaultType: "logo" },
+  photos: { label: "Фотографии", accept: "image/*", hint: "JPG, PNG, WebP — до 10 MB каждый", defaultType: "gallery" },
+  documents: { label: "Документы", accept: ".pdf,.doc,.docx,.txt", hint: "PDF, DOC, TXT — до 20 MB", defaultType: "document" },
 } as const;
 
 type Folder = keyof typeof FOLDER_CONFIG;
@@ -49,7 +60,8 @@ function formatSize(bytes?: number) {
 type FlatFile = FileEntry & { folder: Folder };
 
 function categorize(file: FlatFile): Category {
-  if (file.folder === "logo" || file.name.toLowerCase().includes("logo")) return "logo";
+  const t = file.metadata?.type;
+  if (t === "logo" || file.folder === "logo") return "logo";
   if (file.folder === "photos") return "photos";
   if (file.folder === "documents") return "documents";
   return "other";
@@ -61,11 +73,15 @@ export default function MaterialsTab({ orderId, order }: { orderId: string; orde
   const [files, setFiles] = useState<FolderFiles>({ logo: [], photos: [], documents: [] });
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState<Folder | null>(null);
+  const [uploadType, setUploadType] = useState<Record<Folder, string>>({ logo: "logo", photos: "gallery", documents: "document" });
   const [deleting, setDeleting] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [category, setCategory] = useState<Category>("all");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [deletingBulk, setDeletingBulk] = useState(false);
+  const [editingPath, setEditingPath] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState<FileMeta>({});
+  const [savingMeta, setSavingMeta] = useState(false);
   const inputRefs = useRef<Record<Folder, HTMLInputElement | null>>({ logo: null, photos: null, documents: null });
 
   async function loadFiles() {
@@ -90,6 +106,7 @@ export default function MaterialsTab({ orderId, order }: { orderId: string; orde
         const formData = new FormData();
         formData.append("file", file);
         formData.append("folder", folder);
+        formData.append("material_type", uploadType[folder] || FOLDER_CONFIG[folder].defaultType);
         const res = await fetch(`/api/orders/${orderId}/files/upload`, { method: "POST", body: formData });
         const result = await res.json();
         if (!result.ok) { setError(result.error ?? "Ошибка загрузки"); return; }
@@ -141,6 +158,21 @@ export default function MaterialsTab({ orderId, order }: { orderId: string; orde
       await loadFiles();
     } finally {
       setDeletingBulk(false);
+    }
+  }
+
+  async function saveMeta(path: string) {
+    setSavingMeta(true);
+    try {
+      await fetch(`/api/orders/${orderId}/files/metadata`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ path, metadata: editForm }),
+      });
+      setEditingPath(null);
+      await loadFiles();
+    } finally {
+      setSavingMeta(false);
     }
   }
 
@@ -202,13 +234,13 @@ export default function MaterialsTab({ orderId, order }: { orderId: string; orde
         <div className="flex-1 h-px bg-white/8" />
       </div>
 
-      {/* Upload buttons + bulk delete */}
-      <div className="flex flex-wrap items-center gap-2">
+      {/* Upload buttons with type selector */}
+      <div className="space-y-3">
         {(Object.keys(FOLDER_CONFIG) as Folder[]).map((folder) => {
           const cfg = FOLDER_CONFIG[folder];
           const isUploading = uploading === folder;
           return (
-            <div key={folder}>
+            <div key={folder} className="flex items-center gap-2">
               <input
                 ref={(el) => { inputRefs.current[folder] = el; }}
                 type="file"
@@ -226,18 +258,21 @@ export default function MaterialsTab({ orderId, order }: { orderId: string; orde
               >
                 {isUploading ? `Загрузка…` : `+ ${cfg.label}`}
               </Btn>
+              <select
+                value={uploadType[folder]}
+                onChange={(e) => setUploadType((p) => ({ ...p, [folder]: e.target.value }))}
+                className="rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-xs text-white/60"
+              >
+                {MATERIAL_TYPES.map((t) => (
+                  <option key={t.value} value={t.value}>{t.label}</option>
+                ))}
+              </select>
             </div>
           );
         })}
         {selected.size > 0 && (
-          <div className="ml-auto">
-            <Btn
-              variant="outline"
-              size="sm"
-              disabled={deletingBulk}
-              loading={deletingBulk}
-              onClick={handleBulkDelete}
-            >
+          <div>
+            <Btn variant="outline" size="sm" disabled={deletingBulk} loading={deletingBulk} onClick={handleBulkDelete}>
               Удалить выбранные ({selected.size})
             </Btn>
           </div>
@@ -274,12 +309,7 @@ export default function MaterialsTab({ orderId, order }: { orderId: string; orde
           <p className="mt-1 text-sm text-white/25">Загрузите материалы для работы над проектом</p>
           <div className="mt-5 flex flex-wrap gap-2 justify-center">
             {(Object.keys(FOLDER_CONFIG) as Folder[]).map((folder) => (
-              <Btn
-                key={folder}
-                variant="outline"
-                size="sm"
-                onClick={() => inputRefs.current[folder]?.click()}
-              >
+              <Btn key={folder} variant="outline" size="sm" onClick={() => inputRefs.current[folder]?.click()}>
                 + {FOLDER_CONFIG[folder].label}
               </Btn>
             ))}
@@ -289,29 +319,35 @@ export default function MaterialsTab({ orderId, order }: { orderId: string; orde
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
           {filteredFiles.map((f) => {
             const key = `${f.folder}/${f.name}`;
-            const path = `${orderId}/${f.folder}/${f.name}`;
+            const path = f.path ?? `${orderId}/${f.folder}/${f.name}`;
             const isDeletingThis = deleting === path;
             const isChecked = selected.has(key);
+            const isEditing = editingPath === path;
+            const meta = f.metadata ?? {};
+
             return (
               <div
                 key={key}
                 className={`group relative rounded-xl border transition ${isChecked ? "border-cyan-500/50 bg-cyan-500/8" : "border-white/8 bg-white/4"}`}
               >
                 {/* Checkbox */}
-                <div
-                  className={`absolute left-2 top-2 z-10 transition-opacity ${isChecked ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}
-                >
+                <div className={`absolute left-2 top-2 z-10 transition-opacity ${isChecked ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}>
                   <button
                     onClick={() => toggleSelect(key)}
                     className={`flex h-5 w-5 items-center justify-center rounded border text-xs font-bold transition ${
-                      isChecked
-                        ? "border-cyan-400 bg-cyan-500 text-white"
-                        : "border-white/30 bg-black/50 text-white/50 hover:border-white/60"
+                      isChecked ? "border-cyan-400 bg-cyan-500 text-white" : "border-white/30 bg-black/50 text-white/50 hover:border-white/60"
                     }`}
                   >
                     {isChecked ? "✓" : ""}
                   </button>
                 </div>
+
+                {/* Type badge */}
+                {meta.type && (
+                  <div className="absolute right-2 top-2 z-10 rounded-md bg-black/60 px-1.5 py-0.5 text-xs text-white/60">
+                    {MATERIAL_TYPES.find((t) => t.value === meta.type)?.label ?? meta.type}
+                  </div>
+                )}
 
                 <a href={f.url} target="_blank" rel="noopener noreferrer" className="block overflow-hidden rounded-t-xl">
                   {isImage(f) ? (
@@ -331,12 +367,22 @@ export default function MaterialsTab({ orderId, order }: { orderId: string; orde
                 </a>
 
                 <div className="px-3 py-2">
-                  <p className="truncate text-xs font-medium text-white/70">{f.name}</p>
+                  {meta.title ? (
+                    <p className="truncate text-xs font-semibold text-white/80">{meta.title}</p>
+                  ) : null}
+                  <p className="truncate text-xs text-white/50">{f.name}</p>
+                  {meta.placement_notes && (
+                    <p className="mt-0.5 truncate text-xs text-cyan-400/60">{meta.placement_notes}</p>
+                  )}
                   {f.size && <p className="text-xs text-white/30">{formatSize(f.size)}</p>}
                   <div className="mt-1.5 flex items-center gap-2">
-                    <a href={f.url} target="_blank" rel="noopener noreferrer" className="text-xs text-cyan-400/70 hover:text-cyan-400">
-                      Открыть
-                    </a>
+                    <a href={f.url} target="_blank" rel="noopener noreferrer" className="text-xs text-cyan-400/70 hover:text-cyan-400">Открыть</a>
+                    <button
+                      onClick={() => { setEditingPath(path); setEditForm({ type: meta.type, title: meta.title, description: meta.description, placement_notes: meta.placement_notes }); }}
+                      className="text-xs text-white/40 hover:text-white/70"
+                    >
+                      ✏️
+                    </button>
                     <button
                       disabled={isDeletingThis}
                       onClick={() => handleDelete(f.folder, f.name)}
@@ -346,6 +392,37 @@ export default function MaterialsTab({ orderId, order }: { orderId: string; orde
                     </button>
                   </div>
                 </div>
+
+                {/* Inline label editor */}
+                {isEditing && (
+                  <div className="border-t border-white/8 px-3 py-3 space-y-2">
+                    <select
+                      value={editForm.type ?? "other"}
+                      onChange={(e) => setEditForm((p) => ({ ...p, type: e.target.value }))}
+                      className="w-full rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-xs text-white/70"
+                    >
+                      {MATERIAL_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+                    </select>
+                    <input
+                      placeholder="Название"
+                      value={editForm.title ?? ""}
+                      onChange={(e) => setEditForm((p) => ({ ...p, title: e.target.value }))}
+                      className="w-full rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-xs text-white/70 placeholder-white/25"
+                    />
+                    <input
+                      placeholder="Куда разместить (напр. Hero)"
+                      value={editForm.placement_notes ?? ""}
+                      onChange={(e) => setEditForm((p) => ({ ...p, placement_notes: e.target.value }))}
+                      className="w-full rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-xs text-white/70 placeholder-white/25"
+                    />
+                    <div className="flex gap-2">
+                      <Btn size="sm" variant="primary" disabled={savingMeta} loading={savingMeta} onClick={() => saveMeta(path)}>
+                        Сохранить
+                      </Btn>
+                      <Btn size="sm" variant="outline" onClick={() => setEditingPath(null)}>Отмена</Btn>
+                    </div>
+                  </div>
+                )}
               </div>
             );
           })}

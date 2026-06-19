@@ -15,7 +15,12 @@ export async function GET(
 
   const admin = createAdminClient();
   const folders = ["logo", "photos", "documents"] as const;
-  const results: Record<string, Array<{ name: string; url: string; size?: number; created_at?: string }>> = {};
+  const results: Record<string, Array<{ name: string; url: string; size?: number; created_at?: string; path: string; metadata: Record<string, unknown> }>> = {};
+
+  // Fetch file metadata stored in project_data
+  const { data: pd } = await admin.from("project_data").select("content_edits").eq("order_id", id).maybeSingle();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const fileMetadata: Record<string, any> = (pd?.content_edits as Record<string, any>)?.file_metadata ?? {};
 
   for (const folder of folders) {
     const { data, error } = await admin.storage
@@ -25,14 +30,15 @@ export async function GET(
     if (error || !data) { results[folder] = []; continue; }
 
     results[folder] = data.map((f) => {
-      const { data: urlData } = admin.storage
-        .from(BUCKET)
-        .getPublicUrl(`${id}/${folder}/${f.name}`);
+      const path = `${id}/${folder}/${f.name}`;
+      const { data: urlData } = admin.storage.from(BUCKET).getPublicUrl(path);
       return {
         name: f.name,
         url: urlData.publicUrl,
         size: f.metadata?.size as number | undefined,
         created_at: f.created_at ?? undefined,
+        path,
+        metadata: fileMetadata[path] ?? {},
       };
     });
   }

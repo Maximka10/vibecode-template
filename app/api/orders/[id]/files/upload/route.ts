@@ -18,6 +18,10 @@ export async function POST(
   const formData = await req.formData();
   const file = formData.get("file") as File | null;
   const folder = formData.get("folder") as string | null;
+  const materialType = (formData.get("material_type") as string | null) || folder || "other";
+  const title = formData.get("title") as string | null;
+  const description = formData.get("description") as string | null;
+  const placementNotes = formData.get("placement_notes") as string | null;
 
   if (!file) return NextResponse.json({ ok: false, error: "No file provided" }, { status: 400 });
   if (!folder || !VALID_FOLDERS.includes(folder as Folder)) {
@@ -43,6 +47,16 @@ export async function POST(
 
   if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
 
+  // Store file metadata in project_data.content_edits.file_metadata
+  const { data: pd } = await admin.from("project_data").select("content_edits").eq("order_id", id).maybeSingle();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const contentEdits: Record<string, any> = (pd?.content_edits as Record<string, any>) ?? {};
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const fileMetadata: Record<string, any> = contentEdits.file_metadata ?? {};
+  fileMetadata[path] = { type: materialType, title: title || "", description: description || "", placement_notes: placementNotes || "", uploaded_at: new Date().toISOString() };
+  contentEdits.file_metadata = fileMetadata;
+  await admin.from("project_data").upsert({ order_id: id, content_edits: contentEdits }, { onConflict: "order_id" });
+
   const { data: urlData } = admin.storage.from(BUCKET).getPublicUrl(path);
-  return NextResponse.json({ ok: true, path, url: urlData.publicUrl });
+  return NextResponse.json({ ok: true, path, url: urlData.publicUrl, metadata: fileMetadata[path] });
 }

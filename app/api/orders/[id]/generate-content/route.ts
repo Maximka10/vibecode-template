@@ -16,6 +16,10 @@ export async function POST(
   if (!auth) return NextResponse.json({ ok: false, error: "UNAUTHORIZED" }, { status: 401 });
   if (auth.role !== "admin") return NextResponse.json({ ok: false, error: "FORBIDDEN" }, { status: 403 });
 
+  if (process.env.AI_ENABLED === 'false') {
+    return NextResponse.json({ ok: false, error: "AI временно недоступен. Обратитесь к администратору." }, { status: 503 });
+  }
+
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return NextResponse.json({ ok: false, error: "AI_NOT_CONFIGURED" }, { status: 503 });
 

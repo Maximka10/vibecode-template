@@ -4,6 +4,82 @@ import { useRouter } from "next/navigation";
 import { Btn } from "@/components/ui/Btn";
 import { Card } from "@/components/ui/Card";
 
+// ── Project Health Card ───────────────────────────────────────────────────────
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function ProjectHealthCard({ order }: { order: Record<string, any> }) {
+  const opts = order.selected_options ?? {};
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sections: any[] = order.content_edits?.sections ?? [];
+
+  const checks: { label: string; done: boolean }[] = [
+    { label: "Название компании", done: !!opts.company_name },
+    { label: "Телефон или email", done: !!(opts.phone || opts.email) },
+    { label: "Адрес", done: !!opts.address },
+    { label: "Режим работы", done: !!opts.working_hours },
+    { label: "Секция Hero", done: sections.some((s) => s.type === "hero") },
+    { label: "Секция Услуги", done: sections.some((s) => s.type === "services") },
+    { label: "Секция Галерея или О нас", done: sections.some((s) => s.type === "gallery" || s.type === "about") },
+    { label: "SEO заголовок", done: !!opts.seo_title },
+    { label: "SEO описание", done: !!opts.seo_description },
+    { label: "Домен сайта", done: !!opts.domain_name },
+    { label: "Минимум 3 активные секции", done: sections.filter((s) => s.enabled !== false).length >= 3 },
+  ];
+
+  const score = checks.filter((c) => c.done).length;
+  const total = checks.length;
+  const pct = Math.round((score / total) * 100);
+
+  const ringColor = pct < 40 ? "#ef4444" : pct <= 70 ? "#eab308" : "#22c55e";
+  const textColor = pct < 40 ? "text-red-400" : pct <= 70 ? "text-yellow-400" : "text-green-400";
+
+  const radius = 36;
+  const circumference = 2 * Math.PI * radius;
+  const dashOffset = circumference - (pct / 100) * circumference;
+
+  return (
+    <div className="rounded-2xl border border-white/8 bg-white/4 p-5">
+      <h2 className="mb-4 text-xs font-semibold uppercase tracking-widest text-white/40">Готовность проекта</h2>
+      <div className="flex items-center gap-6">
+        <div className="relative shrink-0">
+          <svg width="96" height="96" viewBox="0 0 96 96">
+            <circle cx="48" cy="48" r={radius} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="8" />
+            <circle
+              cx="48" cy="48" r={radius}
+              fill="none"
+              stroke={ringColor}
+              strokeWidth="8"
+              strokeLinecap="round"
+              strokeDasharray={circumference}
+              strokeDashoffset={dashOffset}
+              transform="rotate(-90 48 48)"
+              style={{ transition: "stroke-dashoffset 0.5s ease" }}
+            />
+          </svg>
+          <span className={`absolute inset-0 flex items-center justify-center text-xl font-bold ${textColor}`}>
+            {pct}%
+          </span>
+        </div>
+        <div className="min-w-0">
+          <p className={`text-2xl font-bold ${textColor}`}>{score} из {total}</p>
+          <p className="mt-0.5 text-xs text-white/40">пунктов выполнено</p>
+        </div>
+      </div>
+      <div className="mt-4 grid grid-cols-1 gap-1 sm:grid-cols-2">
+        {checks.map((c) => (
+          <div key={c.label} className="flex items-center gap-2 text-xs">
+            {c.done
+              ? <span className="shrink-0 font-bold text-green-400">✓</span>
+              : <span className="shrink-0 text-white/25">○</span>
+            }
+            <span className={c.done ? "text-white/70" : "text-white/35"}>{c.label}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
   new: { label: "Новая", color: "bg-blue-500/15 text-blue-300 border-blue-500/30" },
   contacted: { label: "Связались", color: "bg-purple-500/15 text-purple-300 border-purple-500/30" },
@@ -81,6 +157,8 @@ export default function OverviewTab({ order: initialOrder }: { order: Record<str
   }
 
   return (
+    <div className="space-y-6">
+      <ProjectHealthCard order={order} />
     <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
       {/* LEFT */}
       <div className="space-y-5">
@@ -271,6 +349,7 @@ export default function OverviewTab({ order: initialOrder }: { order: Record<str
           </div>
         </Card>
       </div>
+    </div>
 
       {/* Cancel dialog */}
       {cancelOpen && (
