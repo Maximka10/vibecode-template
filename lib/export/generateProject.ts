@@ -90,23 +90,51 @@ export default function Navigation() {
         </button>
       </div>
 
-      {/* Mobile drawer */}
+      {/* Backdrop overlay */}
       {open && (
-        <div className="border-t border-slate-100 bg-white/95 backdrop-blur-md md:hidden">
-          <nav className="flex flex-col px-6 py-4">
+        <div
+          className="fixed inset-0 z-40 bg-black/40 md:hidden"
+          onClick={close}
+          aria-hidden="true"
+        />
+      )}
+
+      {/* Mobile drawer (slides in from right) */}
+      <div
+        className={\`fixed inset-y-0 right-0 z-50 w-72 bg-white shadow-2xl transition-transform duration-300 ease-in-out md:hidden \${
+          open ? "translate-x-0" : "translate-x-full"
+        }\`}
+      >
+        <div className="flex h-full flex-col px-6 py-6">
+          <div className="mb-6 flex items-center justify-between">
+            <span className="text-lg font-black" style={{ color: "var(--primary)" }}>
+              {${companyName}}
+            </span>
+            <button
+              onClick={close}
+              className="rounded-lg p-2 text-slate-500 hover:bg-slate-100"
+              aria-label="Закрыть меню"
+            >
+              <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+              </svg>
+            </button>
+          </div>
+          <nav className="flex flex-col gap-1">
             {NAV_ITEMS.map((item) => (
               <a
                 key={item.href}
                 href={item.href}
                 onClick={close}
-                className="border-b border-slate-100 py-3.5 text-sm font-semibold text-slate-700 last:border-0"
+                className="rounded-xl px-4 py-3.5 text-sm font-semibold transition hover:bg-slate-50"
+                style={{ color: "var(--primary)" }}
               >
                 {item.label}
               </a>
             ))}
           </nav>
         </div>
-      )}
+      </div>
     </header>
   );
 }
@@ -155,15 +183,19 @@ function genStickyMobileCTA(contacts: SiteJson["contacts"]): string {
 // ── Component templates ───────────────────────────────────────────────────────
 
 const COMPONENT_TEMPLATES: Record<SectionType, (s: SiteSection) => string> = {
-  hero: () => `import { SiteSection } from "@/types";
+  hero: (s) => {
+    const phone = (s.content as { phone?: string }).phone ?? "";
+    const phoneStr = JSON.stringify(phone);
+    return `import { SiteSection } from "@/types";
 
 export default function Hero({ section }: { section: SiteSection }) {
-  const { title, subtitle, cta_text } = section.content as {
-    title?: string; subtitle?: string; cta_text?: string;
+  const { title, subtitle, cta_text, phone } = section.content as {
+    title?: string; subtitle?: string; cta_text?: string; phone?: string;
   };
+  const tel = phone || ${phoneStr};
   return (
     <section
-      className="relative flex min-h-[90svh] flex-col items-center justify-center px-6 py-24 text-center text-white sm:py-32"
+      className="relative flex min-h-[90svh] flex-col items-center justify-center px-4 py-24 text-center text-white sm:px-6 sm:py-32 lg:px-8"
       style={{ background: \`linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%)\` }}
     >
       {/* Decorative blobs */}
@@ -173,57 +205,67 @@ export default function Hero({ section }: { section: SiteSection }) {
       </div>
 
       <div className="relative mx-auto max-w-4xl">
+        {/* Trust badges */}
+        <div className="mb-8 flex flex-wrap items-center justify-center gap-3 opacity-90">
+          {["✓ Быстро", "✓ Качественно", "✓ Гарантия"].map((b) => (
+            <span key={b} className="rounded-full border border-white/30 bg-white/10 px-4 py-1.5 text-sm font-semibold backdrop-blur-sm">
+              {b}
+            </span>
+          ))}
+        </div>
+
         {title && (
-          <h1 className="text-5xl font-black leading-[1.1] tracking-tight sm:text-6xl lg:text-7xl">
+          <h1 className="text-3xl font-black leading-[1.1] tracking-tight sm:text-5xl lg:text-7xl">
             {title}
           </h1>
         )}
         {subtitle && (
-          <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed opacity-85 sm:text-xl">
+          <p className="mx-auto mt-6 max-w-2xl text-base leading-relaxed opacity-85 sm:text-xl">
             {subtitle}
           </p>
         )}
-        {cta_text && (
-          <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
+        <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
+          {cta_text && (
             <a
               href="#contacts"
-              className="inline-flex items-center gap-2 rounded-full bg-white px-10 py-4 text-base font-bold shadow-lg transition hover:-translate-y-0.5 hover:shadow-xl active:scale-95"
+              className="w-full rounded-full bg-white py-4 px-8 text-lg font-bold shadow-lg transition hover:-translate-y-0.5 hover:shadow-xl active:scale-95 sm:w-auto"
               style={{ color: "var(--primary)" }}
             >
               {cta_text}
             </a>
-          </div>
-        )}
+          )}
+          {tel && (
+            <a
+              href={\`tel:\${tel}\`}
+              className="w-full rounded-full border-2 border-white/60 py-4 px-8 text-base font-bold text-white transition hover:bg-white/10 sm:w-auto"
+            >
+              📞 {tel}
+            </a>
+          )}
+        </div>
 
-        {/* Trust badges */}
-        <div className="mt-14 flex flex-wrap items-center justify-center gap-8 opacity-70">
-          {[
-            { icon: "⭐", text: "5.0 рейтинг" },
-            { icon: "✓", text: "Гарантия качества" },
-            { icon: "🚀", text: "Быстрый старт" },
-          ].map((b) => (
-            <div key={b.text} className="flex items-center gap-2 text-sm font-semibold">
-              <span>{b.icon}</span>
-              <span>{b.text}</span>
-            </div>
-          ))}
+        {/* Scroll hint */}
+        <div className="mt-12 flex flex-col items-center gap-1 opacity-60 select-none">
+          <span className="text-sm font-medium">↓ Узнать больше</span>
+          <span className="animate-bounce text-lg">↓</span>
         </div>
       </div>
     </section>
   );
 }
-`,
+`;
+  },
 
   about: () => `import { SiteSection } from "@/types";
 
 export default function About({ section }: { section: SiteSection }) {
   const { title, text } = section.content as { title?: string; text?: string };
   return (
-    <section className="px-6 py-20 bg-white" id="about">
+    <section className="px-4 py-20 bg-white sm:px-6 lg:px-8" id="about">
       <div className="mx-auto max-w-4xl">
         <div className="mb-3 h-1 w-12 rounded-full" style={{ backgroundColor: "var(--primary)" }} />
         {title && (
-          <h2 className="mb-6 text-3xl font-black leading-tight text-slate-900 sm:text-4xl">
+          <h2 className="mb-6 text-2xl font-black leading-tight text-slate-900 sm:text-3xl lg:text-4xl">
             {title}
           </h2>
         )}
@@ -246,15 +288,15 @@ export default function Services({ section }: { section: SiteSection }) {
   const { title, items } = section.content as { title?: string; items?: string[] };
   if (!items?.length) return null;
   return (
-    <section className="px-6 py-20 bg-slate-50" id="services">
+    <section className="px-4 py-20 bg-slate-50 sm:px-6 lg:px-8" id="services">
       <div className="mx-auto max-w-5xl">
         <div className="mb-3 h-1 w-12 rounded-full" style={{ backgroundColor: "var(--primary)" }} />
         {title && (
-          <h2 className="mb-10 text-3xl font-black text-slate-900 sm:text-4xl">
+          <h2 className="mb-10 text-2xl font-black text-slate-900 sm:text-3xl lg:text-4xl">
             {title}
           </h2>
         )}
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {items.map((item, i) => (
             <div
               key={i}
@@ -287,15 +329,15 @@ export default function Gallery({ section }: { section: SiteSection }) {
   const { title, images } = section.content as { title?: string; images?: string[] };
   if (!images?.length) return null;
   return (
-    <section className="px-6 py-20 bg-white" id="gallery">
+    <section className="px-4 py-20 bg-white sm:px-6 lg:px-8" id="gallery">
       <div className="mx-auto max-w-5xl">
         <div className="mb-3 h-1 w-12 rounded-full" style={{ backgroundColor: "var(--primary)" }} />
         {title && (
-          <h2 className="mb-10 text-3xl font-black text-slate-900 sm:text-4xl">{title}</h2>
+          <h2 className="mb-10 text-2xl font-black text-slate-900 sm:text-3xl lg:text-4xl">{title}</h2>
         )}
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {images.map((src, i) => (
-            <div key={i} className="relative aspect-square overflow-hidden rounded-2xl bg-slate-100 transition hover:scale-[1.01]">
+            <div key={i} className="relative aspect-video overflow-hidden rounded-2xl bg-slate-100 transition hover:scale-[1.01]">
               <Image src={src} alt={\`Фото \${i + 1}\`} fill className="object-cover" />
             </div>
           ))}
@@ -314,12 +356,13 @@ export default function Reviews({ section }: { section: SiteSection }) {
   const { title, items } = section.content as { title?: string; items?: Review[] };
   if (!items?.length) return null;
   return (
-    <section className="px-6 py-20 bg-slate-50" id="reviews">
+    <section className="px-4 py-20 bg-slate-50 sm:px-6 lg:px-8" id="reviews">
       <div className="mx-auto max-w-5xl">
         <div className="mb-3 h-1 w-12 rounded-full" style={{ backgroundColor: "var(--primary)" }} />
         {title && (
-          <h2 className="mb-10 text-3xl font-black text-slate-900 sm:text-4xl">{title}</h2>
+          <h2 className="mb-4 text-2xl font-black text-slate-900 sm:text-3xl lg:text-4xl">{title}</h2>
         )}
+        <p className="mb-8 text-base font-semibold text-slate-500">⭐ 4.9 из 5 — на основе отзывов клиентов</p>
         <div className="grid gap-5 sm:grid-cols-2">
           {items.map((r, i) => (
             <div key={i} className="rounded-2xl border border-slate-200 bg-white p-7 shadow-sm">
@@ -352,11 +395,11 @@ export default function FAQ({ section }: { section: SiteSection }) {
   const [open, setOpen] = useState<number | null>(null);
   if (!items?.length) return null;
   return (
-    <section className="px-6 py-20 bg-white" id="faq">
-      <div className="mx-auto max-w-3xl">
+    <section className="px-4 py-20 bg-white sm:px-6 lg:px-8 overflow-x-hidden" id="faq">
+      <div className="mx-auto max-w-3xl w-full">
         <div className="mb-3 h-1 w-12 rounded-full" style={{ backgroundColor: "var(--primary)" }} />
         {title && (
-          <h2 className="mb-10 text-3xl font-black text-slate-900 sm:text-4xl">{title}</h2>
+          <h2 className="mb-10 text-2xl font-black text-slate-900 sm:text-3xl lg:text-4xl">{title}</h2>
         )}
         <div className="space-y-3">
           {items.map((f, i) => (
@@ -395,13 +438,13 @@ export default function Pricing({ section }: { section: SiteSection }) {
   const { title, plans } = section.content as { title?: string; plans?: Plan[] };
   if (!plans?.length) return null;
   return (
-    <section className="px-6 py-20 bg-slate-50" id="pricing">
+    <section className="px-4 py-20 bg-slate-50 sm:px-6 lg:px-8" id="pricing">
       <div className="mx-auto max-w-5xl">
         <div className="mb-3 h-1 w-12 rounded-full" style={{ backgroundColor: "var(--primary)" }} />
         {title && (
-          <h2 className="mb-10 text-3xl font-black text-slate-900 sm:text-4xl">{title}</h2>
+          <h2 className="mb-10 text-2xl font-black text-slate-900 sm:text-3xl lg:text-4xl">{title}</h2>
         )}
-        <div className="grid gap-6 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
           {plans.map((p, i) => (
             <div
               key={i}
@@ -449,20 +492,20 @@ export default function CTA({ section }: { section: SiteSection }) {
   };
   return (
     <section
-      className="relative overflow-hidden px-6 py-24 text-center text-white"
-      style={{ background: \`linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%)\` }}
+      className="relative overflow-hidden px-4 py-24 text-center text-white sm:px-6 lg:px-8"
+      style={{ background: \`linear-gradient(135deg, var(--primary) 0%, color-mix(in srgb, var(--secondary) 80%, #7c3aed) 100%)\` }}
     >
       <div className="pointer-events-none absolute inset-0">
-        <div className="absolute left-1/4 top-0 h-80 w-80 rounded-full bg-white/5 blur-3xl" />
-        <div className="absolute bottom-0 right-1/4 h-60 w-60 rounded-full bg-black/10 blur-3xl" />
+        <div className="absolute left-1/4 top-0 h-80 w-80 rounded-full bg-white/10 blur-3xl" />
+        <div className="absolute bottom-0 right-1/4 h-60 w-60 rounded-full bg-black/15 blur-3xl" />
       </div>
       <div className="relative mx-auto max-w-2xl">
-        {title && <h2 className="text-3xl font-black sm:text-4xl">{title}</h2>}
-        {subtitle && <p className="mt-4 text-lg opacity-80">{subtitle}</p>}
+        {title && <h2 className="text-2xl font-black sm:text-3xl lg:text-4xl">{title}</h2>}
+        {subtitle && <p className="mt-4 text-base opacity-85 sm:text-lg">{subtitle}</p>}
         {cta_text && (
           <a
             href="#contacts"
-            className="mt-10 inline-flex items-center gap-2 rounded-full bg-white px-12 py-4 text-base font-bold shadow-lg transition hover:-translate-y-0.5 hover:shadow-xl active:scale-95"
+            className="mt-10 inline-flex w-full items-center justify-center gap-2 rounded-full bg-white py-4 px-8 text-lg font-bold shadow-xl transition hover:-translate-y-0.5 hover:shadow-2xl active:scale-95 sm:w-auto sm:px-12"
             style={{ color: "var(--primary)" }}
           >
             {cta_text} →
@@ -491,11 +534,11 @@ export default function Contacts({ section }: { section: SiteSection }) {
   ].filter(Boolean) as { icon: string; label: string; value: string; href: string | null }[];
 
   return (
-    <section className="px-6 py-20 bg-white" id="contacts">
+    <section className="px-4 py-20 bg-white sm:px-6 lg:px-8" id="contacts">
       <div className="mx-auto max-w-4xl">
         <div className="mb-3 h-1 w-12 rounded-full" style={{ backgroundColor: "var(--primary)" }} />
         {title && (
-          <h2 className="mb-10 text-3xl font-black text-slate-900 sm:text-4xl">{title}</h2>
+          <h2 className="mb-10 text-2xl font-black text-slate-900 sm:text-3xl lg:text-4xl">{title}</h2>
         )}
         <div className="grid gap-4 sm:grid-cols-2">
           {items.map((item, i) => (
@@ -549,10 +592,10 @@ export default function Map({ section }: { section: SiteSection }) {
   };
   const src = embed_url || (address ? buildYandexEmbed(address) : null);
   return (
-    <section className="px-6 py-20 bg-slate-50" id="map">
+    <section className="px-4 py-20 bg-slate-50 sm:px-6 lg:px-8" id="map">
       <div className="mx-auto max-w-4xl">
         <div className="mb-3 h-1 w-12 rounded-full" style={{ backgroundColor: "var(--primary)" }} />
-        {title && <h2 className="mb-4 text-3xl font-black text-slate-900 sm:text-4xl">{title}</h2>}
+        {title && <h2 className="mb-4 text-2xl font-black text-slate-900 sm:text-3xl lg:text-4xl">{title}</h2>}
         {address && <p className="mb-6 text-slate-600">📍 {address}</p>}
         {src ? (
           <div className="overflow-hidden rounded-2xl shadow-sm">
@@ -595,25 +638,46 @@ export default function Map({ section }: { section: SiteSection }) {
 }
 `,
 
-  footer: () => `import { SiteSection } from "@/types";
+  footer: (s) => {
+    const phone = (s.content as { phone?: string }).phone ?? "";
+    const email = (s.content as { email?: string }).email ?? "";
+    const phoneStr = JSON.stringify(phone);
+    const emailStr = JSON.stringify(email);
+    return `import { SiteSection } from "@/types";
 
 export default function Footer({ section }: { section: SiteSection }) {
-  const { company_name, links } = section.content as { company_name?: string; links?: string[] };
+  const { company_name, links, phone, email } = section.content as {
+    company_name?: string; links?: string[]; phone?: string; email?: string;
+  };
+  const tel = phone || ${phoneStr};
+  const mail = email || ${emailStr};
   const year = new Date().getFullYear();
   return (
-    <footer className="bg-slate-900 px-6 pt-12 pb-8 text-slate-400">
+    <footer className="bg-slate-900 px-4 pt-12 pb-8 text-slate-400 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-5xl">
-        <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
-          <div>
+        <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="lg:col-span-2">
             <span className="text-lg font-black" style={{ color: "var(--primary)" }}>
               {company_name}
             </span>
             <p className="mt-2 text-sm text-slate-500 max-w-xs">
               Профессиональные услуги для вашего бизнеса
             </p>
+            <div className="mt-4 flex flex-col gap-2">
+              {tel && (
+                <a href={\`tel:\${tel}\`} className="text-sm text-slate-400 hover:text-white transition">
+                  📞 {tel}
+                </a>
+              )}
+              {mail && (
+                <a href={\`mailto:\${mail}\`} className="text-sm text-slate-400 hover:text-white transition">
+                  ✉️ {mail}
+                </a>
+              )}
+            </div>
           </div>
           {(links ?? []).length > 0 && (
-            <div className="flex flex-wrap gap-x-8 gap-y-2">
+            <div className="lg:col-span-2 flex flex-wrap gap-x-8 gap-y-2 lg:justify-end lg:items-start">
               {(links ?? []).map((l, i) => (
                 <span key={i} className="text-sm text-slate-500 hover:text-slate-300 cursor-pointer transition">
                   {l}
@@ -622,20 +686,28 @@ export default function Footer({ section }: { section: SiteSection }) {
             </div>
           )}
         </div>
-        <div className="mt-10 flex flex-col items-center justify-between gap-3 border-t border-slate-800 pt-6 sm:flex-row">
-          <p className="text-xs text-slate-600">
-            © {year} {company_name}. Все права защищены.
-          </p>
-          <p className="text-xs text-slate-700">
-            Создано в{" "}
-            <span className="text-slate-500">Vibecode Studio</span>
+
+        {/* Bottom strip */}
+        <div className="mt-10 border-t border-slate-800 pt-6 space-y-3">
+          <div className="flex flex-col items-center justify-between gap-3 sm:flex-row">
+            <p className="text-xs text-slate-600">
+              © {year} {company_name}. Все права защищены.
+            </p>
+            <p className="text-xs text-slate-700">
+              Создано в{" "}
+              <span className="text-slate-500">Vibecode Studio</span>
+            </p>
+          </div>
+          <p className="text-center text-xs text-slate-700">
+            Нажимая на кнопки, вы соглашаетесь с политикой конфиденциальности
           </p>
         </div>
       </div>
     </footer>
   );
 }
-`,
+`;
+  },
 };
 
 // ── File generators ───────────────────────────────────────────────────────────
@@ -759,6 +831,7 @@ ${fontFamily}
 
 * {
   box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
 }
 
 html {
@@ -767,6 +840,10 @@ html {
 
 body {
   font-family: var(--font);
+}
+
+button, a {
+  touch-action: manipulation;
 }
 
 @media (prefers-reduced-motion: reduce) {
