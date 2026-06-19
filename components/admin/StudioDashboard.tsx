@@ -164,26 +164,6 @@ export default function StudioDashboard({ projects: initialProjects }: { project
 
   return (
     <main className="min-h-screen bg-slate-950 text-white">
-      {/* Header */}
-      <div className="border-b border-white/8 px-4 py-4">
-        <div className="mx-auto flex max-w-5xl items-center justify-between">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-widest text-cyan-400">Рабочее пространство</p>
-            <h1 className="mt-0.5 text-2xl font-black">⚡ Studio</h1>
-          </div>
-          <div className="flex items-center gap-2">
-            <Btn href="/admin" variant="outline" size="sm">
-              CRM →
-            </Btn>
-            <form action="/api/auth/logout" method="POST">
-              <Btn type="submit" variant="ghost" size="sm">
-                Выйти
-              </Btn>
-            </form>
-          </div>
-        </div>
-      </div>
-
       <div className="mx-auto max-w-5xl px-4 py-6 space-y-6">
         {/* Kanban status filters */}
         <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">

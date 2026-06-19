@@ -1,5 +1,4 @@
 import { redirect } from "next/navigation";
-import Link from "next/link";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import ClientChat from "@/components/chat/ClientChat";
 import { Btn } from "@/components/ui/Btn";
@@ -41,17 +40,10 @@ export default async function DashboardPage() {
 
       <div className="relative mx-auto max-w-3xl px-4 py-12">
         {/* Header */}
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-widest text-cyan-400">Личный кабинет</p>
-            <h1 className="mt-1 text-3xl font-black">Мои заказы</h1>
-            <p className="mt-1 text-sm text-white/40">{user.email}</p>
-          </div>
-          <form action="/api/auth/logout" method="POST">
-            <Btn type="submit" variant="outline" size="sm">
-              Выйти
-            </Btn>
-          </form>
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-widest text-cyan-400">Личный кабинет</p>
+          <h1 className="mt-1 text-3xl font-black">Мои заказы</h1>
+          <p className="mt-1 text-sm text-white/40">{user.email}</p>
         </div>
 
         <div className="mt-8 h-px bg-white/8" />

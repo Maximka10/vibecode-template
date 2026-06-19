@@ -142,20 +142,24 @@ export default function OrderWorkflow({
 
   return (
     <main className="min-h-screen bg-slate-950 text-white">
-      {/* Header */}
-      <div className="border-b border-white/8 px-4 py-4">
+      {/* Contextual topbar */}
+      <div className="border-b border-white/8 px-4 py-3">
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-3">
-          <div className="flex items-center gap-3 min-w-0">
-            <Btn href="/admin" variant="ghost" size="sm">
-              ← Заказы
-            </Btn>
-            <div className="h-4 w-px bg-white/10" />
+          <div className="flex flex-wrap items-center gap-2 min-w-0">
             <h1 className="truncate text-sm font-bold text-white/85">
               #{order.id.slice(0, 8)} · {order.template_name ?? order.template_id ?? "Заказ"}
             </h1>
             <StatusBadge status={order.status} />
           </div>
-          <div className="flex gap-2 shrink-0">
+          <div className="flex shrink-0 gap-2">
+            <Btn
+              href={`/preview/${order.template_id}`}
+              variant="ghost"
+              size="sm"
+              external
+            >
+              Превью ↗
+            </Btn>
             <Btn href={`/customize/${order.template_id}`} variant="outline" size="sm">
               Редактор →
             </Btn>
