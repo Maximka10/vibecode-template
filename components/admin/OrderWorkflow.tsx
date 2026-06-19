@@ -1,9 +1,9 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
-import { createClient } from "@/lib/supabase/client";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Btn } from "@/components/ui/Btn";
 import { Card } from "@/components/ui/Card";
-import { Input } from "@/components/ui/Input";
+import { ChatWindow, Message } from "@/components/chat/ChatWindow";
 
 const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
   new: { label: "Новая", color: "bg-blue-500/15 text-blue-300 border-blue-500/30" },
@@ -15,14 +15,6 @@ const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
 };
 
 const STATUS_ORDER = ["new", "contacted", "in_progress", "waiting_client", "completed", "cancelled"];
-
-type Message = {
-  id: string;
-  text: string;
-  sender_id: string;
-  is_read: boolean;
-  created_at: string;
-};
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Order = Record<string, any>;
@@ -55,81 +47,17 @@ export default function OrderWorkflow({
   initialMessages: Message[];
   adminId: string;
 }) {
+  const router = useRouter();
   const [order, setOrder] = useState<Order>(initialOrder);
-  const [messages, setMessages] = useState<Message[]>(initialMessages);
-  const [text, setText] = useState("");
   const [statusSaving, setStatusSaving] = useState(false);
-  const bottomRef = useRef<HTMLDivElement>(null);
-
-  // Mark unread messages as read on mount
-  useEffect(() => {
-    const supabase = createClient();
-    supabase
-      .from("messages")
-      .update({ is_read: true })
-      .eq("order_id", order.id)
-      .eq("is_read", false)
-      .then(() => null);
-  }, [order.id]);
-
-  // Realtime subscription
-  useEffect(() => {
-    const supabase = createClient();
-    const channel = supabase
-      .channel(`order-workflow-${order.id}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "messages",
-          filter: `order_id=eq.${order.id}`,
-        },
-        (payload) => {
-          const msg = payload.new as Message;
-          setMessages((prev) => {
-            // Avoid duplicates from optimistic update
-            if (prev.some((m) => m.id === msg.id)) return prev;
-            return [...prev, msg];
-          });
-          // Auto-mark incoming client messages as read
-          if (msg.sender_id !== adminId) {
-            supabase.from("messages").update({ is_read: true }).eq("id", msg.id).then(() => null);
-          }
-        }
-      )
-      .subscribe();
-
-    return () => { supabase.removeChannel(channel); };
-  }, [order.id, adminId]);
-
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
-
-  async function sendMessage(e: React.FormEvent) {
-    e.preventDefault();
-    if (!text.trim()) return;
-    const supabase = createClient();
-    const optimistic: Message = {
-      id: crypto.randomUUID(),
-      text: text.trim(),
-      sender_id: adminId,
-      is_read: true,
-      created_at: new Date().toISOString(),
-    };
-    setMessages((prev) => [...prev, optimistic]);
-    setText("");
-    await supabase.from("messages").insert({
-      order_id: order.id,
-      sender_id: adminId,
-      text: optimistic.text,
-    });
-  }
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const [cancelReason, setCancelReason] = useState("");
+  const [cancelLoading, setCancelLoading] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   async function applyTransition(action: string) {
     setStatusSaving(true);
-    console.log("[OrderWorkflow] transition:", action, "for order:", order.id);
     try {
       const res = await fetch("/api/orders/transition", {
         method: "POST",
@@ -137,35 +65,99 @@ export default function OrderWorkflow({
         body: JSON.stringify({ orderId: order.id, action }),
       });
       const result = await res.json();
-      console.log("[OrderWorkflow] transition result:", result);
       if (result.ok) {
         setOrder((prev) => ({ ...prev, status: result.status }));
       } else {
-        console.error("[OrderWorkflow] transition error:", result.error);
         alert(`Ошибка: ${result.error}`);
       }
-    } catch (err) {
-      console.error("[OrderWorkflow] transition threw:", err);
+    } catch {
       alert("Ошибка соединения при смене статуса");
     } finally {
       setStatusSaving(false);
     }
   }
 
-  // Maps each target status to the workflow action that reaches it (admin view)
+  async function handleCancel() {
+    if (!cancelReason.trim()) return;
+    setCancelLoading(true);
+    try {
+      const res = await fetch(`/api/orders/${order.id}/cancel`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reason: cancelReason }),
+      });
+      const result = await res.json();
+      if (result.ok) {
+        setOrder((prev) => ({ ...prev, status: "cancelled", cancel_reason: cancelReason }));
+        setCancelOpen(false);
+        setCancelReason("");
+      } else {
+        alert(`Ошибка отмены: ${result.error}`);
+      }
+    } catch {
+      alert("Ошибка соединения");
+    } finally {
+      setCancelLoading(false);
+    }
+  }
+
+  async function handleExport() {
+    setExporting(true);
+    try {
+      const res = await fetch(`/api/orders/${order.id}/export`, { method: "POST" });
+      const result = await res.json();
+      if (result.ok) {
+        if (result.url) {
+          window.open(result.url, "_blank");
+        } else {
+          const blob = new Blob([JSON.stringify(result.data, null, 2)], { type: "application/json" });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `order-${order.id.slice(0, 8)}-export.json`;
+          a.click();
+          URL.revokeObjectURL(url);
+        }
+      } else {
+        alert(`Ошибка экспорта: ${result.error}`);
+      }
+    } catch {
+      alert("Ошибка соединения");
+    } finally {
+      setExporting(false);
+    }
+  }
+
+  async function handleDelete() {
+    if (!window.confirm("Удалить заказ безвозвратно? Все сообщения будут удалены.")) return;
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/orders/${order.id}/delete`, { method: "DELETE" });
+      const result = await res.json();
+      if (result.ok) {
+        router.push("/admin/orders");
+      } else {
+        alert(`Ошибка удаления: ${result.error}`);
+        setDeleting(false);
+      }
+    } catch {
+      alert("Ошибка соединения");
+      setDeleting(false);
+    }
+  }
+
   const STATUS_TO_ACTION: Partial<Record<string, string>> = {
     in_progress: "START_WORK",
     waiting_client: "REQUEST_CLIENT_INPUT",
     completed: "COMPLETE_ORDER",
-    cancelled: "CANCEL_ORDER",
-    contacted: "START_WORK", // admin "contacted" = effectively start of engagement
+    contacted: "START_WORK",
   };
 
   const statusCfg = STATUS_CONFIG[order.status] ?? { label: order.status, color: "bg-white/10 text-white/60 border-white/10" };
 
   return (
     <main className="min-h-screen bg-slate-950 text-white">
-      {/* Contextual topbar */}
+      {/* Topbar */}
       <div className="border-b border-white/8 px-4 py-3">
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-2 min-w-0">
@@ -175,12 +167,7 @@ export default function OrderWorkflow({
             <StatusBadge status={order.status} />
           </div>
           <div className="flex shrink-0 gap-2">
-            <Btn
-              href={`/preview/${order.template_id}`}
-              variant="ghost"
-              size="sm"
-              external
-            >
+            <Btn href={`/preview/${order.template_id}`} variant="ghost" size="sm" external>
               Превью ↗
             </Btn>
             <Btn href={`/customize/${order.template_id}`} variant="outline" size="sm">
@@ -212,7 +199,12 @@ export default function OrderWorkflow({
                     <p className="mt-0.5 text-sm text-white/85">{order.notes}</p>
                   </div>
                 )}
-
+                {order.cancel_reason && (
+                  <div className="col-span-full">
+                    <p className="text-xs text-red-400/70">Причина отмены</p>
+                    <p className="mt-0.5 text-sm text-red-300/80">{order.cancel_reason}</p>
+                  </div>
+                )}
               </div>
               <p className="mt-4 text-xs text-white/25">
                 Создан: {new Date(order.created_at).toLocaleString("ru-RU")}
@@ -249,54 +241,13 @@ export default function OrderWorkflow({
                   Чат с клиентом
                 </h2>
               </div>
-
-              <div className="h-80 overflow-y-auto p-4 space-y-2">
-                {messages.length === 0 && (
-                  <p className="py-8 text-center text-xs text-white/30">Сообщений пока нет</p>
-                )}
-                {messages.map((m) => (
-                  <div
-                    key={m.id}
-                    className={`flex ${m.sender_id === adminId ? "justify-end" : "justify-start"}`}
-                  >
-                    <div className="max-w-[75%]">
-                      <span
-                        className={`block rounded-2xl px-3 py-2 text-sm leading-relaxed ${
-                          m.sender_id === adminId
-                            ? "bg-purple-500/20 text-purple-100"
-                            : "bg-white/8 text-white/85"
-                        }`}
-                      >
-                        {m.text}
-                      </span>
-                      <p className="mt-0.5 px-1 text-xs text-white/25">
-                        {new Date(m.created_at).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-                <div ref={bottomRef} />
-              </div>
-
-              <form
-                onSubmit={sendMessage}
-                className="flex gap-2 border-t border-white/8 p-3"
-              >
-                <Input
-                  variant="inline"
-                  className="flex-1"
-                  value={text}
-                  onChange={(e) => setText(e.target.value)}
-                  placeholder="Написать клиенту..."
-                />
-                <button
-                  type="submit"
-                  disabled={!text.trim()}
-                  className="rounded-xl bg-purple-500/20 px-4 py-2 text-sm font-semibold text-purple-300 transition hover:bg-purple-500/30 disabled:opacity-40"
-                >
-                  →
-                </button>
-              </form>
+              <ChatWindow
+                orderId={order.id}
+                currentUserId={adminId}
+                currentUserRole="admin"
+                initialMessages={initialMessages}
+                height="h-80"
+              />
             </Card>
           </div>
 
@@ -308,13 +259,11 @@ export default function OrderWorkflow({
               <h2 className="mb-3 text-xs font-semibold uppercase tracking-widest text-white/40">
                 Статус
               </h2>
-              <div
-                className={`mb-4 rounded-xl border px-3 py-2.5 text-center text-sm font-semibold ${statusCfg.color}`}
-              >
+              <div className={`mb-4 rounded-xl border px-3 py-2.5 text-center text-sm font-semibold ${statusCfg.color}`}>
                 {statusCfg.label}
               </div>
               <div className="grid grid-cols-2 gap-2">
-                {STATUS_ORDER.map((s) => {
+                {STATUS_ORDER.filter((s) => s !== "cancelled").map((s) => {
                   const cfg = STATUS_CONFIG[s];
                   const active = order.status === s;
                   const action = STATUS_TO_ACTION[s];
@@ -325,9 +274,7 @@ export default function OrderWorkflow({
                       onClick={() => action && applyTransition(action)}
                       title={!action ? "Этот статус устанавливается автоматически" : undefined}
                       className={`rounded-xl border px-2.5 py-2 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 ${
-                        active
-                          ? cfg.color
-                          : "border-white/10 text-white/50 hover:border-white/25 hover:text-white"
+                        active ? cfg.color : "border-white/10 text-white/50 hover:border-white/25 hover:text-white"
                       }`}
                     >
                       {cfg.label}
@@ -343,22 +290,11 @@ export default function OrderWorkflow({
                 Действия
               </h2>
               <div className="space-y-2">
-                <Btn
-                  href={`/customize/${order.template_id}`}
-                  variant="outline"
-                  size="sm"
-                  className="w-full"
-                >
+                <Btn href={`/customize/${order.template_id}`} variant="outline" size="sm" className="w-full">
                   Открыть в редакторе →
                 </Btn>
                 {order.project_url && (
-                  <Btn
-                    href={order.project_url}
-                    variant="secondary"
-                    size="sm"
-                    className="w-full"
-                    external
-                  >
+                  <Btn href={order.project_url} variant="secondary" size="sm" className="w-full" external>
                     Сайт клиента ↗
                   </Btn>
                 )}
@@ -385,10 +321,24 @@ export default function OrderWorkflow({
                 </button>
                 <button
                   disabled={statusSaving || order.status === "cancelled"}
-                  onClick={() => applyTransition("CANCEL_ORDER")}
+                  onClick={() => setCancelOpen(true)}
                   className="w-full rounded-full border border-red-500/30 bg-red-500/10 px-4 py-2 text-xs font-semibold text-red-300 transition hover:bg-red-500/20 disabled:opacity-40"
                 >
-                  ✕ Отменить
+                  ✕ Отменить заказ
+                </button>
+                <button
+                  disabled={exporting}
+                  onClick={handleExport}
+                  className="w-full rounded-full border border-cyan-500/30 bg-cyan-500/10 px-4 py-2 text-xs font-semibold text-cyan-300 transition hover:bg-cyan-500/20 disabled:opacity-40"
+                >
+                  {exporting ? "Экспорт…" : "↓ Экспорт проекта"}
+                </button>
+                <button
+                  disabled={deleting}
+                  onClick={handleDelete}
+                  className="w-full rounded-full border border-red-900/40 bg-red-900/10 px-4 py-2 text-xs font-semibold text-red-500/70 transition hover:bg-red-900/20 hover:text-red-400 disabled:opacity-40"
+                >
+                  {deleting ? "Удаление…" : "🗑 Удалить заказ"}
                 </button>
               </div>
             </Card>
@@ -407,6 +357,38 @@ export default function OrderWorkflow({
           </div>
         </div>
       </div>
+
+      {/* Cancel dialog */}
+      {cancelOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-2xl border border-white/10 bg-slate-900 p-6 shadow-2xl">
+            <h3 className="mb-1 text-base font-bold">Отменить заказ</h3>
+            <p className="mb-4 text-sm text-white/50">Укажите причину отмены — она будет сохранена в карточке заказа.</p>
+            <textarea
+              value={cancelReason}
+              onChange={(e) => setCancelReason(e.target.value)}
+              placeholder="Причина отмены…"
+              rows={3}
+              className="w-full resize-none rounded-xl border border-white/10 bg-white/6 px-3 py-2 text-sm text-white placeholder-white/25 outline-none transition focus:border-red-500/40 focus:ring-1 focus:ring-red-500/15"
+            />
+            <div className="mt-4 flex gap-2 justify-end">
+              <button
+                onClick={() => { setCancelOpen(false); setCancelReason(""); }}
+                className="rounded-xl border border-white/10 px-4 py-2 text-sm text-white/60 transition hover:border-white/20 hover:text-white"
+              >
+                Назад
+              </button>
+              <button
+                disabled={!cancelReason.trim() || cancelLoading}
+                onClick={handleCancel}
+                className="rounded-xl bg-red-500/20 px-4 py-2 text-sm font-semibold text-red-300 transition hover:bg-red-500/30 disabled:opacity-40"
+              >
+                {cancelLoading ? "Отмена…" : "Подтвердить отмену"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

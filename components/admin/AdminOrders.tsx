@@ -1,5 +1,5 @@
 "use client";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import AdminChat from "@/components/chat/AdminChat";
 import { Btn } from "@/components/ui/Btn";
 import { Card } from "@/components/ui/Card";
@@ -159,6 +159,94 @@ function OrderCard({
   );
 }
 
+type WorkspaceData = Record<string, string>;
+
+const WORKSPACE_FIELDS: Array<{ key: string; label: string; section: string; multiline?: boolean }> = [
+  { key: "company_name", label: "Название студии", section: "Компания" },
+  { key: "company_desc", label: "Описание", section: "Компания", multiline: true },
+  { key: "contact_email", label: "Email", section: "Контакты" },
+  { key: "contact_phone", label: "Телефон", section: "Контакты" },
+  { key: "contact_tg", label: "Telegram", section: "Контакты" },
+  { key: "services", label: "Услуги (через запятую)", section: "Услуги", multiline: true },
+  { key: "branding_color", label: "Акцентный цвет (hex)", section: "Брендинг" },
+  { key: "branding_logo", label: "URL логотипа", section: "Брендинг" },
+  { key: "domain", label: "Домен студии", section: "Домен" },
+  { key: "content_about", label: "О студии (текст для сайта)", section: "Контент", multiline: true },
+];
+
+function WorkspaceTab() {
+  const [data, setData] = useState<WorkspaceData>({});
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/workspace")
+      .then((r) => r.json())
+      .then(({ data: d }) => { setData(d ?? {}); setLoading(false); });
+  }, []);
+
+  async function handleSave() {
+    setSaving(true);
+    setSaved(false);
+    await fetch("/api/workspace", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+    setSaving(false);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 3000);
+  }
+
+  if (loading) return <p className="py-10 text-center text-sm text-white/30">Загрузка…</p>;
+
+  const sections = [...new Set(WORKSPACE_FIELDS.map((f) => f.section))];
+
+  return (
+    <div className="space-y-6">
+      {sections.map((section) => (
+        <Card key={section} variant="solid" padding="md">
+          <h3 className="mb-4 text-xs font-semibold uppercase tracking-widest text-white/40">{section}</h3>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {WORKSPACE_FIELDS.filter((f) => f.section === section).map((f) => (
+              <div key={f.key} className={f.multiline ? "sm:col-span-2" : ""}>
+                <label className="mb-1 block text-xs text-white/50">{f.label}</label>
+                {f.multiline ? (
+                  <textarea
+                    rows={3}
+                    value={data[f.key] ?? ""}
+                    onChange={(e) => setData((prev) => ({ ...prev, [f.key]: e.target.value }))}
+                    className="w-full resize-none rounded-xl border border-white/10 bg-white/6 px-3 py-2 text-sm text-white placeholder-white/25 outline-none transition focus:border-cyan-500/40"
+                  />
+                ) : (
+                  <input
+                    type="text"
+                    value={data[f.key] ?? ""}
+                    onChange={(e) => setData((prev) => ({ ...prev, [f.key]: e.target.value }))}
+                    className="w-full rounded-xl border border-white/10 bg-white/6 px-3 py-2 text-sm text-white placeholder-white/25 outline-none transition focus:border-cyan-500/40"
+                  />
+                )}
+              </div>
+            ))}
+          </div>
+        </Card>
+      ))}
+
+      <div className="flex items-center gap-3">
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className="rounded-xl bg-cyan-500/20 px-5 py-2.5 text-sm font-semibold text-cyan-300 transition hover:bg-cyan-500/30 disabled:opacity-40"
+        >
+          {saving ? "Сохранение…" : "Сохранить"}
+        </button>
+        {saved && <span className="text-sm text-green-400/70">Сохранено ✓</span>}
+      </div>
+    </div>
+  );
+}
+
 export default function AdminOrders({
   orders: initialOrders,
   profiles,
@@ -212,6 +300,7 @@ export default function AdminOrders({
   const tabs = [
     { id: "orders", label: `Заказы (${orders.length})` },
     { id: "clients", label: `Клиенты (${clientProfiles.length})` },
+    { id: "workspace", label: "Workspace" },
   ];
 
   return (
@@ -304,6 +393,8 @@ export default function AdminOrders({
             )}
           </>
         )}
+
+        {tab === "workspace" && <WorkspaceTab />}
 
         {tab === "clients" && (
           <>

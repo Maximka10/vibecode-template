@@ -20,6 +20,9 @@ export const ORDER_SCHEMA = {
   primary_color: "string | null",
   bg_color: "string | null",
   notes: "string | null",
+  cancel_reason: "string | null",
+  cancelled_by: "string | null",
+  cancelled_at: "timestamp | null",
 } as const;
 
 export type OrderSchemaKey = keyof typeof ORDER_SCHEMA;
@@ -41,6 +44,9 @@ export const INSERT_ALLOWED_KEYS = new Set<OrderSchemaKey>([
 export const METADATA_PATCH_ALLOWED_KEYS = new Set<OrderSchemaKey>([
   "notes",
   "updated_at",
+  "cancel_reason",
+  "cancelled_by",
+  "cancelled_at",
 ]);
 
 /** Delivery fields admins may set after order completion. */

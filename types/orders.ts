@@ -37,6 +37,11 @@ export interface Order {
   // Customisation
   primary_color: string | null;
   bg_color: string | null;
+
+  // Cancellation (see migration 20240002)
+  cancel_reason: string | null;
+  cancelled_by: string | null;
+  cancelled_at: string | null;
 }
 
 /** Keys allowed in an orders INSERT — must stay in sync with INSERT_ALLOWED_KEYS in contract. */
@@ -57,4 +62,8 @@ export const ORDER_ALLOWED_INSERT_KEYS: ReadonlyArray<keyof Omit<Order, "id" | "
 export const ORDER_METADATA_PATCH_KEYS: ReadonlyArray<keyof Order> = [
   "notes",
   "updated_at",
+  "cancel_reason",
+  "cancelled_by",
+  "cancelled_at",
 ];
+
