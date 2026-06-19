@@ -229,16 +229,14 @@ export default function TemplatesPage() {
         <div className="mt-12 rounded-3xl border border-white/10 bg-white/5 p-8 text-center">
           <h2 className="text-2xl font-black">Не нашли подходящий?</h2>
           <p className="mt-3 text-white/60 max-w-lg mx-auto">
-            Расскажите о своём бизнесе — подберём шаблон или сделаем индивидуальный дизайн.
+            Выберите любой шаблон и настройте под свой бизнес — мы поможем с запуском.
           </p>
-          <a
-            href="https://t.me/vibecode_studio"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-5 inline-flex rounded-full bg-white px-6 py-3 font-bold text-black"
+          <Link
+            href="/auth/login"
+            className="mt-5 inline-flex rounded-full bg-white px-6 py-3 font-bold text-black transition hover:bg-white/90"
           >
-            Написать в Telegram
-          </a>
+            Войти и оставить заявку →
+          </Link>
         </div>
       </section>
     </main>

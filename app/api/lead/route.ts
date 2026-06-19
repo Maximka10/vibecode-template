@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createServerClient } from "@supabase/ssr";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-
     const {
       templateId,
       templateName,
@@ -22,57 +21,39 @@ export async function POST(req: NextRequest) {
       bgColor,
     } = body;
 
-    // =========================
-    // 1. CREATE SUPABASE USER CONTEXT
-    // =========================
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll: () => req.cookies.getAll(),
-          setAll: () => {},
-        },
+    const admin = createAdminClient();
+
+    // Step 1: resolve authenticated user from Bearer token
+    let userId: string | null = null;
+    const authHeader = req.headers.get("Authorization");
+    const token = authHeader?.replace("Bearer ", "").trim();
+    if (token) {
+      const { data: { user }, error: userError } = await admin.auth.getUser(token);
+      if (userError) {
+        console.warn("[lead] auth.getUser error:", userError.message);
+      } else {
+        userId = user?.id ?? null;
       }
-    );
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json(
-        { ok: false, error: "Unauthorized" },
-        { status: 401 }
-      );
     }
+    console.log("ORDER USER", userId);
 
-    // =========================
-    // 2. INSERT ORDER
-    // =========================
-    const { data, error } = await supabase
+    // Step 2: insert order — if this fails, do NOT send Telegram
+    const { data, error: insertError } = await admin
       .from("orders")
       .insert({
-        user_id: user.id, // 🔥 FIX: critical ownership fix
-
         template_id: templateId ?? templateName,
         template_name: templateName,
-
         client_name: clientName ?? null,
         client_phone: clientPhone ?? null,
         client_telegram: clientTelegram ?? null,
         client_email: clientEmail ?? null,
-
         business_type: businessType ?? null,
         selected_services: selectedServices ?? null,
-        selected_options: selectedOptions ?? null,
-
         budget: budget ?? null,
         notes: notes ?? null,
-
+        selected_options: selectedOptions ?? null,
         primary_color: primaryColor ?? null,
         bg_color: bgColor ?? null,
-
         total_price: totalPrice ?? null,
         status: "new",
         user_id: userId,
@@ -80,87 +61,76 @@ export async function POST(req: NextRequest) {
       .select("id")
       .single();
 
-    if (error) {
+    if (insertError) {
+      console.error("[lead] INSERT failed:", insertError.message);
       return NextResponse.json(
-        { ok: false, error: error.message },
-        { status: 400 }
+        { ok: false, savedToDb: false, error: insertError.message },
+        { status: 500 }
       );
     }
 
     const orderId = data.id;
+    console.log("ORDER CREATED:", orderId);
 
-    // =========================
-    // 3. TELEGRAM NOTIFICATION (UNCHANGED LOGIC)
-    // =========================
-    const {
-      TELEGRAM_BOT_TOKEN,
-      TELEGRAM_CHAT_ID,
-      NEXT_PUBLIC_SITE_URL,
-    } = process.env;
+    // Step 3: send Telegram — only runs after confirmed insert
+    const { TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, NEXT_PUBLIC_SITE_URL } = process.env;
+    let telegramSent = false;
 
     if (TELEGRAM_BOT_TOKEN && TELEGRAM_CHAT_ID) {
-      const siteUrl =
-        NEXT_PUBLIC_SITE_URL ??
-        "https://vibecode-studio-pink.vercel.app";
-
+      const siteUrl = NEXT_PUBLIC_SITE_URL ?? "https://vibecode-studio-pink.vercel.app";
       const projectLink = `${siteUrl}/admin/orders/${orderId}`;
 
-      const servicesList = Array.isArray(selectedServices)
-        ? selectedServices.join(", ")
-        : selectedServices ?? "—";
-
-      const message = [
+      const lines = [
         `🆕 *Новая заявка* #${orderId.slice(0, 8)}`,
         ``,
-        `👤 *Клиент:* ${clientName ?? "—"}`,
-        `📞 *Телефон:* ${clientPhone ?? "—"}`,
-        `✈️ *Telegram:* ${
-          clientTelegram ? `@${clientTelegram.replace("@", "")}` : "—"
-        }`,
-        `📧 *Email:* ${clientEmail ?? "—"}`,
+        `👤 ${clientName ?? "—"}`,
+        clientPhone ? `📞 ${clientPhone}` : null,
+        clientTelegram ? `✈️ @${clientTelegram.replace("@", "")}` : null,
+        clientEmail ? `📧 ${clientEmail}` : null,
         ``,
-        `🏪 *Бизнес:* ${businessType ?? "—"}`,
-        `📐 *Шаблон:* ${templateName ?? "—"}`,
-        `🛠 *Услуги:* ${servicesList}`,
-        `💰 *Бюджет:* ${
-          budget ? `${Number(budget).toLocaleString("ru-RU")} ₽` : "—"
-        }`,
-        notes ? `💬 *Комментарий:* ${notes}` : null,
+        `📐 Шаблон: *${templateName ?? "—"}*`,
+        businessType ? `🏪 ${businessType}` : null,
+        totalPrice ? `💰 ${Number(totalPrice).toLocaleString("ru-RU")} ₽` : null,
         ``,
         `🔗 [Открыть заказ в системе](${projectLink})`,
       ]
         .filter(Boolean)
         .join("\n");
 
-      await fetch(
-        `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            chat_id: TELEGRAM_CHAT_ID,
-            text: message,
-            parse_mode: "Markdown",
-            disable_web_page_preview: true,
-          }),
+      try {
+        const tgRes = await fetch(
+          `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              chat_id: TELEGRAM_CHAT_ID,
+              text: lines,
+              parse_mode: "Markdown",
+              disable_web_page_preview: true,
+            }),
+          }
+        );
+        if (tgRes.ok) {
+          telegramSent = true;
+          console.log("TELEGRAM SENT: success, order", orderId);
+        } else {
+          const tgErr = await tgRes.text();
+          console.error("TELEGRAM SENT: failed —", tgErr);
         }
-      ).catch(() => null);
+      } catch (tgErr) {
+        console.error("TELEGRAM SENT: network error —", tgErr instanceof Error ? tgErr.message : tgErr);
+      }
+    } else {
+      console.warn("[lead] Telegram not configured — TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID missing");
     }
 
-    // =========================
-    // 4. RESPONSE
-    // =========================
-    return NextResponse.json({
-      ok: true,
-      orderId,
-    });
+    return NextResponse.json({ ok: true, savedToDb: true, orderId, telegramSent });
   } catch (e) {
+    console.error("[lead] unhandled error:", e instanceof Error ? e.message : e);
     return NextResponse.json(
-      {
-        ok: false,
-        error: e instanceof Error ? e.message : String(e),
-      },
-      { status: 500 }
+      { ok: false, error: e instanceof Error ? e.message : String(e) },
+      { status: 400 }
     );
   }
 }

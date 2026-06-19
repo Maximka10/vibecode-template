@@ -4,7 +4,7 @@ import { Navbar } from "@/components/layout/Navbar";
 const FEATURES = [
   { icon: "⚡", title: "Готово за 3 дня", text: "Запускаем сайт быстро — без лишних согласований и задержек." },
   { icon: "🎨", title: "5 отраслевых шаблонов", text: "Кофейня, барбершоп, салон, автомойка, ресторан — сразу в деле." },
-  { icon: "📩", title: "Заявки в Telegram", text: "Каждый лид приходит к вам мгновенно — без CRM и настроек." },
+  { icon: "💬", title: "Чат с менеджером", text: "Общайтесь с командой прямо в личном кабинете — без мессенджеров." },
   { icon: "🌐", title: "Домен + хостинг", text: "Регистрируем домен, настраиваем SSL и аналитику под ключ." },
   { icon: "₽", title: "0 ₽ предоплата", text: "Оплата только после того, как вы увидите готовый сайт." },
   { icon: "🛡", title: "12 месяцев поддержки", text: "Правки, обновления и техническая поддержка включены." },
@@ -46,7 +46,7 @@ export default function HomePage() {
 
           <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-white/60">
             Берём шаблон под ваш бизнес, вносим тексты и фото, подключаем домен и хостинг.
-            Заявки из формы идут прямо в Telegram.
+            Все вопросы решаем в личном кабинете.
           </p>
 
           <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
@@ -56,14 +56,12 @@ export default function HomePage() {
             >
               Выбрать шаблон →
             </Link>
-            <a
-              href="https://t.me/vibecode_studio"
-              target="_blank"
-              rel="noopener noreferrer"
+            <Link
+              href="/auth/login"
               className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/5 px-7 py-3.5 text-sm font-medium text-white/80 transition hover:border-white/40 hover:bg-white/10"
             >
-              Написать в Telegram
-            </a>
+              Войти в кабинет
+            </Link>
           </div>
 
           <div className="mt-10 flex flex-wrap items-center justify-center gap-6 text-sm text-white/40">
@@ -180,14 +178,12 @@ export default function HomePage() {
             >
               Выбрать шаблон
             </Link>
-            <a
-              href="https://t.me/vibecode_studio"
-              target="_blank"
-              rel="noopener noreferrer"
+            <Link
+              href="/auth/login"
               className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/5 px-8 py-4 font-medium text-white/80 transition hover:border-white/40"
             >
-              Telegram
-            </a>
+              Войти в кабинет
+            </Link>
           </div>
         </div>
       </section>
@@ -202,7 +198,7 @@ export default function HomePage() {
             </div>
             <div className="flex flex-wrap gap-4 text-sm text-white/50">
               <Link href="/templates" className="transition hover:text-white">Шаблоны</Link>
-              <a href="https://t.me/vibecode_studio" target="_blank" rel="noopener noreferrer" className="transition hover:text-white">Telegram</a>
+              <Link href="/auth/login" className="transition hover:text-white">Личный кабинет</Link>
             </div>
           </div>
           <p className="mt-8 text-xs text-white/25">© {new Date().getFullYear()} Vibecode Studio. Все права защищены.</p>
