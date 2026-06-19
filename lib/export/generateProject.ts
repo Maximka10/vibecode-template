@@ -317,7 +317,7 @@ function genPackageJson(siteName: string): string {
     private: true,
     scripts: { dev: "next dev", build: "next build", start: "next start" },
     dependencies: {
-      next: "14.2.29",
+      next: "14.2.30",
       react: "^18",
       "react-dom": "^18",
     },
@@ -334,9 +334,8 @@ function genPackageJson(siteName: string): string {
 }
 
 function genNextConfig(): string {
-  return `import type { NextConfig } from "next";
-
-const nextConfig: NextConfig = {
+  return `/** @type {import('next').NextConfig} */
+const nextConfig = {
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "**" },
@@ -463,7 +462,7 @@ function genPage(sections: SiteSection[]): string {
   const sectionComponents = enabled
     .map((s) => {
       const name = s.type.charAt(0).toUpperCase() + s.type.slice(1);
-      return `      <${name} section={siteData.sections.find(sec => sec.id === ${JSON.stringify(s.id)})!} />`;
+      return `      <${name} section={siteData.sections.find(sec => sec.id === ${JSON.stringify(s.id)}) ?? siteData.sections[0]} />`;
     })
     .join("\n");
 
@@ -521,7 +520,7 @@ export function generateProject(site: SiteJson): Record<string, string> {
 
   // Config files
   files["package.json"] = genPackageJson(site.company.name);
-  files["next.config.ts"] = genNextConfig();
+  files["next.config.mjs"] = genNextConfig();
   files["tsconfig.json"] = genTsConfig();
   files["tailwind.config.ts"] = genTailwindConfig(primary, secondary);
   files["postcss.config.js"] = genPostcssConfig();
