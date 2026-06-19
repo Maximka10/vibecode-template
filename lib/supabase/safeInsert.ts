@@ -23,6 +23,10 @@ export async function safeInsertOrder(
   }
 
   const admin = createAdminClient();
+
+  console.log("[safeInsert] final payload keys:", Object.keys(validation.payload));
+  console.log("[safeInsert] user_id present:", "user_id" in validation.payload, "value:", validation.payload.user_id);
+
   const { data, error } = await admin
     .from("orders")
     .insert(validation.payload)

@@ -30,22 +30,46 @@ export async function POST(req: NextRequest) {
 
     const { templateId, templateName, selectedOptions, totalPrice, primaryColor, bgColor, notes } = body;
 
-    // Step 1: resolve user from Bearer token
-    const admin = createAdminClient();
-    let userId: string | null = null;
-    const token = req.headers.get("Authorization")?.replace("Bearer ", "").trim();
-    if (token) {
-      const { data: { user }, error: userError } = await admin.auth.getUser(token);
-      if (userError) {
-        console.warn("[lead] auth.getUser error:", userError.message);
-      } else {
-        userId = user?.id ?? null;
-      }
-    }
-    console.log("[lead] resolved userId:", userId ?? "anonymous");
+    // ── Step 1: Resolve user from Bearer token — REQUIRED ─────────────────────
+    const authHeader = req.headers.get("Authorization");
+    const token = authHeader?.replace("Bearer ", "").trim() ?? null;
 
-    // Step 2: insert via contract-validated wrapper
-    const insert = await safeInsertOrder({
+    console.log("[lead] auth header exists:", !!authHeader);
+    console.log("[lead] token exists:", !!token);
+
+    if (!token) {
+      console.warn("[lead] no Bearer token — rejecting anonymous order");
+      return NextResponse.json(
+        { ok: false, error: "AUTH_USER_NOT_RESOLVED" },
+        { status: 401 }
+      );
+    }
+
+    const admin = createAdminClient();
+
+    // ── Step 2: Verify admin client can bypass RLS ────────────────────────────
+    const { error: rslTestError } = await admin.from("orders").select("id").limit(1);
+    if (rslTestError) {
+      console.error("[lead] admin RLS bypass test FAILED — SUPABASE_SERVICE_ROLE_KEY may be wrong:", rslTestError.message);
+    } else {
+      console.log("[lead] admin RLS bypass test passed — service role active");
+    }
+
+    // ── Step 3: Validate token and resolve userId ─────────────────────────────
+    const { data: { user }, error: userError } = await admin.auth.getUser(token);
+    if (userError || !user) {
+      console.warn("[lead] auth.getUser failed:", userError?.message ?? "no user returned");
+      return NextResponse.json(
+        { ok: false, error: "AUTH_USER_NOT_RESOLVED" },
+        { status: 401 }
+      );
+    }
+
+    const userId = user.id;
+    console.log("[lead] resolved userId:", userId);
+
+    // ── Step 4: Build and log insert payload ──────────────────────────────────
+    const insertPayload = {
       template_id: templateId ?? templateName,
       template_name: templateName ?? null,
       selected_options: selectedOptions ?? null,
@@ -53,9 +77,18 @@ export async function POST(req: NextRequest) {
       primary_color: primaryColor ?? null,
       bg_color: bgColor ?? null,
       notes: notes ?? null,
-      status: "new",
+      status: "new" as const,
       user_id: userId,
+    };
+
+    console.log("[lead] insert payload:", {
+      user_id: insertPayload.user_id,
+      template_id: insertPayload.template_id,
+      status: insertPayload.status,
     });
+
+    // ── Step 5: Insert via contract-validated wrapper ─────────────────────────
+    const insert = await safeInsertOrder(insertPayload);
 
     if (!insert.ok) {
       console.error("[lead] insert failed:", insert.error);
