@@ -24,8 +24,30 @@ export async function safeInsertOrder(
 
   const admin = createAdminClient();
 
+  // ── Guard: user_id must survive validation unchanged ──────────────────────
+  const rawUserId = raw["user_id"];
+  const validatedUserId = validation.payload["user_id"];
+  console.log("[safeInsert] raw.user_id:", rawUserId);
+  console.log("[safeInsert] validated.user_id:", validatedUserId);
+  if (rawUserId !== validatedUserId) {
+    console.error(
+      "[safeInsert] user_id was mutated by validateInsertPayload —",
+      "raw:", rawUserId, "→ validated:", validatedUserId
+    );
+  }
+
+  // ── Detect if user_id was silently dropped ────────────────────────────────
+  if (!("user_id" in validation.payload) || validation.payload["user_id"] == null) {
+    console.error("[safeInsert] user_id is missing or null in validated payload — INSERT will violate RLS");
+  }
+
   console.log("[safeInsert] final payload keys:", Object.keys(validation.payload));
-  console.log("[safeInsert] user_id present:", "user_id" in validation.payload, "value:", validation.payload.user_id);
+  console.log("[safeInsert] full payload (safe fields):", {
+    user_id: validation.payload["user_id"],
+    template_id: validation.payload["template_id"],
+    status: validation.payload["status"],
+    has_selected_options: !!validation.payload["selected_options"],
+  });
 
   const { data, error } = await admin
     .from("orders")
@@ -34,7 +56,12 @@ export async function safeInsertOrder(
     .single();
 
   if (error) {
-    console.error("[safeInsert] Supabase INSERT failed:", error.message, error.code);
+    console.error("[safeInsert] Supabase INSERT failed:", {
+      message: error.message,
+      code: error.code,
+      details: error.details,
+      hint: error.hint,
+    });
     return { ok: false, error: error.message, code: "DB_ERROR" };
   }
 

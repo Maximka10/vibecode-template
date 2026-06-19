@@ -47,12 +47,18 @@ export async function POST(req: NextRequest) {
 
     const admin = createAdminClient();
 
-    // ── Step 2: Verify admin client can bypass RLS ────────────────────────────
-    const { error: rslTestError } = await admin.from("orders").select("id").limit(1);
-    if (rslTestError) {
-      console.error("[lead] admin RLS bypass test FAILED — SUPABASE_SERVICE_ROLE_KEY may be wrong:", rslTestError.message);
+    // ── Step 2: Verify service role is ACTUALLY active ────────────────────────
+    // admin.auth.admin calls only work with service_role key, never anon.
+    // If this fails → SUPABASE_SERVICE_ROLE_KEY is wrong/missing.
+    const { error: srTestError } = await admin.auth.admin.listUsers({ perPage: 1 });
+    if (srTestError) {
+      console.error(
+        "[lead] SERVICE_ROLE VERIFICATION FAILED — admin.auth.admin.listUsers() rejected.",
+        "This means SUPABASE_SERVICE_ROLE_KEY is wrong or anon key is being used instead.",
+        "Error:", srTestError.message
+      );
     } else {
-      console.log("[lead] admin RLS bypass test passed — service role active");
+      console.log("[lead] service_role verified — admin.auth.admin.listUsers() succeeded");
     }
 
     // ── Step 3: Validate token and resolve userId ─────────────────────────────
@@ -65,10 +71,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const userId = user.id;
-    console.log("[lead] resolved userId:", userId);
+    // auth.uid() equivalent — this is what Supabase RLS sees as the caller identity
+    const authUid = user.id;
+    console.log("[lead] auth.uid() =", authUid);
+    console.log("[lead] user.email =", user.email);
+    console.log("[lead] user.role  =", user.role);
 
-    // ── Step 4: Build and log insert payload ──────────────────────────────────
+    // ── Step 4: Build insert payload ──────────────────────────────────────────
     const insertPayload = {
       template_id: templateId ?? templateName,
       template_name: templateName ?? null,
@@ -78,14 +87,32 @@ export async function POST(req: NextRequest) {
       bg_color: bgColor ?? null,
       notes: notes ?? null,
       status: "new" as const,
-      user_id: userId,
+      user_id: authUid,
     };
 
-    console.log("[lead] insert payload:", {
+    // ── Explicit comparison: auth.uid() must equal payload.user_id ────────────
+    const uidMatch = insertPayload.user_id === authUid;
+    console.log("[lead] auth.uid() === payload.user_id:", uidMatch, {
+      "auth.uid()": authUid,
+      "payload.user_id": insertPayload.user_id,
+    });
+    if (!uidMatch) {
+      console.error("[lead] MISMATCH: auth.uid() does not equal payload.user_id — aborting");
+      return NextResponse.json({ ok: false, error: "AUTH_UID_MISMATCH" }, { status: 500 });
+    }
+
+    // ── Full payload log (no PII beyond user_id) ──────────────────────────────
+    console.log("[lead] full insert payload:", {
       user_id: insertPayload.user_id,
       template_id: insertPayload.template_id,
+      template_name: insertPayload.template_name,
       status: insertPayload.status,
+      total_price: insertPayload.total_price,
+      has_notes: !!insertPayload.notes,
+      has_selected_options: !!insertPayload.selected_options,
     });
+
+    const userId = authUid;
 
     // ── Step 5: Insert via contract-validated wrapper ─────────────────────────
     const insert = await safeInsertOrder(insertPayload);
