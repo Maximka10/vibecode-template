@@ -36,6 +36,11 @@ export default function ExportTab({ orderId }: { orderId: string }) {
         setPendingAction(action);
         return;
       }
+      const hasCompanyName = !!(pdData?.data?.company_name || pdData?.data?.content_edits?.sections?.find((s: {type: string}) => s.type === "hero"));
+      if (!hasCompanyName) {
+        setError("Заполните название компании во вкладке Разработка перед экспортом.");
+        return;
+      }
     } catch {
       // non-fatal — proceed without warning
     }

@@ -18,7 +18,7 @@ export async function GET(
     .eq("order_id", id)
     .maybeSingle();
 
-  if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ ok: false, error: "Failed to fetch project data" }, { status: 500 });
   return NextResponse.json({ ok: true, data: data ?? null });
 }
 
@@ -50,6 +50,6 @@ export async function PATCH(
     .select()
     .single();
 
-  if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ ok: false, error: "Failed to update project data" }, { status: 500 });
   return NextResponse.json({ ok: true, data });
 }
