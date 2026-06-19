@@ -911,7 +911,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
 function genPage(sections: SiteSection[]): string {
   const enabled = sections.filter((s) => s.enabled);
+  const seenTypes = new Set<string>();
   const imports = enabled
+    .filter((s) => {
+      const name = s.type.charAt(0).toUpperCase() + s.type.slice(1);
+      if (seenTypes.has(name)) return false;
+      seenTypes.add(name);
+      return true;
+    })
     .map((s) => {
       const name = s.type.charAt(0).toUpperCase() + s.type.slice(1);
       return `import ${name} from "@/components/sections/${name}";`;
