@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { Input } from "@/components/ui/Input";
 
 type Message = {
   id: string;
@@ -92,15 +93,16 @@ export default function ClientChat({ orderId }: { orderId: string }) {
             <div ref={bottomRef} />
           </div>
           <form onSubmit={send} className="flex gap-2 border-t border-white/10 p-2">
-            <input
+            <Input
+              variant="inline"
+              className="flex-1"
               value={text}
               onChange={(e) => setText(e.target.value)}
               placeholder="Написать менеджеру..."
-              className="flex-1 rounded-xl bg-white/5 px-3 py-2 text-sm outline-none"
             />
             <button
               type="submit"
-              className="rounded-xl bg-cyan-500/20 px-4 py-2 text-sm font-semibold text-cyan-300 hover:bg-cyan-500/30"
+              className="rounded-xl bg-cyan-500/20 px-4 py-2 text-sm font-semibold text-cyan-300 hover:bg-cyan-500/30 transition"
             >
               →
             </button>

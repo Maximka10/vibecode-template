@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
     // Telegram notification
     const { TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, NEXT_PUBLIC_SITE_URL } = process.env;
     if (TELEGRAM_BOT_TOKEN && TELEGRAM_CHAT_ID) {
-      const siteUrl = NEXT_PUBLIC_SITE_URL ?? "https://vibecode-studio.ru";
+      const siteUrl = NEXT_PUBLIC_SITE_URL ?? "https://vibecode-studio-pink.vercel.app";
       const projectLink = orderId ? `${siteUrl}/admin?order=${orderId}` : siteUrl;
 
       const servicesList = Array.isArray(selectedServices)

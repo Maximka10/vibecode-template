@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Reorder } from "framer-motion";
 import type { Template } from "@/types";
 import { createClient } from "@/lib/supabase/client";
@@ -7,6 +7,7 @@ import ImageUpload from "@/components/ui/ImageUpload";
 import { isImageUrl } from "@/lib/supabase/storage";
 import { Input, Textarea } from "@/components/ui/Input";
 import { Btn } from "@/components/ui/Btn";
+import { calcPrice } from "@/lib/pricing/engine";
 
 const PALETTES = [
   "#d97706","#be185d","#eab308","#0ea5e9","#b45309",
@@ -15,6 +16,7 @@ const PALETTES = [
 
 type Device = "desktop" | "mobile";
 type Tab = "hero" | "about" | "services" | "gallery" | "order" | "colors" | "lead";
+type OrderStep = "form" | "confirm" | "done";
 
 const SECTION_TABS: { id: Tab; label: string }[] = [
   { id: "hero", label: "Главный экран" },
@@ -58,9 +60,8 @@ export default function CustomizeClient({
   const [tab, setTab] = useState<Tab>("hero");
   const [viewPane, setViewPane] = useState<"editor" | "preview">("editor");
   const [submitting, setSubmitting] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
+  const [orderStep, setOrderStep] = useState<OrderStep>("form");
 
-  // Lead form state
   const [leadForm, setLeadForm] = useState({
     clientName: "",
     clientPhone: "",
@@ -68,27 +69,45 @@ export default function CustomizeClient({
     clientEmail: "",
     businessType: template.category,
     notes: "",
-    budget: "",
     selectedServices: [] as string[],
   });
 
   const iframe = useRef<HTMLIFrameElement>(null);
 
+  // Sync preview on template change
   useEffect(() => {
     iframe.current?.contentWindow?.postMessage({ type: "VIBECODE_UPDATE", template }, "*");
   }, [template]);
+
+  // Restore draft from localStorage on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(`draft-${initialTemplate.id}`);
+      if (saved) {
+        const parsed = JSON.parse(saved) as Template;
+        if (parsed.id === initialTemplate.id) setTemplate(parsed);
+      }
+    } catch { /* ignore parse errors */ }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Persist draft to localStorage (debounced 800ms)
+  useEffect(() => {
+    const t = setTimeout(() => {
+      try { localStorage.setItem(`draft-${template.id}`, JSON.stringify(template)); } catch { /* ignore */ }
+    }, 800);
+    return () => clearTimeout(t);
+  }, [template]);
+
+  // Live pricing
+  const breakdown = useMemo(() => calcPrice(template), [template]);
 
   const hero = getSectionContent(template, "hero");
   const about = getSectionContent(template, "about");
   const services = getSectionContent(template, "services");
 
   async function handleOrder() {
-    if (!leadForm.clientPhone && !leadForm.clientTelegram) {
-      alert("Укажите телефон или Telegram для связи");
-      return;
-    }
     setSubmitting(true);
-
     const supabase = createClient();
     const { data } = await supabase.auth.getSession();
     const token = data.session?.access_token;
@@ -108,10 +127,10 @@ export default function CustomizeClient({
         clientEmail: leadForm.clientEmail,
         businessType: leadForm.businessType || template.category,
         selectedServices: leadForm.selectedServices,
-        budget: leadForm.budget ? Number(leadForm.budget) : template.priceFrom,
+        budget: breakdown.total,
         notes: leadForm.notes,
         selectedOptions: template,
-        totalPrice: template.priceFrom,
+        totalPrice: breakdown.total,
         primaryColor: template.theme.primary,
         bgColor: template.theme.bgBase,
       }),
@@ -119,8 +138,9 @@ export default function CustomizeClient({
 
     setSubmitting(false);
     if (res.ok) {
-      setSubmitted(true);
-      if (token) setTimeout(() => (location.href = "/dashboard"), 2000);
+      setOrderStep("done");
+      try { localStorage.removeItem(`draft-${template.id}`); } catch { /* ignore */ }
+      if (token) setTimeout(() => (location.href = "/dashboard"), 2500);
     }
   }
 
@@ -142,25 +162,29 @@ export default function CustomizeClient({
       <div className="border-b border-white/10 p-3 flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-3">
           <b className="text-sm">{template.name}</b>
-          <span className="text-xs text-white/40">от {template.priceFrom?.toLocaleString("ru-RU")} ₽</span>
+          <span className="rounded-full border border-cyan-500/25 bg-cyan-500/10 px-3 py-0.5 text-xs font-bold text-cyan-400">
+            {breakdown.total.toLocaleString("ru-RU")} ₽
+          </span>
         </div>
         <div className="flex items-center gap-2">
-          <button
+          <Btn
             onClick={() => setDevice("desktop")}
-            className={`rounded-full px-3 py-1.5 text-xs ${device === "desktop" ? "bg-white text-black" : "border border-white/20 text-white/60"}`}
+            variant={device === "desktop" ? "primary" : "outline"}
+            size="sm"
           >
             Desktop
-          </button>
-          <button
+          </Btn>
+          <Btn
             onClick={() => setDevice("mobile")}
-            className={`rounded-full px-3 py-1.5 text-xs ${device === "mobile" ? "bg-white text-black" : "border border-white/20 text-white/60"}`}
+            variant={device === "mobile" ? "primary" : "outline"}
+            size="sm"
           >
             Mobile
-          </button>
+          </Btn>
           {isAdmin && (
-            <button onClick={exportTemplate} className="rounded-full border border-white/20 px-3 py-1.5 text-xs">
+            <Btn onClick={exportTemplate} variant="outline" size="sm">
               💾 Export
-            </button>
+            </Btn>
           )}
         </div>
       </div>
@@ -200,7 +224,8 @@ export default function CustomizeClient({
           </div>
 
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
-            {/* Hero editor */}
+
+            {/* ── Hero ── */}
             {tab === "hero" && (
               <>
                 <Input
@@ -234,7 +259,7 @@ export default function CustomizeClient({
               </>
             )}
 
-            {/* About editor */}
+            {/* ── About ── */}
             {tab === "about" && (
               <>
                 <Input
@@ -258,7 +283,7 @@ export default function CustomizeClient({
               </>
             )}
 
-            {/* Services editor */}
+            {/* ── Services ── */}
             {tab === "services" && (
               <>
                 <Input
@@ -285,14 +310,14 @@ export default function CustomizeClient({
               </>
             )}
 
-            {/* Gallery editor */}
+            {/* ── Gallery ── */}
             {tab === "gallery" && (() => {
               const gallerySection = template.sections.find((s) => s.type === "gallery");
               const images = ((gallerySection?.content.images as string[]) ?? []);
               return (
                 <>
                   <p className="text-xs text-white/50">
-                    Добавляйте фото — они появятся в галерее шаблона. Перетащите или нажмите для загрузки.
+                    Добавляйте фото — они появятся в галерее шаблона.
                   </p>
                   <div className="space-y-2">
                     {images.map((img, idx) => (
@@ -308,10 +333,9 @@ export default function CustomizeClient({
                           {isImageUrl(img) ? img.split("/").pop() : img}
                         </span>
                         <button
-                          onClick={() => {
-                            const next = images.filter((_, i) => i !== idx);
-                            setTemplate(updateSectionContent(template, "gallery", "images", next));
-                          }}
+                          onClick={() =>
+                            setTemplate(updateSectionContent(template, "gallery", "images", images.filter((_, i) => i !== idx)))
+                          }
                           className="rounded-full border border-red-500/30 bg-red-500/10 px-2.5 py-1 text-xs text-red-400 hover:bg-red-500/20 shrink-0"
                         >
                           ✕
@@ -324,22 +348,19 @@ export default function CustomizeClient({
                     value={null}
                     onChange={(url) => {
                       if (!url) return;
-                      const next = [...images, url];
-                      setTemplate(updateSectionContent(template, "gallery", "images", next));
+                      setTemplate(updateSectionContent(template, "gallery", "images", [...images, url]));
                     }}
                     storagePath={`${template.id}/gallery`}
                     aspectClass="aspect-[3/1]"
                   />
                   {images.length === 0 && (
-                    <p className="text-xs text-white/30 text-center py-4">
-                      Галерея пуста. Загрузите первое фото выше.
-                    </p>
+                    <p className="text-xs text-white/30 text-center py-4">Галерея пуста. Загрузите первое фото выше.</p>
                   )}
                 </>
               );
             })()}
 
-            {/* Section order */}
+            {/* ── Section order ── */}
             {tab === "order" && (
               <Reorder.Group
                 axis="y"
@@ -360,7 +381,7 @@ export default function CustomizeClient({
               </Reorder.Group>
             )}
 
-            {/* Color editor */}
+            {/* ── Colors ── */}
             {tab === "colors" && (
               <>
                 <div>
@@ -372,10 +393,7 @@ export default function CustomizeClient({
                         style={{ background: p }}
                         className={`h-10 rounded-xl transition ${template.theme.primary === p ? "ring-2 ring-white" : ""}`}
                         onClick={() =>
-                          setTemplate((t) => ({
-                            ...t,
-                            theme: { ...t.theme, primary: p, gradientFrom: p },
-                          }))
+                          setTemplate((t) => ({ ...t, theme: { ...t.theme, primary: p, gradientFrom: p } }))
                         }
                       />
                     ))}
@@ -384,10 +402,7 @@ export default function CustomizeClient({
                     type="color"
                     value={template.theme.primary?.slice(0, 7) ?? "#000000"}
                     onChange={(e) =>
-                      setTemplate((t) => ({
-                        ...t,
-                        theme: { ...t.theme, primary: e.target.value, gradientFrom: e.target.value },
-                      }))
+                      setTemplate((t) => ({ ...t, theme: { ...t.theme, primary: e.target.value, gradientFrom: e.target.value } }))
                     }
                     className="mt-3 h-10 w-full rounded-xl cursor-pointer"
                   />
@@ -411,65 +426,141 @@ export default function CustomizeClient({
               </>
             )}
 
-            {/* Lead form */}
+            {/* ── Lead / Order ── */}
             {tab === "lead" && (
-              submitted ? (
-                <div className="rounded-2xl bg-green-500/20 border border-green-500/30 p-5 text-center">
-                  <p className="text-2xl">✅</p>
-                  <p className="mt-2 font-bold">Заявка отправлена!</p>
-                  <p className="mt-1 text-sm text-white/60">Свяжемся с вами в ближайшее время.</p>
+              orderStep === "done" ? (
+                /* Done */
+                <div className="rounded-2xl border border-green-500/30 bg-green-500/10 p-6 text-center">
+                  <p className="text-3xl">✅</p>
+                  <p className="mt-3 text-lg font-bold">Заявка отправлена!</p>
+                  <p className="mt-2 text-sm text-white/60">Свяжемся в ближайшее время. Переходим в личный кабинет…</p>
+                </div>
+              ) : orderStep === "confirm" ? (
+                /* Confirm */
+                <div className="space-y-4">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-widest text-white/40">Шаг 2 из 2</p>
+                    <h3 className="mt-1 font-bold">Проверьте перед отправкой</h3>
+                  </div>
+
+                  {/* Price breakdown */}
+                  <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/4">
+                    <div className="p-4 space-y-2.5">
+                      {breakdown.items.map((item, i) => (
+                        <div key={i} className="flex items-center justify-between text-sm">
+                          <span className="text-white/65">{item.label}</span>
+                          <span className="font-semibold tabular-nums">{item.price.toLocaleString("ru-RU")} ₽</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="flex items-center justify-between border-t border-white/10 p-4">
+                      <span className="font-bold">Итого</span>
+                      <span className="text-xl font-black text-cyan-400 tabular-nums">
+                        {breakdown.total.toLocaleString("ru-RU")} ₽
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Contact summary */}
+                  <div className="rounded-2xl border border-white/10 bg-white/4 p-4 space-y-2 text-sm">
+                    <p className="mb-2 text-xs font-medium uppercase tracking-widest text-white/40">Ваши контакты</p>
+                    {[
+                      { label: "Имя", value: leadForm.clientName },
+                      { label: "Телефон", value: leadForm.clientPhone },
+                      { label: "Telegram", value: leadForm.clientTelegram ? `@${leadForm.clientTelegram.replace("@", "")}` : "" },
+                      { label: "Email", value: leadForm.clientEmail },
+                    ]
+                      .filter((r) => r.value)
+                      .map((r) => (
+                        <div key={r.label} className="flex justify-between">
+                          <span className="text-white/45">{r.label}</span>
+                          <span className="text-white/85">{r.value}</span>
+                        </div>
+                      ))}
+                  </div>
+
+                  <p className="text-center text-xs text-white/30">Предоплата — 0 ₽. Оплата после приёмки сайта.</p>
+
+                  <Btn
+                    onClick={handleOrder}
+                    loading={submitting}
+                    variant="primary"
+                    size="lg"
+                    className="w-full"
+                  >
+                    {submitting ? "Отправляю..." : `Подтвердить — ${breakdown.total.toLocaleString("ru-RU")} ₽`}
+                  </Btn>
+
+                  <Btn onClick={() => setOrderStep("form")} variant="ghost" size="sm" className="w-full">
+                    ← Назад к форме
+                  </Btn>
                 </div>
               ) : (
-                <>
-                  <p className="text-xs text-white/50">Оставьте контакты — мы свяжемся и запустим сайт за 3 дня</p>
-                  <div className="space-y-3">
-                    <Input
-                      placeholder="Ваше имя"
-                      value={leadForm.clientName}
-                      onChange={(e) => setLeadForm((f) => ({ ...f, clientName: e.target.value }))}
-                    />
-                    <Input
-                      placeholder="Телефон *"
-                      value={leadForm.clientPhone}
-                      onChange={(e) => setLeadForm((f) => ({ ...f, clientPhone: e.target.value }))}
-                    />
-                    <Input
-                      placeholder="Telegram (например @username)"
-                      value={leadForm.clientTelegram}
-                      onChange={(e) => setLeadForm((f) => ({ ...f, clientTelegram: e.target.value }))}
-                    />
-                    <Input
-                      placeholder="Email (необязательно)"
-                      value={leadForm.clientEmail}
-                      onChange={(e) => setLeadForm((f) => ({ ...f, clientEmail: e.target.value }))}
-                    />
-                    <Input
-                      placeholder="Тип бизнеса (кофейня, салон...)"
-                      value={leadForm.businessType}
-                      onChange={(e) => setLeadForm((f) => ({ ...f, businessType: e.target.value }))}
-                    />
-                    <Textarea
-                      rows={3}
-                      placeholder="Комментарий, пожелания..."
-                      value={leadForm.notes}
-                      onChange={(e) => setLeadForm((f) => ({ ...f, notes: e.target.value }))}
-                    />
-                    <Btn
-                      onClick={handleOrder}
-                      loading={submitting}
-                      variant="primary"
-                      size="lg"
-                      className="w-full"
-                    >
-                      {submitting ? "Отправляю..." : `Заказать от ${template.priceFrom?.toLocaleString("ru-RU")} ₽`}
-                    </Btn>
-                    <p className="text-xs text-white/30 text-center">
-                      Нажимая кнопку, вы соглашаетесь на обработку данных. Предоплата — 0 ₽.
+                /* Form */
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-xs text-white/50">
+                      Шаг 1 из 2 — Оставьте контакты, запустим за 3 дня
                     </p>
+                    <div className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-cyan-500/25 bg-cyan-500/10 px-3 py-1 text-xs">
+                      <span className="text-white/50">Стоимость:</span>
+                      <span className="font-bold text-cyan-400 tabular-nums">
+                        {breakdown.total.toLocaleString("ru-RU")} ₽
+                      </span>
+                    </div>
                   </div>
-                </>
+                  <Input
+                    placeholder="Ваше имя"
+                    value={leadForm.clientName}
+                    onChange={(e) => setLeadForm((f) => ({ ...f, clientName: e.target.value }))}
+                  />
+                  <Input
+                    placeholder="Телефон *"
+                    value={leadForm.clientPhone}
+                    onChange={(e) => setLeadForm((f) => ({ ...f, clientPhone: e.target.value }))}
+                  />
+                  <Input
+                    placeholder="Telegram (@username)"
+                    value={leadForm.clientTelegram}
+                    onChange={(e) => setLeadForm((f) => ({ ...f, clientTelegram: e.target.value }))}
+                  />
+                  <Input
+                    placeholder="Email (необязательно)"
+                    value={leadForm.clientEmail}
+                    onChange={(e) => setLeadForm((f) => ({ ...f, clientEmail: e.target.value }))}
+                  />
+                  <Input
+                    placeholder="Тип бизнеса (кофейня, салон...)"
+                    value={leadForm.businessType}
+                    onChange={(e) => setLeadForm((f) => ({ ...f, businessType: e.target.value }))}
+                  />
+                  <Textarea
+                    rows={3}
+                    placeholder="Комментарий, пожелания..."
+                    value={leadForm.notes}
+                    onChange={(e) => setLeadForm((f) => ({ ...f, notes: e.target.value }))}
+                  />
+                  <Btn
+                    onClick={() => {
+                      if (!leadForm.clientPhone && !leadForm.clientTelegram) {
+                        alert("Укажите телефон или Telegram для связи");
+                        return;
+                      }
+                      setOrderStep("confirm");
+                    }}
+                    variant="primary"
+                    size="lg"
+                    className="w-full"
+                  >
+                    Продолжить → {breakdown.total.toLocaleString("ru-RU")} ₽
+                  </Btn>
+                  <p className="text-center text-xs text-white/30">
+                    Предоплата — 0 ₽. Следующий шаг — подтверждение заказа.
+                  </p>
+                </div>
               )
             )}
+
           </div>
         </aside>
 
