@@ -22,6 +22,19 @@ export async function POST(req: NextRequest) {
     } = body;
 
     const admin = createAdminClient();
+
+    // Resolve authenticated user from Bearer token sent by CustomizeClient
+    let userId: string | null = null;
+    const authHeader = req.headers.get("Authorization");
+    const token = authHeader?.replace("Bearer ", "").trim();
+    if (token) {
+      const { data: { user }, error: userError } = await admin.auth.getUser(token);
+      userId = user?.id ?? null;
+      if (userError) console.warn("[lead] auth.getUser error:", userError.message);
+    }
+
+    console.log("ORDER USER", userId);
+
     let orderId: string | null = null;
     let savedToDb = false;
     let dbError: string | null = null;
@@ -44,22 +57,24 @@ export async function POST(req: NextRequest) {
         bg_color: bgColor ?? null,
         total_price: totalPrice ?? null,
         status: "new",
+        user_id: userId,
       })
       .select("id")
       .single();
 
     if (error) {
       dbError = error.message;
+      console.error("[lead] INSERT error:", error.message);
     } else {
       savedToDb = true;
       orderId = data.id;
+      console.log("[lead] order saved:", orderId, "user_id:", userId);
     }
 
     // Telegram notification
     const { TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, NEXT_PUBLIC_SITE_URL } = process.env;
     if (TELEGRAM_BOT_TOKEN && TELEGRAM_CHAT_ID) {
       const siteUrl = NEXT_PUBLIC_SITE_URL ?? "https://vibecode-studio-pink.vercel.app";
-      // Link directly to the order workflow page — Telegram is notification-only
       const projectLink = orderId
         ? `${siteUrl}/admin/orders/${orderId}`
         : `${siteUrl}/admin`;

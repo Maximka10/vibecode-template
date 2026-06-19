@@ -65,13 +65,18 @@ export default function AdminChat({ orderId, unread }: { orderId: string; unread
 
   async function send(e: React.FormEvent) {
     e.preventDefault();
-    if (!text.trim() || !userId) return;
+    if (!text.trim()) return;
+    if (!userId) {
+      console.warn("[AdminChat] send blocked: userId is null");
+      return;
+    }
     const supabase = createClient();
-    await supabase.from("messages").insert({
+    const { error } = await supabase.from("messages").insert({
       order_id: orderId,
       sender_id: userId,
       text: text.trim(),
     });
+    if (error) console.error("[AdminChat] INSERT error:", error.message);
     setText("");
   }
 
