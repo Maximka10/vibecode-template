@@ -17,7 +17,7 @@ export async function GET(
     .from("site_builds")
     .select("*")
     .eq("order_id", id)
-    .order("build_version", { ascending: false })
+    .order("version", { ascending: false })
     .limit(1)
     .maybeSingle();
 
@@ -42,9 +42,9 @@ export async function POST(
     admin.from("project_data").select("*").eq("order_id", id).maybeSingle(),
     admin
       .from("site_builds")
-      .select("build_version")
+      .select("version")
       .eq("order_id", id)
-      .order("build_version", { ascending: false })
+      .order("version", { ascending: false })
       .limit(1)
       .maybeSingle(),
   ]);
@@ -53,12 +53,12 @@ export async function POST(
     return NextResponse.json({ ok: false, error: "Order not found" }, { status: 404 });
   }
 
-  const nextVersion = (latestBuildRes.data?.build_version ?? 0) + 1;
+  const nextVersion = (latestBuildRes.data?.version ?? 0) + 1;
   const buildData = buildOrderSite(orderRes.data, projectDataRes.data, nextVersion);
 
   const { data: saved, error: saveError } = await admin
     .from("site_builds")
-    .insert({ order_id: id, build_data: buildData, build_version: nextVersion })
+    .insert({ order_id: id, build_data: buildData, version: nextVersion })
     .select()
     .single();
 

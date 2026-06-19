@@ -8,8 +8,11 @@ import SitePreview from "@/components/admin/workspace/SitePreview";
 type SiteBuild = {
   id: string;
   order_id: string;
+  version: number;
+  build_status?: string;
   build_data: BuildData;
-  build_version: number;
+  zip_url?: string;
+  created_by?: string;
   created_at: string;
 };
 
@@ -58,7 +61,7 @@ export default function PreviewTab({ orderId }: { orderId: string }) {
           <h2 className="text-sm font-bold">Предпросмотр сайта</h2>
           {build && (
             <p className="mt-0.5 text-xs text-white/35">
-              Версия #{build.build_version} · {new Date(build.created_at).toLocaleString("ru-RU")}
+              Версия #{build.version} · {new Date(build.created_at).toLocaleString("ru-RU")}
             </p>
           )}
         </div>
@@ -88,7 +91,7 @@ export default function PreviewTab({ orderId }: { orderId: string }) {
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             {[
               { label: "Шаблон", value: build.build_data.meta.template_name || build.build_data.meta.template_id },
-              { label: "Версия", value: `#${build.build_version}` },
+              { label: "Версия", value: `#${build.version}` },
               { label: "Услуг", value: build.build_data.services.length },
               { label: "Домен", value: build.build_data.content.domain_name || "—" },
             ].map((s) => (

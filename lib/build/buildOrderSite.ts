@@ -2,7 +2,7 @@ export type BuildData = {
   meta: {
     template_id: string;
     template_name: string;
-    build_version: number;
+    version: number;
     built_at: string;
     order_id: string;
   };
@@ -82,7 +82,7 @@ export function buildOrderSite(
     meta: {
       template_id: snapshot.template_id ?? order.template_id ?? "",
       template_name: snapshot.template_name ?? order.template_name ?? "",
-      build_version: buildVersion,
+      version: buildVersion,
       built_at: new Date().toISOString(),
       order_id: order.id,
     },

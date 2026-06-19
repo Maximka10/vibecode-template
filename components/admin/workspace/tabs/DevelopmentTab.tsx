@@ -309,7 +309,7 @@ export default function DevelopmentTab({ orderId, order }: { orderId: string; or
       meta: {
         template_id: snapshot.template_id ?? order?.template_id ?? "",
         template_name: snapshot.template_name ?? order?.template_name ?? "",
-        build_version: 0,
+        version: 0,
         built_at: new Date().toISOString(),
         order_id: order?.id ?? "",
       },
