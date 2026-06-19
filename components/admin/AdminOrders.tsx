@@ -1,5 +1,5 @@
 "use client";
-import { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import AdminChat from "@/components/chat/AdminChat";
 import { Btn } from "@/components/ui/Btn";
 import { Card } from "@/components/ui/Card";
@@ -51,15 +51,92 @@ async function applyStatusTransition(orderId: string, targetStatus: string): Pro
   return res.json();
 }
 
-function StatCard({ label, value, sub }: { label: string; value: string | number; sub?: string }) {
+function StatCard({
+  label,
+  value,
+  sub,
+  icon,
+  accent = "cyan",
+}: {
+  label: string;
+  value: string | number;
+  sub?: string;
+  icon?: React.ReactNode;
+  accent?: "cyan" | "blue" | "yellow" | "green" | "purple" | "orange";
+}) {
+  const borderColor: Record<string, string> = {
+    cyan: "border-l-cyan-500/60",
+    blue: "border-l-blue-500/60",
+    yellow: "border-l-yellow-500/60",
+    green: "border-l-green-500/60",
+    purple: "border-l-purple-500/60",
+    orange: "border-l-orange-500/60",
+  };
+  const iconBg: Record<string, string> = {
+    cyan: "bg-cyan-500/10 text-cyan-400",
+    blue: "bg-blue-500/10 text-blue-400",
+    yellow: "bg-yellow-500/10 text-yellow-400",
+    green: "bg-green-500/10 text-green-400",
+    purple: "bg-purple-500/10 text-purple-400",
+    orange: "bg-orange-500/10 text-orange-400",
+  };
   return (
-    <Card variant="solid" padding="sm">
-      <p className="text-2xl font-black">{value}</p>
-      <p className="mt-1 text-xs text-white/50">{label}</p>
-      {sub && <p className="mt-0.5 text-xs text-white/30">{sub}</p>}
-    </Card>
+    <div className={`relative overflow-hidden rounded-xl border border-white/8 border-l-2 ${borderColor[accent]} bg-gradient-to-br from-white/6 to-white/2 px-4 py-3.5`}>
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <p className="text-2xl font-black tracking-tight">{value}</p>
+          <p className="mt-0.5 text-xs text-white/45">{label}</p>
+          {sub && <p className="mt-0.5 text-xs text-white/25">{sub}</p>}
+        </div>
+        {icon && (
+          <div className={`shrink-0 flex h-8 w-8 items-center justify-center rounded-lg ${iconBg[accent]}`}>
+            {icon}
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
+
+// Inline SVG icons for stat cards
+const IconOrders = () => (
+  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect x="2" y="1" width="12" height="14" rx="2" stroke="currentColor" strokeWidth="1.5" fill="none" />
+    <path d="M5 5h6M5 8h6M5 11h4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+  </svg>
+);
+const IconNew = () => (
+  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="8" cy="8" r="6.5" stroke="currentColor" strokeWidth="1.5" fill="none" />
+    <path d="M8 5v6M5 8h6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+  </svg>
+);
+const IconInProgress = () => (
+  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="8" cy="8" r="6.5" stroke="currentColor" strokeWidth="1.5" fill="none" strokeDasharray="3 2" />
+    <path d="M8 4.5v3.5l2.5 2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+const IconCompleted = () => (
+  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="8" cy="8" r="6.5" stroke="currentColor" strokeWidth="1.5" fill="none" />
+    <path d="M5 8l2 2 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+const IconClients = () => (
+  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="6" cy="5" r="2.5" stroke="currentColor" strokeWidth="1.5" fill="none" />
+    <path d="M1.5 13.5c0-2.5 2-4 4.5-4s4.5 1.5 4.5 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    <circle cx="11.5" cy="5" r="2" stroke="currentColor" strokeWidth="1.2" fill="none" />
+    <path d="M13.5 13c.5-.8.5-2-1-3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+  </svg>
+);
+const IconRevenue = () => (
+  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M2 11l3.5-3.5 3 2.5L12 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M10 5h2v2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
 
 function StatusBadge({ status }: { status: string }) {
   const cfg = STATUS_CONFIG[status] ?? { label: status, color: "bg-white/10 text-white/60 border-white/10" };
@@ -336,14 +413,16 @@ export default function AdminOrders({
       <div className="mx-auto max-w-5xl px-4 py-6 space-y-6">
         {/* Stats */}
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-          <StatCard label="Всего" value={stats.total} />
-          <StatCard label="Новых" value={stats.new} />
-          <StatCard label="В работе" value={stats.inProgress} />
-          <StatCard label="Готово" value={stats.completed} />
-          <StatCard label="Клиентов" value={stats.clients} />
+          <StatCard label="Всего заказов" value={stats.total} accent="cyan" icon={<IconOrders />} />
+          <StatCard label="Новых" value={stats.new} accent="blue" icon={<IconNew />} />
+          <StatCard label="В работе" value={stats.inProgress} accent="yellow" icon={<IconInProgress />} />
+          <StatCard label="Готово" value={stats.completed} accent="green" icon={<IconCompleted />} />
+          <StatCard label="Клиентов" value={stats.clients} accent="purple" icon={<IconClients />} />
           <StatCard
             label="Выручка"
             value={stats.revenue ? `${stats.revenue.toLocaleString("ru-RU")} ₽` : "—"}
+            accent="orange"
+            icon={<IconRevenue />}
           />
         </div>
 
