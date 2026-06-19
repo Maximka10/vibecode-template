@@ -2,6 +2,19 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { safeInsertOrder } from "@/lib/supabase/safeInsert";
 
+function getSectionServices(selectedOptions: unknown): string[] {
+  if (!selectedOptions || typeof selectedOptions !== "object") return [];
+  const opts = selectedOptions as Record<string, unknown>;
+  const sections = (opts.sections as Array<Record<string, unknown>> | undefined) ?? [];
+  for (const s of sections) {
+    if (s.type === "services") {
+      const items = (s.content as Record<string, unknown> | undefined)?.items;
+      if (Array.isArray(items)) return items.filter((i) => typeof i === "string" && i);
+    }
+  }
+  return [];
+}
+
 // Allowed camelCase body keys — maps to DB schema fields only
 const ALLOWED_BODY_KEYS = new Set([
   "templateId",
@@ -11,6 +24,7 @@ const ALLOWED_BODY_KEYS = new Set([
   "primaryColor",
   "bgColor",
   "notes",
+  "companyData",
 ]);
 
 export async function POST(req: NextRequest) {
@@ -28,7 +42,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { templateId, templateName, selectedOptions, totalPrice, primaryColor, bgColor, notes } = body;
+    const { templateId, templateName, selectedOptions, totalPrice, primaryColor, bgColor, notes, companyData } = body;
 
     // ── Step 1: Resolve user from Bearer token — REQUIRED ─────────────────────
     const authHeader = req.headers.get("Authorization");
@@ -136,6 +150,25 @@ export async function POST(req: NextRequest) {
 
     const orderId = insert.id;
     console.log("[lead] order created:", orderId);
+
+    // Step 2.5: Populate project_data from companyData if provided
+    if (companyData && typeof companyData === "object") {
+      const COMPANY_KEYS = [
+        "company_name", "company_description", "phone", "email", "telegram",
+        "address", "working_hours", "domain_name",
+      ] as const;
+      const projectPatch: Record<string, unknown> = { order_id: orderId };
+      for (const key of COMPANY_KEYS) {
+        if (companyData[key] !== undefined && companyData[key] !== "") {
+          projectPatch[key] = companyData[key];
+        }
+      }
+      const services = getSectionServices(selectedOptions);
+      if (services.length > 0) projectPatch.services = services;
+      const { error: pdError } = await admin.from("project_data").upsert(projectPatch, { onConflict: "order_id" });
+      if (pdError) console.warn("[lead] project_data upsert failed (non-fatal):", pdError.message);
+      else console.log("[lead] project_data populated for order:", orderId);
+    }
 
     // Step 3: Telegram — non-blocking, only fires after confirmed insert
     const { TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, NEXT_PUBLIC_SITE_URL } = process.env;

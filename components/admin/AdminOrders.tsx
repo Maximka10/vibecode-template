@@ -34,7 +34,6 @@ async function patchOrder(id: string, update: Record<string, unknown>) {
 }
 
 const STATUS_TO_ACTION: Record<string, string> = {
-  contacted: "CONFIRM_PAYMENT",
   in_progress: "START_WORK",
   waiting_client: "REQUEST_CLIENT_INPUT",
   completed: "COMPLETE_ORDER",

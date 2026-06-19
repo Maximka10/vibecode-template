@@ -75,15 +75,15 @@ export default function HistoryTab({ order, messages }: { order: Record<string, 
     });
   }
 
-  if (order.cancel_reason) {
+  if (order.status === "cancelled") {
     events.push({
       dot: "✕",
       dotColor: "bg-red-500/20 border border-red-500/30",
       title: "Заказ отменён",
-      subtitle: `Причина: ${order.cancel_reason}`,
-      date: order.cancelled_at
-        ? new Date(order.cancelled_at).toLocaleString("ru-RU")
-        : new Date(order.updated_at ?? order.created_at).toLocaleString("ru-RU"),
+      subtitle: "",
+      date: order.updated_at
+        ? new Date(order.updated_at).toLocaleString("ru-RU")
+        : new Date(order.created_at).toLocaleString("ru-RU"),
     });
   }
 

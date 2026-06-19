@@ -16,7 +16,7 @@ const PALETTES = [
 
 type Device = "desktop" | "mobile";
 type Tab = "hero" | "about" | "services" | "gallery" | "order" | "colors" | "lead";
-type OrderStep = "form" | "confirm" | "done";
+type OrderStep = "form" | "company" | "confirm" | "done";
 
 const SECTION_TABS: { id: Tab; label: string }[] = [
   { id: "hero", label: "Главный экран" },
@@ -63,8 +63,16 @@ export default function CustomizeClient({
   const [orderError, setOrderError] = useState<string | null>(null);
   const [orderStep, setOrderStep] = useState<OrderStep>("form");
 
-  const [leadForm, setLeadForm] = useState({
-    notes: "",
+  const [leadForm, setLeadForm] = useState({ notes: "" });
+  const [companyForm, setCompanyForm] = useState({
+    company_name: "",
+    company_description: "",
+    phone: "",
+    email: "",
+    telegram: "",
+    address: "",
+    working_hours: "",
+    domain_name: "",
   });
 
   const iframe = useRef<HTMLIFrameElement>(null);
@@ -121,6 +129,7 @@ export default function CustomizeClient({
         totalPrice: breakdown.total,
         primaryColor: template.theme.primary,
         bgColor: template.theme.bgBase,
+        companyData: companyForm,
       };
 
       const leadRes = await fetch("/api/lead", {
@@ -476,11 +485,82 @@ export default function CustomizeClient({
                     Переходим в личный кабинет…
                   </p>
                 </div>
+              ) : orderStep === "company" ? (
+                /* Company info */
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-widest text-white/40">Шаг 2 из 3</p>
+                    <h3 className="mt-1 font-bold">Информация о компании</h3>
+                    <p className="mt-1 text-xs text-white/40">
+                      Эти данные заполнят ваш сайт автоматически. Все поля необязательны.
+                    </p>
+                  </div>
+                  <Input
+                    label="Название компании"
+                    placeholder="ООО «Ромашка»"
+                    value={companyForm.company_name}
+                    onChange={(e) => setCompanyForm((f) => ({ ...f, company_name: e.target.value }))}
+                  />
+                  <Textarea
+                    label="Описание"
+                    rows={2}
+                    placeholder="Чем занимается ваша компания?"
+                    value={companyForm.company_description}
+                    onChange={(e) => setCompanyForm((f) => ({ ...f, company_description: e.target.value }))}
+                  />
+                  <Input
+                    label="Телефон"
+                    placeholder="+7 (999) 123-45-67"
+                    value={companyForm.phone}
+                    onChange={(e) => setCompanyForm((f) => ({ ...f, phone: e.target.value }))}
+                  />
+                  <Input
+                    label="Email"
+                    placeholder="info@company.ru"
+                    value={companyForm.email}
+                    onChange={(e) => setCompanyForm((f) => ({ ...f, email: e.target.value }))}
+                  />
+                  <Input
+                    label="Telegram"
+                    placeholder="@company"
+                    value={companyForm.telegram}
+                    onChange={(e) => setCompanyForm((f) => ({ ...f, telegram: e.target.value }))}
+                  />
+                  <Input
+                    label="Адрес"
+                    placeholder="г. Москва, ул. Примерная, 1"
+                    value={companyForm.address}
+                    onChange={(e) => setCompanyForm((f) => ({ ...f, address: e.target.value }))}
+                  />
+                  <Input
+                    label="Режим работы"
+                    placeholder="Пн–Пт 9:00–18:00"
+                    value={companyForm.working_hours}
+                    onChange={(e) => setCompanyForm((f) => ({ ...f, working_hours: e.target.value }))}
+                  />
+                  <Input
+                    label="Домен (если есть)"
+                    placeholder="company.ru"
+                    value={companyForm.domain_name}
+                    onChange={(e) => setCompanyForm((f) => ({ ...f, domain_name: e.target.value }))}
+                  />
+                  <Btn
+                    onClick={() => setOrderStep("confirm")}
+                    variant="primary"
+                    size="lg"
+                    className="w-full"
+                  >
+                    Продолжить →
+                  </Btn>
+                  <Btn onClick={() => setOrderStep("form")} variant="ghost" size="sm" className="w-full">
+                    ← Назад
+                  </Btn>
+                </div>
               ) : orderStep === "confirm" ? (
                 /* Confirm */
                 <div className="space-y-4">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-widest text-white/40">Шаг 2 из 2</p>
+                    <p className="text-xs font-semibold uppercase tracking-widest text-white/40">Шаг 3 из 3</p>
                     <h3 className="mt-1 font-bold">Проверьте и подтвердите заказ</h3>
                     <p className="mt-1 text-xs text-white/40">
                       После отправки с вами свяжется менеджер в течение 1 часа.
@@ -541,15 +621,15 @@ export default function CustomizeClient({
                     {submitting ? "Отправляю заявку…" : `Подтвердить заказ — ${breakdown.total.toLocaleString("ru-RU")} ₽`}
                   </Btn>
 
-                  <Btn onClick={() => { setOrderStep("form"); setOrderError(null); }} variant="ghost" size="sm" className="w-full">
-                    ← Изменить контакты
+                  <Btn onClick={() => { setOrderStep("company"); setOrderError(null); }} variant="ghost" size="sm" className="w-full">
+                    ← Изменить данные компании
                   </Btn>
                 </div>
               ) : (
                 /* Form */
                 <div className="space-y-3">
                   <div className="rounded-xl border border-cyan-500/20 bg-cyan-500/8 p-3">
-                    <p className="text-xs font-semibold text-cyan-400">Шаг 1 из 2 — Детали заказа</p>
+                    <p className="text-xs font-semibold text-cyan-400">Шаг 1 из 3 — Детали заказа</p>
                     <p className="mt-1 text-xs text-white/45">
                       Менеджер свяжется с вами через аккаунт после получения заявки.
                     </p>
@@ -568,12 +648,12 @@ export default function CustomizeClient({
                     onChange={(e) => setLeadForm((f) => ({ ...f, notes: e.target.value }))}
                   />
                   <Btn
-                    onClick={() => setOrderStep("confirm")}
+                    onClick={() => setOrderStep("company")}
                     variant="primary"
                     size="lg"
                     className="w-full"
                   >
-                    Перейти к подтверждению →
+                    Далее: данные компании →
                   </Btn>
                   <p className="text-center text-xs text-white/30">
                     Предоплата — 0 ₽. Оплата только после приёмки готового сайта.

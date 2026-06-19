@@ -91,7 +91,7 @@ export default function OrderWorkspace({
         {activeTab === "chat" && (
           <ChatTab orderId={order.id} adminId={adminId} initialMessages={initialMessages} />
         )}
-        {activeTab === "materials" && <MaterialsTab orderId={order.id} />}
+        {activeTab === "materials" && <MaterialsTab orderId={order.id} order={order} />}
         {activeTab === "development" && <DevelopmentTab orderId={order.id} />}
         {activeTab === "preview" && <PreviewTab orderId={order.id} />}
         {activeTab === "history" && <HistoryTab order={order} messages={initialMessages} />}

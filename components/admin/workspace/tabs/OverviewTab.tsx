@@ -14,7 +14,6 @@ const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
 };
 
 const STATUS_TO_ACTION: Record<string, string> = {
-  contacted: "CONFIRM_PAYMENT",
   in_progress: "START_WORK",
   waiting_client: "REQUEST_CLIENT_INPUT",
   completed: "COMPLETE_ORDER",
@@ -27,7 +26,6 @@ export default function OverviewTab({ order: initialOrder }: { order: Record<str
   const [order, setOrder] = useState<Record<string, any>>(initialOrder);
   const [statusSaving, setStatusSaving] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
-  const [cancelReason, setCancelReason] = useState("");
   const [cancelLoading, setCancelLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [exporting, setExporting] = useState(false);
@@ -50,19 +48,17 @@ export default function OverviewTab({ order: initialOrder }: { order: Record<str
   }
 
   async function handleCancel() {
-    if (!cancelReason.trim()) return;
     setCancelLoading(true);
     try {
-      const res = await fetch(`/api/orders/${order.id}/cancel`, {
+      const res = await fetch("/api/orders/transition", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ reason: cancelReason }),
+        body: JSON.stringify({ orderId: order.id, action: "CANCEL_ORDER" }),
       });
       const result = await res.json();
       if (result.ok) {
-        setOrder((prev) => ({ ...prev, status: "cancelled", cancel_reason: cancelReason }));
+        setOrder((prev) => ({ ...prev, status: "cancelled" }));
         setCancelOpen(false);
-        setCancelReason("");
       } else alert(`Ошибка отмены: ${result.error}`);
     } catch { alert("Ошибка соединения"); }
     finally { setCancelLoading(false); }
@@ -116,12 +112,6 @@ export default function OverviewTab({ order: initialOrder }: { order: Record<str
               <div className="col-span-full">
                 <p className="text-xs text-white/40">Комментарий</p>
                 <p className="mt-0.5 text-sm text-white/85">{order.notes}</p>
-              </div>
-            )}
-            {order.cancel_reason && (
-              <div className="col-span-full">
-                <p className="text-xs text-red-400/70">Причина отмены</p>
-                <p className="mt-0.5 text-sm text-red-300/80">{order.cancel_reason}</p>
               </div>
             )}
             {order.project_snapshot && (
@@ -246,20 +236,13 @@ export default function OverviewTab({ order: initialOrder }: { order: Record<str
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4 backdrop-blur-sm">
           <div className="w-full max-w-md rounded-2xl border border-white/10 bg-slate-900 p-6 shadow-2xl">
             <h3 className="mb-1 text-base font-bold">Отменить заказ</h3>
-            <p className="mb-4 text-sm text-white/50">Укажите причину отмены.</p>
-            <textarea
-              value={cancelReason}
-              onChange={(e) => setCancelReason(e.target.value)}
-              placeholder="Причина отмены…"
-              rows={3}
-              className="w-full resize-none rounded-xl border border-white/10 bg-white/6 px-3 py-2 text-sm text-white placeholder-white/25 outline-none focus:border-red-500/40"
-            />
-            <div className="mt-4 flex justify-end gap-2">
-              <button onClick={() => { setCancelOpen(false); setCancelReason(""); }} className="rounded-xl border border-white/10 px-4 py-2 text-sm text-white/60 hover:text-white">
+            <p className="mb-6 text-sm text-white/50">Это действие изменит статус заказа на «Отменена». Подтвердите отмену.</p>
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setCancelOpen(false)} className="rounded-xl border border-white/10 px-4 py-2 text-sm text-white/60 hover:text-white">
                 Назад
               </button>
               <button
-                disabled={!cancelReason.trim() || cancelLoading}
+                disabled={cancelLoading}
                 onClick={handleCancel}
                 className="rounded-xl bg-red-500/20 px-4 py-2 text-sm font-semibold text-red-300 hover:bg-red-500/30 disabled:opacity-40"
               >

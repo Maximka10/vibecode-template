@@ -6,6 +6,21 @@ import { Btn } from "@/components/ui/Btn";
 type FileEntry = { name: string; url: string; size?: number; created_at?: string };
 type FolderFiles = { logo: FileEntry[]; photos: FileEntry[]; documents: FileEntry[] };
 
+function extractClientAssets(order: Record<string, unknown>): string[] {
+  const opts = order.selected_options as Record<string, unknown> | null | undefined;
+  if (!opts) return [];
+  const urls: string[] = [];
+  const sections = (opts.sections as Array<Record<string, unknown>> | undefined) ?? [];
+  for (const s of sections) {
+    const content = (s.content as Record<string, unknown> | undefined) ?? {};
+    if (content.heroImage && typeof content.heroImage === "string") urls.push(content.heroImage);
+    const images = content.images as string[] | undefined;
+    if (Array.isArray(images)) urls.push(...images.filter((u) => typeof u === "string" && u));
+    if (content.coverImage && typeof content.coverImage === "string") urls.push(content.coverImage);
+  }
+  return [...new Set(urls)].filter(Boolean);
+}
+
 const FOLDER_CONFIG = {
   logo: { label: "Логотип", accept: "image/*", hint: "PNG, SVG, WebP — до 5 MB" },
   photos: { label: "Фотографии", accept: "image/*", hint: "JPG, PNG, WebP — до 10 MB каждый" },
@@ -21,7 +36,9 @@ function formatSize(bytes?: number) {
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
-export default function MaterialsTab({ orderId }: { orderId: string }) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export default function MaterialsTab({ orderId, order }: { orderId: string; order?: Record<string, any> }) {
+  const clientAssets = order ? extractClientAssets(order) : [];
   const [files, setFiles] = useState<FolderFiles>({ logo: [], photos: [], documents: [] });
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState<Folder | null>(null);
@@ -84,6 +101,21 @@ export default function MaterialsTab({ orderId }: { orderId: string }) {
 
   return (
     <div className="space-y-5">
+      {clientAssets.length > 0 && (
+        <Card variant="solid" padding="md">
+          <h3 className="mb-3 text-sm font-semibold">Материалы от клиента</h3>
+          <p className="mb-3 text-xs text-white/35">Изображения, загруженные клиентом в конструкторе</p>
+          <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+            {clientAssets.map((url, i) => (
+              <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="group relative overflow-hidden rounded-xl bg-white/5">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={url} alt="" className="h-24 w-full object-cover transition group-hover:opacity-80" />
+              </a>
+            ))}
+          </div>
+        </Card>
+      )}
+
       {error && (
         <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm text-red-300">
           {error}
