@@ -128,7 +128,6 @@ export default function CustomizeClient({
         clientEmail: leadForm.clientEmail,
         businessType: leadForm.businessType || template.category,
         selectedServices: leadForm.selectedServices,
-        budget: breakdown.total,
         notes: leadForm.notes,
         selectedOptions: template,
         totalPrice: breakdown.total,
