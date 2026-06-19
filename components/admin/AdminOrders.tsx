@@ -33,6 +33,25 @@ async function patchOrder(id: string, update: Record<string, unknown>) {
   return res.json();
 }
 
+const STATUS_TO_ACTION: Record<string, string> = {
+  contacted: "CONFIRM_PAYMENT",
+  in_progress: "START_WORK",
+  waiting_client: "REQUEST_CLIENT_INPUT",
+  completed: "COMPLETE_ORDER",
+  cancelled: "CANCEL_ORDER",
+};
+
+async function applyStatusTransition(orderId: string, targetStatus: string): Promise<{ ok: boolean; status?: string; error?: string }> {
+  const action = STATUS_TO_ACTION[targetStatus];
+  if (!action) return { ok: false, error: `No workflow action for status "${targetStatus}"` };
+  const res = await fetch("/api/orders/transition", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ orderId, action }),
+  });
+  return res.json();
+}
+
 function StatCard({ label, value, sub }: { label: string; value: string | number; sub?: string }) {
   return (
     <Card variant="solid" padding="sm">
@@ -63,11 +82,18 @@ function OrderCard({
 }) {
   const [expanded, setExpanded] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [transitionError, setTransitionError] = useState<string | null>(null);
 
-  async function handleStatus(status: string) {
+  async function handleStatus(targetStatus: string) {
+    if (saving) return;
     setSaving(true);
-    await patchOrder(order.id, { status });
-    onStatusChange(order.id, status);
+    setTransitionError(null);
+    const result = await applyStatusTransition(order.id, targetStatus);
+    if (result.ok && result.status) {
+      onStatusChange(order.id, result.status);
+    } else {
+      setTransitionError("Не удалось изменить статус заказа");
+    }
     setSaving(false);
   }
 
@@ -134,7 +160,7 @@ function OrderCard({
           <div>
             <p className="mb-2 text-xs text-white/40">Изменить статус:</p>
             <div className="flex flex-wrap gap-2">
-              {ALL_STATUSES.map((s) => (
+              {ALL_STATUSES.filter((s) => s in STATUS_TO_ACTION || s === order.status).map((s) => (
                 <button
                   key={s}
                   disabled={saving || order.status === s}
@@ -149,6 +175,9 @@ function OrderCard({
                 </button>
               ))}
             </div>
+            {transitionError && (
+              <p className="mt-2 text-xs text-red-400">{transitionError}</p>
+            )}
           </div>
 
           {/* Chat */}
