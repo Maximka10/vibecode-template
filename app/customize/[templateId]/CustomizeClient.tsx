@@ -60,6 +60,7 @@ export default function CustomizeClient({
   const [tab, setTab] = useState<Tab>("hero");
   const [viewPane, setViewPane] = useState<"editor" | "preview">("editor");
   const [submitting, setSubmitting] = useState(false);
+  const [orderError, setOrderError] = useState<string | null>(null);
   const [orderStep, setOrderStep] = useState<OrderStep>("form");
 
   const [leadForm, setLeadForm] = useState({
@@ -108,17 +109,17 @@ export default function CustomizeClient({
 
   async function handleOrder() {
     setSubmitting(true);
-    const supabase = createClient();
-    const { data } = await supabase.auth.getSession();
-    const token = data.session?.access_token;
+    setOrderError(null);
+    console.log("[handleOrder] starting order submission");
 
-    const res = await fetch("/api/lead", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-      body: JSON.stringify({
+    try {
+      const supabase = createClient();
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      console.log("[handleOrder] session token present:", !!token);
+
+      // Step 1: create the order record
+      const leadPayload = {
         templateId: template.id,
         templateName: template.name,
         clientName: leadForm.clientName,
@@ -127,20 +128,69 @@ export default function CustomizeClient({
         clientEmail: leadForm.clientEmail,
         businessType: leadForm.businessType || template.category,
         selectedServices: leadForm.selectedServices,
-        budget: breakdown.total,
         notes: leadForm.notes,
         selectedOptions: template,
         totalPrice: breakdown.total,
         primaryColor: template.theme.primary,
         bgColor: template.theme.bgBase,
-      }),
-    });
+      };
 
-    setSubmitting(false);
-    if (res.ok) {
+      const leadRes = await fetch("/api/lead", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify(leadPayload),
+      });
+
+      console.log("[handleOrder] /api/lead status:", leadRes.status);
+
+      if (!leadRes.ok) {
+        let errMsg = `Ошибка при создании заказа (${leadRes.status})`;
+        try {
+          const errBody = await leadRes.json();
+          console.error("[handleOrder] /api/lead error:", errBody);
+          if (errBody?.error) errMsg = errBody.error;
+        } catch { /* non-JSON */ }
+        setOrderError(errMsg);
+        return;
+      }
+
+      const { orderId } = await leadRes.json();
+      console.log("[handleOrder] order created:", orderId);
+
+      // Step 2: confirm via workflow engine (only if authenticated)
+      if (token && orderId) {
+        const transitionRes = await fetch("/api/orders/transition", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ orderId, action: "CONFIRM_PAYMENT" }),
+        });
+
+        console.log("[handleOrder] /api/orders/transition status:", transitionRes.status);
+
+        if (!transitionRes.ok) {
+          // Non-fatal: order was created. Log but don't block the user.
+          try {
+            const errBody = await transitionRes.json();
+            console.warn("[handleOrder] transition failed (non-fatal):", errBody);
+          } catch { /* ignore */ }
+        } else {
+          const transitionResult = await transitionRes.json();
+          console.log("[handleOrder] transition result:", transitionResult);
+        }
+      }
+
       setOrderStep("done");
       try { localStorage.removeItem(`draft-${template.id}`); } catch { /* ignore */ }
       if (token) setTimeout(() => (location.href = "/dashboard"), 2500);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Неизвестная ошибка";
+      console.error("[handleOrder] fetch threw:", msg);
+      setOrderError(`Ошибка соединения: ${msg}`);
+    } finally {
+      setSubmitting(false);
     }
   }
 
@@ -432,19 +482,28 @@ export default function CustomizeClient({
                 /* Done */
                 <div className="rounded-2xl border border-green-500/30 bg-green-500/10 p-6 text-center">
                   <p className="text-3xl">✅</p>
-                  <p className="mt-3 text-lg font-bold">Заявка отправлена!</p>
-                  <p className="mt-2 text-sm text-white/60">Свяжемся в ближайшее время. Переходим в личный кабинет…</p>
+                  <p className="mt-3 text-lg font-bold">Заявка принята!</p>
+                  <p className="mt-2 text-sm leading-relaxed text-white/60">
+                    Менеджер свяжется с вами в течение часа для уточнения деталей.
+                    Переходим в личный кабинет…
+                  </p>
                 </div>
               ) : orderStep === "confirm" ? (
                 /* Confirm */
                 <div className="space-y-4">
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-widest text-white/40">Шаг 2 из 2</p>
-                    <h3 className="mt-1 font-bold">Проверьте перед отправкой</h3>
+                    <h3 className="mt-1 font-bold">Проверьте и подтвердите заказ</h3>
+                    <p className="mt-1 text-xs text-white/40">
+                      После отправки с вами свяжется менеджер в течение 1 часа.
+                    </p>
                   </div>
 
                   {/* Price breakdown */}
                   <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/4">
+                    <p className="px-4 pt-4 text-xs font-medium uppercase tracking-widest text-white/35">
+                      Состав заказа
+                    </p>
                     <div className="p-4 space-y-2.5">
                       {breakdown.items.map((item, i) => (
                         <div key={i} className="flex items-center justify-between text-sm">
@@ -453,8 +512,11 @@ export default function CustomizeClient({
                         </div>
                       ))}
                     </div>
-                    <div className="flex items-center justify-between border-t border-white/10 p-4">
-                      <span className="font-bold">Итого</span>
+                    <div className="flex items-center justify-between border-t border-white/10 bg-white/3 p-4">
+                      <div>
+                        <span className="font-bold">Итого</span>
+                        <p className="text-xs text-white/35">Оплата — после приёмки сайта</p>
+                      </div>
                       <span className="text-xl font-black text-cyan-400 tabular-nums">
                         {breakdown.total.toLocaleString("ru-RU")} ₽
                       </span>
@@ -463,7 +525,9 @@ export default function CustomizeClient({
 
                   {/* Contact summary */}
                   <div className="rounded-2xl border border-white/10 bg-white/4 p-4 space-y-2 text-sm">
-                    <p className="mb-2 text-xs font-medium uppercase tracking-widest text-white/40">Ваши контакты</p>
+                    <p className="mb-2 text-xs font-medium uppercase tracking-widest text-white/35">
+                      Куда свяжемся
+                    </p>
                     {[
                       { label: "Имя", value: leadForm.clientName },
                       { label: "Телефон", value: leadForm.clientPhone },
@@ -479,7 +543,16 @@ export default function CustomizeClient({
                       ))}
                   </div>
 
-                  <p className="text-center text-xs text-white/30">Предоплата — 0 ₽. Оплата после приёмки сайта.</p>
+                  <div className="rounded-xl border border-white/8 bg-white/3 px-4 py-3 text-xs text-white/40 leading-relaxed">
+                    Предоплата — <strong className="text-white/60">0 ₽</strong>.
+                    Оплата происходит только после того, как вы увидели готовый сайт и одобрили его.
+                  </div>
+
+                  {orderError && (
+                    <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+                      {orderError}
+                    </div>
+                  )}
 
                   <Btn
                     onClick={handleOrder}
@@ -488,62 +561,63 @@ export default function CustomizeClient({
                     size="lg"
                     className="w-full"
                   >
-                    {submitting ? "Отправляю..." : `Подтвердить — ${breakdown.total.toLocaleString("ru-RU")} ₽`}
+                    {submitting ? "Отправляю заявку…" : `Подтвердить заказ — ${breakdown.total.toLocaleString("ru-RU")} ₽`}
                   </Btn>
 
-                  <Btn onClick={() => setOrderStep("form")} variant="ghost" size="sm" className="w-full">
-                    ← Назад к форме
+                  <Btn onClick={() => { setOrderStep("form"); setOrderError(null); }} variant="ghost" size="sm" className="w-full">
+                    ← Изменить контакты
                   </Btn>
                 </div>
               ) : (
                 /* Form */
                 <div className="space-y-3">
-                  <div>
-                    <p className="text-xs text-white/50">
-                      Шаг 1 из 2 — Оставьте контакты, запустим за 3 дня
+                  <div className="rounded-xl border border-cyan-500/20 bg-cyan-500/8 p-3">
+                    <p className="text-xs font-semibold text-cyan-400">Шаг 1 из 2 — Контактные данные</p>
+                    <p className="mt-1 text-xs text-white/45">
+                      Укажите, как с вами связаться. Менеджер свяжется в течение 1 часа.
                     </p>
-                    <div className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-cyan-500/25 bg-cyan-500/10 px-3 py-1 text-xs">
-                      <span className="text-white/50">Стоимость:</span>
-                      <span className="font-bold text-cyan-400 tabular-nums">
+                    <div className="mt-2 flex items-center gap-1.5">
+                      <span className="text-xs text-white/35">Стоимость:</span>
+                      <span className="text-xs font-black text-cyan-400 tabular-nums">
                         {breakdown.total.toLocaleString("ru-RU")} ₽
                       </span>
                     </div>
                   </div>
                   <Input
-                    placeholder="Ваше имя"
+                    label="Ваше имя"
+                    placeholder="Иван Петров"
                     value={leadForm.clientName}
                     onChange={(e) => setLeadForm((f) => ({ ...f, clientName: e.target.value }))}
                   />
                   <Input
-                    placeholder="Телефон *"
+                    label="Телефон *"
+                    placeholder="+7 (999) 000-00-00"
                     value={leadForm.clientPhone}
                     onChange={(e) => setLeadForm((f) => ({ ...f, clientPhone: e.target.value }))}
                   />
                   <Input
-                    placeholder="Telegram (@username)"
+                    label="Telegram"
+                    placeholder="@username"
                     value={leadForm.clientTelegram}
                     onChange={(e) => setLeadForm((f) => ({ ...f, clientTelegram: e.target.value }))}
                   />
                   <Input
-                    placeholder="Email (необязательно)"
+                    label="Email"
+                    placeholder="email@example.com (необязательно)"
                     value={leadForm.clientEmail}
                     onChange={(e) => setLeadForm((f) => ({ ...f, clientEmail: e.target.value }))}
                   />
-                  <Input
-                    placeholder="Тип бизнеса (кофейня, салон...)"
-                    value={leadForm.businessType}
-                    onChange={(e) => setLeadForm((f) => ({ ...f, businessType: e.target.value }))}
-                  />
                   <Textarea
+                    label="Пожелания к сайту"
                     rows={3}
-                    placeholder="Комментарий, пожелания..."
+                    placeholder="Особые пожелания, акцент на услугах, стиль..."
                     value={leadForm.notes}
                     onChange={(e) => setLeadForm((f) => ({ ...f, notes: e.target.value }))}
                   />
                   <Btn
                     onClick={() => {
                       if (!leadForm.clientPhone && !leadForm.clientTelegram) {
-                        alert("Укажите телефон или Telegram для связи");
+                        alert("Укажите телефон или Telegram — нам нужно как с вами связаться.");
                         return;
                       }
                       setOrderStep("confirm");
@@ -552,10 +626,10 @@ export default function CustomizeClient({
                     size="lg"
                     className="w-full"
                   >
-                    Продолжить → {breakdown.total.toLocaleString("ru-RU")} ₽
+                    Перейти к подтверждению →
                   </Btn>
                   <p className="text-center text-xs text-white/30">
-                    Предоплата — 0 ₽. Следующий шаг — подтверждение заказа.
+                    Предоплата — 0 ₽. Оплата только после приёмки готового сайта.
                   </p>
                 </div>
               )

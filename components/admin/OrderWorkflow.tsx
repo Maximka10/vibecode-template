@@ -127,16 +127,39 @@ export default function OrderWorkflow({
     });
   }
 
-  async function updateStatus(status: string) {
+  async function applyTransition(action: string) {
     setStatusSaving(true);
-    const res = await fetch(`/api/orders/${order.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status }),
-    });
-    if (res.ok) setOrder((prev) => ({ ...prev, status }));
-    setStatusSaving(false);
+    console.log("[OrderWorkflow] transition:", action, "for order:", order.id);
+    try {
+      const res = await fetch("/api/orders/transition", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId: order.id, action }),
+      });
+      const result = await res.json();
+      console.log("[OrderWorkflow] transition result:", result);
+      if (result.ok) {
+        setOrder((prev) => ({ ...prev, status: result.status }));
+      } else {
+        console.error("[OrderWorkflow] transition error:", result.error);
+        alert(`Ошибка: ${result.error}`);
+      }
+    } catch (err) {
+      console.error("[OrderWorkflow] transition threw:", err);
+      alert("Ошибка соединения при смене статуса");
+    } finally {
+      setStatusSaving(false);
+    }
   }
+
+  // Maps each target status to the workflow action that reaches it (admin view)
+  const STATUS_TO_ACTION: Partial<Record<string, string>> = {
+    in_progress: "START_WORK",
+    waiting_client: "REQUEST_CLIENT_INPUT",
+    completed: "COMPLETE_ORDER",
+    cancelled: "CANCEL_ORDER",
+    contacted: "START_WORK", // admin "contacted" = effectively start of engagement
+  };
 
   const statusCfg = STATUS_CONFIG[order.status] ?? { label: order.status, color: "bg-white/10 text-white/60 border-white/10" };
 
@@ -185,14 +208,8 @@ export default function OrderWorkflow({
                 <InfoRow label="Telegram" value={order.client_telegram ? `@${order.client_telegram.replace("@", "")}` : null} />
                 <InfoRow label="Бизнес" value={order.business_type} />
                 <InfoRow
-                  label="Бюджет"
-                  value={
-                    order.total_price
-                      ? `${Number(order.total_price).toLocaleString("ru-RU")} ₽`
-                      : order.budget
-                      ? `${Number(order.budget).toLocaleString("ru-RU")} ₽`
-                      : null
-                  }
+                  label="Стоимость"
+                  value={order.total_price ? `${Number(order.total_price).toLocaleString("ru-RU")} ₽` : null}
                 />
                 {order.notes && (
                   <div className="col-span-full">
@@ -314,11 +331,13 @@ export default function OrderWorkflow({
                 {STATUS_ORDER.map((s) => {
                   const cfg = STATUS_CONFIG[s];
                   const active = order.status === s;
+                  const action = STATUS_TO_ACTION[s];
                   return (
                     <button
                       key={s}
-                      disabled={statusSaving || active}
-                      onClick={() => updateStatus(s)}
+                      disabled={statusSaving || active || !action}
+                      onClick={() => action && applyTransition(action)}
+                      title={!action ? "Этот статус устанавливается автоматически" : undefined}
                       className={`rounded-xl border px-2.5 py-2 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 ${
                         active
                           ? cfg.color
@@ -358,18 +377,32 @@ export default function OrderWorkflow({
                   </Btn>
                 )}
                 <button
+                  disabled={statusSaving || order.status === "in_progress"}
+                  onClick={() => applyTransition("START_WORK")}
+                  className="w-full rounded-full border border-yellow-500/30 bg-yellow-500/10 px-4 py-2 text-xs font-semibold text-yellow-300 transition hover:bg-yellow-500/20 disabled:opacity-40"
+                >
+                  🔨 Начать работу
+                </button>
+                <button
                   disabled={statusSaving || order.status === "waiting_client"}
-                  onClick={() => updateStatus("waiting_client")}
+                  onClick={() => applyTransition("REQUEST_CLIENT_INPUT")}
                   className="w-full rounded-full border border-orange-500/30 bg-orange-500/10 px-4 py-2 text-xs font-semibold text-orange-300 transition hover:bg-orange-500/20 disabled:opacity-40"
                 >
-                  Запросить правки
+                  ⏳ Запросить правки
                 </button>
                 <button
                   disabled={statusSaving || order.status === "completed"}
-                  onClick={() => updateStatus("completed")}
+                  onClick={() => applyTransition("COMPLETE_ORDER")}
                   className="w-full rounded-full border border-green-500/30 bg-green-500/10 px-4 py-2 text-xs font-semibold text-green-300 transition hover:bg-green-500/20 disabled:opacity-40"
                 >
                   ✓ Завершить заказ
+                </button>
+                <button
+                  disabled={statusSaving || order.status === "cancelled"}
+                  onClick={() => applyTransition("CANCEL_ORDER")}
+                  className="w-full rounded-full border border-red-500/30 bg-red-500/10 px-4 py-2 text-xs font-semibold text-red-300 transition hover:bg-red-500/20 disabled:opacity-40"
+                >
+                  ✕ Отменить
                 </button>
               </div>
             </Card>

@@ -51,6 +51,39 @@ const VISUAL: Record<string, TemplateVisual> = {
   },
 };
 
+// Rich catalog metadata per template
+const TEMPLATE_DETAILS: Record<string, {
+  problem: string;
+  features: string[];
+  useCases: string[];
+}> = {
+  "coffee-shop": {
+    problem: "Клиенты ищут вас в интернете, но не находят — или находят конкурентов.",
+    features: ["Меню с ценами и фото", "Акции и спецпредложения", "Раздел о заведении", "Контакты и карта", "Форма обратной связи"],
+    useCases: ["Кофейня", "Кафе", "Чайная", "Кондитерская"],
+  },
+  "beauty-salon": {
+    problem: "Клиенты не знают о ваших услугах и ценах — запись ведётся только по звонку.",
+    features: ["Список услуг с ценами", "Портфолио работ", "Карточки мастеров", "Онлайн-запись", "Отзывы клиентов"],
+    useCases: ["Салон красоты", "Студия маникюра", "Косметология", "Спа-центр"],
+  },
+  "barber-shop": {
+    problem: "Клиенты выбирают барбершоп по сайту — ваш устарел или его нет вовсе.",
+    features: ["Прайс-лист на стрижки", "Мастера и их работы", "Онлайн-запись", "Галерея интерьера", "Акции для новых клиентов"],
+    useCases: ["Барбершоп", "Мужской салон", "Студия стрижки"],
+  },
+  "car-wash": {
+    problem: "Клиенты едут к конкурентам, потому что не знают о вас или не могут записаться.",
+    features: ["Услуги и цены на мойку", "Программы обслуживания", "Онлайн-запись", "Акции и абонементы", "Контакты и режим работы"],
+    useCases: ["Автомойка", "Детейлинг-центр", "Автосервис", "Шиномонтаж"],
+  },
+  restaurant: {
+    problem: "Гости не знают ваш ресторан — или не могут быстро посмотреть меню и забронировать стол.",
+    features: ["Меню с описаниями и фото", "Бронирование столов", "История и концепция", "Акции и мероприятия", "Галерея блюд и интерьера"],
+    useCases: ["Ресторан", "Кейтеринг", "Банкетный зал", "Суши-бар"],
+  },
+};
+
 function TemplatePreview({ id, vis }: { id: string; vis: TemplateVisual }) {
   return (
     <svg
@@ -59,10 +92,7 @@ function TemplatePreview({ id, vis }: { id: string; vis: TemplateVisual }) {
       className="w-full h-full"
       preserveAspectRatio="xMidYMid slice"
     >
-      {/* Background */}
       <rect width="400" height="240" fill={vis.bg} />
-
-      {/* Subtle grid for dark themes */}
       {vis.isDark && (
         <>
           <line x1="0" y1="80" x2="400" y2="80" stroke={vis.card1} strokeWidth="1" />
@@ -71,12 +101,8 @@ function TemplatePreview({ id, vis }: { id: string; vis: TemplateVisual }) {
           <line x1="266" y1="0" x2="266" y2="240" stroke={vis.card1} strokeWidth="1" />
         </>
       )}
-
-      {/* Accent glow */}
       <circle cx={vis.isDark ? "300" : "350"} cy="60" r="120"
         fill={vis.accent} fillOpacity="0.08" />
-
-      {/* Navbar */}
       <rect width="400" height="28" fill={vis.nav} fillOpacity="0.97" />
       <rect x="0" y="27" width="400" height="1" fill={vis.accent} fillOpacity="0.2" />
       <rect x="12" y="9" width="48" height="10" rx="3" fill={vis.text} fillOpacity="0.75" />
@@ -85,38 +111,25 @@ function TemplatePreview({ id, vis }: { id: string; vis: TemplateVisual }) {
       <rect x="302" y="10" width="32" height="8" rx="2" fill={vis.subtext} fillOpacity="0.4" />
       <rect x="342" y="9" width="46" height="10" rx="5" fill={vis.btn} />
       <rect x="352" y="12" width="26" height="4" rx="1.5" fill={vis.btnText} fillOpacity="0.9" />
-
-      {/* Badge */}
       <rect x="12" y="36" width="90" height="12" rx="6" fill={vis.badge} />
       <rect x="18" y="39" width="78" height="6" rx="2" fill={vis.badgeText} fillOpacity="0.7" />
-
-      {/* Headline */}
       <rect x="12" y="54" width="200" height="14" rx="2" fill={vis.text} fillOpacity="0.88" />
       <rect x="12" y="73" width="170" height="10" rx="2" fill={vis.text} fillOpacity="0.65" />
-
-      {/* Subtext */}
       <rect x="12" y="90" width="155" height="6" rx="2" fill={vis.subtext} fillOpacity="0.55" />
       <rect x="12" y="100" width="135" height="6" rx="2" fill={vis.subtext} fillOpacity="0.4" />
-
-      {/* CTA buttons */}
       <rect x="12" y="114" width="96" height="22" rx="11" fill={vis.btn} />
       <rect x="26" y="120" width="68" height="10" rx="2" fill={vis.btnText} fillOpacity="0.9" />
       <rect x="117" y="114" width="88" height="22" rx="11" fill="none"
         stroke={vis.accent} strokeWidth="1.5" />
       <rect x="131" y="120" width="60" height="10" rx="2" fill={vis.accent} fillOpacity="0.8" />
-
-      {/* Hero visual panel (right) */}
       <rect x="242" y="34" width="148" height="108" rx="8" fill={vis.card1} />
       <rect x="242" y="34" width="148" height="108" rx="8" fill={vis.accent} fillOpacity="0.12" />
       <rect x="242" y="34" width="148" height="108" rx="8" fill="none"
         stroke={vis.accent} strokeWidth="1" strokeOpacity="0.25" />
-      {/* Abstract shape in panel */}
       <circle cx="316" cy="88" r="34" fill={vis.accent} fillOpacity="0.15" />
       <circle cx="316" cy="88" r="20" fill={vis.accent} fillOpacity="0.18" />
       <rect x="296" y="108" width="40" height="4" rx="2" fill={vis.accent} fillOpacity="0.5" />
       <rect x="306" y="116" width="20" height="16" rx="4" fill={vis.subtext} fillOpacity="0.2" />
-
-      {/* Stats bar */}
       <rect x="0" y="152" width="400" height="38" fill={vis.nav} fillOpacity="0.8" />
       <rect x="0" y="152" width="400" height="1" fill={vis.accent} fillOpacity="0.2" />
       {[0, 1, 2, 3].map((i) => (
@@ -127,15 +140,12 @@ function TemplatePreview({ id, vis }: { id: string; vis: TemplateVisual }) {
             fill={vis.subtext} fillOpacity="0.4" />
         </g>
       ))}
-
-      {/* Service cards */}
       <rect x="12" y="200" width="180" height="32" rx="6" fill={vis.card1} />
       <rect x="12" y="200" width="180" height="32" rx="6" fill="none"
         stroke={vis.accent} strokeWidth="0.8" strokeOpacity="0.25" />
       <rect x="22" y="209" width="8" height="8" rx="2" fill={vis.accent} fillOpacity="0.6" />
       <rect x="36" y="208" width="80" height="8" rx="2" fill={vis.text} fillOpacity="0.65" />
       <rect x="36" y="220" width="120" height="5" rx="2" fill={vis.subtext} fillOpacity="0.35" />
-
       <rect x="208" y="200" width="180" height="32" rx="6" fill={vis.card1} />
       <rect x="208" y="200" width="180" height="32" rx="6" fill="none"
         stroke={vis.accent} strokeWidth="0.8" strokeOpacity="0.25" />
@@ -150,32 +160,44 @@ export default function TemplatesPage() {
   return (
     <main className="min-h-screen bg-slate-950 text-white">
       <Navbar />
-      <section className="mx-auto max-w-6xl px-4 py-12">
-        <div className="mb-10 text-center">
-          <p className="text-sm text-cyan-400">5 готовых шаблонов</p>
-          <h1 className="mt-3 text-3xl sm:text-4xl font-black">Выберите шаблон</h1>
-          <p className="mt-3 text-white/60 max-w-xl mx-auto">
-            Каждый шаблон адаптируется под ваш бренд. Мы меняем тексты, фото и цвета — вы получаете готовый сайт за 3 дня.
-          </p>
-        </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+      {/* Header */}
+      <section className="border-b border-white/5 bg-slate-900/30">
+        <div className="mx-auto max-w-6xl px-4 py-14 text-center">
+          <p className="text-sm font-semibold uppercase tracking-widest text-cyan-400">Каталог шаблонов</p>
+          <h1 className="mt-3 text-3xl sm:text-4xl font-black">Выберите шаблон для вашего бизнеса</h1>
+          <p className="mt-4 text-white/55 max-w-2xl mx-auto leading-relaxed">
+            Каждый шаблон создан под конкретный тип бизнеса — готовая структура, профессиональный дизайн,
+            правильные блоки. Мы адаптируем его под ваш бренд и запускаем за 3 дня.
+          </p>
+          <div className="mt-6 flex flex-wrap justify-center gap-3 text-sm text-white/40">
+            <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">✓ Домен + хостинг включены</span>
+            <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">✓ Тексты и фото — мы вносим</span>
+            <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">✓ 0 ₽ предоплата</span>
+            <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">✓ Готово за 3 дня</span>
+          </div>
+        </div>
+      </section>
+
+      {/* Template cards */}
+      <section className="mx-auto max-w-6xl px-4 py-12">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {templates.map((t) => {
             const vis = VISUAL[t.id];
+            const details = TEMPLATE_DETAILS[t.id];
             return (
               <Link
                 key={t.id}
                 href={`/customize/${t.id}`}
                 className="group rounded-3xl border border-white/10 bg-white/5 overflow-hidden hover:border-white/30 transition-all hover:scale-[1.02] hover:shadow-xl hover:shadow-black/20"
               >
-                {/* Preview */}
+                {/* Visual preview */}
                 <div className="relative aspect-video overflow-hidden">
                   {vis ? (
                     <TemplatePreview id={t.id} vis={vis} />
                   ) : (
                     <div className="w-full h-full bg-slate-800" />
                   )}
-                  {/* Category badge */}
                   <div className="absolute top-3 left-3">
                     <span
                       className="rounded-full px-2.5 py-1 text-xs font-semibold backdrop-blur-sm"
@@ -187,36 +209,58 @@ export default function TemplatesPage() {
                       {t.category}
                     </span>
                   </div>
-                  {/* Theme type badge */}
                   <div className="absolute top-3 right-3">
                     <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium backdrop-blur-sm ${
                       vis?.isDark
                         ? "bg-white/10 text-white/60 border border-white/10"
                         : "bg-black/10 text-black/50 border border-black/10"
                     }`}>
-                      {vis?.isDark ? "Тёмная" : "Светлая"}
+                      {vis?.isDark ? "Тёмная тема" : "Светлая тема"}
                     </span>
                   </div>
                 </div>
 
                 {/* Info */}
                 <div className="p-5">
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <h2 className="text-lg font-bold">{t.name}</h2>
-                      <p className="mt-1 text-sm text-white/55">{t.description}</p>
-                    </div>
-                  </div>
-                  {vis && (
-                    <p className="mt-2 text-xs text-white/30">{vis.label}</p>
+                  <h2 className="text-lg font-bold">{t.name}</h2>
+                  {details && (
+                    <p className="mt-1.5 text-sm leading-relaxed text-white/50">{details.problem}</p>
                   )}
-                  <div className="mt-4 flex items-center justify-between">
+
+                  {/* Features list */}
+                  {details && (
+                    <ul className="mt-4 space-y-1.5">
+                      {details.features.map((f) => (
+                        <li key={f} className="flex items-center gap-2 text-xs text-white/55">
+                          <span className="h-1 w-1 shrink-0 rounded-full bg-cyan-400" />
+                          {f}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+
+                  {/* Use cases */}
+                  {details && (
+                    <div className="mt-4 flex flex-wrap gap-1.5">
+                      {details.useCases.map((uc) => (
+                        <span key={uc} className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] text-white/40">
+                          {uc}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  {vis && (
+                    <p className="mt-3 text-xs text-white/25">{vis.label}</p>
+                  )}
+
+                  <div className="mt-4 flex items-center justify-between border-t border-white/8 pt-4">
                     <p className="text-sm">
-                      <span className="font-bold">от {t.priceFrom?.toLocaleString("ru-RU")} ₽</span>
-                      <span className="text-white/40"> · {t.deliveryDays} дня</span>
+                      <span className="font-black text-white">от {t.priceFrom?.toLocaleString("ru-RU")} ₽</span>
+                      <span className="ml-1.5 text-white/35">· {t.deliveryDays} дня</span>
                     </p>
                     <span className="rounded-full bg-white/10 px-3 py-1.5 text-xs font-semibold group-hover:bg-white group-hover:text-black transition">
-                      Выбрать →
+                      Настроить →
                     </span>
                   </div>
                 </div>
@@ -225,20 +269,39 @@ export default function TemplatesPage() {
           })}
         </div>
 
+        {/* What's included */}
+        <div className="mt-16 rounded-3xl border border-white/8 bg-white/4 p-8">
+          <h2 className="text-xl font-black text-center">В каждый шаблон входит</h2>
+          <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
+            {[
+              { icon: "🌐", text: "Домен и хостинг" },
+              { icon: "🔒", text: "SSL-сертификат" },
+              { icon: "📱", text: "Мобильная версия" },
+              { icon: "📊", text: "Аналитика (Метрика)" },
+              { icon: "💬", text: "Форма заявки" },
+              { icon: "🛡", text: "12 мес. поддержки" },
+            ].map((item) => (
+              <div key={item.text} className="flex flex-col items-center gap-2 text-center">
+                <span className="text-2xl">{item.icon}</span>
+                <span className="text-xs text-white/50">{item.text}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
         {/* CTA */}
-        <div className="mt-12 rounded-3xl border border-white/10 bg-white/5 p-8 text-center">
-          <h2 className="text-2xl font-black">Не нашли подходящий?</h2>
-          <p className="mt-3 text-white/60 max-w-lg mx-auto">
-            Расскажите о своём бизнесе — подберём шаблон или сделаем индивидуальный дизайн.
+        <div className="mt-8 rounded-3xl border border-white/10 bg-gradient-to-br from-cyan-500/10 to-blue-600/5 p-8 text-center">
+          <h2 className="text-2xl font-black">Не знаете, какой выбрать?</h2>
+          <p className="mt-3 text-white/55 max-w-lg mx-auto">
+            Любой шаблон можно настроить под ваш бренд. Выберите ближайший по тематике —
+            остальное мы адаптируем вместе с вами.
           </p>
-          <a
-            href="https://t.me/vibecode_studio"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-5 inline-flex rounded-full bg-white px-6 py-3 font-bold text-black"
+          <Link
+            href="/auth/login"
+            className="mt-6 inline-flex rounded-full bg-white px-7 py-3 font-bold text-black transition hover:bg-white/90"
           >
-            Написать в Telegram
-          </a>
+            Войти и оставить заявку →
+          </Link>
         </div>
       </section>
     </main>

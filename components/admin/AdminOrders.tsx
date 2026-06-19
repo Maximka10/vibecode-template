@@ -112,10 +112,10 @@ function OrderCard({
                 <p>{order.business_type}</p>
               </div>
             )}
-            {order.budget && (
+            {order.total_price && (
               <div>
-                <p className="text-white/40">Бюджет</p>
-                <p>{Number(order.budget).toLocaleString("ru-RU")} ₽</p>
+                <p className="text-white/40">Стоимость</p>
+                <p>{Number(order.total_price).toLocaleString("ru-RU")} ₽</p>
               </div>
             )}
             {order.selected_services && (

@@ -1,9 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createServerClient } from "@supabase/ssr";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { ORDER_ALLOWED_INSERT_KEYS } from "@/types/orders";
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
+
+    // Reject unknown/forbidden fields before any DB operation
+    const ALLOWED_BODY_KEYS = new Set([
+      "templateId", "templateName", "clientName", "clientPhone", "clientTelegram",
+      "clientEmail", "businessType", "selectedServices", "notes", "selectedOptions",
+      "totalPrice", "primaryColor", "bgColor",
+    ]);
+    const unknown = Object.keys(body).filter((k) => !ALLOWED_BODY_KEYS.has(k));
+    if (unknown.length > 0) {
+      return NextResponse.json(
+        { ok: false, error: `Unknown fields: ${unknown.join(", ")}` },
+        { status: 400 }
+      );
+    }
 
     const {
       templateId,
@@ -58,45 +73,35 @@ export async function POST(req: NextRequest) {
 
         template_id: templateId ?? templateName,
         template_name: templateName,
-
         client_name: clientName ?? null,
         client_phone: clientPhone ?? null,
         client_telegram: clientTelegram ?? null,
         client_email: clientEmail ?? null,
-
         business_type: businessType ?? null,
         selected_services: selectedServices ?? null,
-        selected_options: selectedOptions ?? null,
-
-        budget: budget ?? null,
         notes: notes ?? null,
-
+        selected_options: selectedOptions ?? null,
         primary_color: primaryColor ?? null,
         bg_color: bgColor ?? null,
-
         total_price: totalPrice ?? null,
         status: "new",
       })
       .select("id")
       .single();
 
-    if (error) {
+    if (insertError) {
+      console.error("[lead] INSERT failed:", insertError.message);
       return NextResponse.json(
-        { ok: false, error: error.message },
-        { status: 400 }
+        { ok: false, savedToDb: false, error: insertError.message },
+        { status: 500 }
       );
     }
 
     const orderId = data.id;
 
-    // =========================
-    // 3. TELEGRAM NOTIFICATION (UNCHANGED LOGIC)
-    // =========================
-    const {
-      TELEGRAM_BOT_TOKEN,
-      TELEGRAM_CHAT_ID,
-      NEXT_PUBLIC_SITE_URL,
-    } = process.env;
+    // Step 3: send Telegram — only runs after confirmed insert
+    const { TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, NEXT_PUBLIC_SITE_URL } = process.env;
+    let telegramSent = false;
 
     if (TELEGRAM_BOT_TOKEN && TELEGRAM_CHAT_ID) {
       const siteUrl =
@@ -105,11 +110,7 @@ export async function POST(req: NextRequest) {
 
       const orderLink = `${siteUrl}/admin/orders/${orderId}`;
 
-      const servicesList = Array.isArray(selectedServices)
-        ? selectedServices.join(", ")
-        : selectedServices ?? "—";
-
-      const message = [
+      const lines = [
         `🆕 *Новая заявка* #${orderId.slice(0, 8)}`,
         ``,
         `👤 *Клиент:* ${clientName ?? "—"}`,
@@ -119,48 +120,48 @@ export async function POST(req: NextRequest) {
         }`,
         `📧 *Email:* ${clientEmail ?? "—"}`,
         ``,
-        `🏪 *Бизнес:* ${businessType ?? "—"}`,
-        `📐 *Шаблон:* ${templateName ?? "—"}`,
-        `🛠 *Услуги:* ${servicesList}`,
-        `💰 *Бюджет:* ${
-          budget ? `${Number(budget).toLocaleString("ru-RU")} ₽` : "—"
-        }`,
-        notes ? `💬 *Комментарий:* ${notes}` : null,
+        `📐 Шаблон: *${templateName ?? "—"}*`,
+        businessType ? `🏪 ${businessType}` : null,
+        totalPrice ? `💰 ${Number(totalPrice).toLocaleString("ru-RU")} ₽` : null,
         ``,
         `🔗 [Открыть заказ в системе](${orderLink})`,
       ]
         .filter(Boolean)
         .join("\n");
 
-      await fetch(
-        `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            chat_id: TELEGRAM_CHAT_ID,
-            text: message,
-            parse_mode: "Markdown",
-            disable_web_page_preview: true,
-          }),
+      try {
+        const tgRes = await fetch(
+          `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              chat_id: TELEGRAM_CHAT_ID,
+              text: lines,
+              parse_mode: "Markdown",
+              disable_web_page_preview: true,
+            }),
+          }
+        );
+        if (tgRes.ok) {
+          telegramSent = true;
+        } else {
+          const tgErr = await tgRes.text();
+          console.error("TELEGRAM SENT: failed —", tgErr);
         }
-      ).catch(() => null);
+      } catch (tgErr) {
+        console.error("TELEGRAM SENT: network error —", tgErr instanceof Error ? tgErr.message : tgErr);
+      }
+    } else {
+      console.warn("[lead] Telegram not configured — TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID missing");
     }
 
-    // =========================
-    // 4. RESPONSE
-    // =========================
-    return NextResponse.json({
-      ok: true,
-      orderId,
-    });
+    return NextResponse.json({ ok: true, savedToDb: true, orderId, telegramSent });
   } catch (e) {
+    console.error("[lead] unhandled error:", e instanceof Error ? e.message : e);
     return NextResponse.json(
-      {
-        ok: false,
-        error: e instanceof Error ? e.message : String(e),
-      },
-      { status: 500 }
+      { ok: false, error: e instanceof Error ? e.message : String(e) },
+      { status: 400 }
     );
   }
 }

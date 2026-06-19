@@ -119,12 +119,10 @@ function ProjectCard({
         </div>
 
         <div className="rounded-xl border border-white/6 bg-white/4 px-3 py-2">
-          <p className="text-xs text-white/40">Бюджет</p>
+          <p className="text-xs text-white/40">Стоимость</p>
           <p className="mt-1 text-sm">
             {project.total_price
-              ? `${project.total_price.toLocaleString("ru-RU")} ₽`
-              : project.budget
-              ? `${Number(project.budget).toLocaleString("ru-RU")} ₽`
+              ? `${Number(project.total_price).toLocaleString("ru-RU")} ₽`
               : "—"}
           </p>
         </div>
