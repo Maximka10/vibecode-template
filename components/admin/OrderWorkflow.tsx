@@ -206,7 +206,6 @@ export default function OrderWorkflow({
                 <InfoRow label="Email" value={order.client_email} />
                 <InfoRow label="Телефон" value={order.client_phone} />
                 <InfoRow label="Telegram" value={order.client_telegram ? `@${order.client_telegram.replace("@", "")}` : null} />
-                <InfoRow label="Бизнес" value={order.business_type} />
                 <InfoRow
                   label="Стоимость"
                   value={order.total_price ? `${Number(order.total_price).toLocaleString("ru-RU")} ₽` : null}

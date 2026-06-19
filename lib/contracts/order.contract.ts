@@ -32,7 +32,6 @@ export const ORDER_SCHEMA = {
   template_name: "string | null",
 
   // Order details
-  business_type: "string | null",
   selected_services: "json | null",
   selected_options: "json | null",
   notes: "string | null",
@@ -65,7 +64,6 @@ export const INSERT_ALLOWED_KEYS = new Set<OrderSchemaKey>([
   "client_telegram",
   "template_id",
   "template_name",
-  "business_type",
   "selected_services",
   "selected_options",
   "notes",
@@ -91,6 +89,7 @@ export const FORBIDDEN_FIELDS = new Set([
   "estimated_price",
   "price_total",
   "amount",
+  "business_type",
 ]);
 
 // ── Valid statuses (mirrors types/orders.ts — kept in sync here for runtime use) ─

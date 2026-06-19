@@ -106,12 +106,6 @@ function OrderCard({
         <div className="border-t border-white/8 p-5 space-y-5">
           {/* Details */}
           <div className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-3">
-            {order.business_type && (
-              <div>
-                <p className="text-white/40">Бизнес</p>
-                <p>{order.business_type}</p>
-              </div>
-            )}
             {order.total_price && (
               <div>
                 <p className="text-white/40">Стоимость</p>
