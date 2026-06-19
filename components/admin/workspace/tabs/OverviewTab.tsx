@@ -113,23 +113,46 @@ export default function OverviewTab({ order: initialOrder }: { order: Record<str
           </p>
         </Card>
 
-        {/* Template preview */}
-        {order.template_id && (
-          <Card variant="solid" padding="none" radius="2xl">
-            <div className="flex items-center justify-between px-5 py-3 border-b border-white/8">
-              <h2 className="text-xs font-semibold uppercase tracking-widest text-white/40">Превью шаблона</h2>
-              <Btn href={`/preview/${order.template_id}`} variant="ghost" size="sm" external>Открыть ↗</Btn>
+        {/* Brief summary */}
+        <Card variant="solid" padding="md">
+          <h2 className="mb-4 text-xs font-semibold uppercase tracking-widest text-white/40">Краткий бриф</h2>
+          <div className="space-y-3">
+            {(order.selected_options?.company_name || order.template_name) && (
+              <div>
+                <p className="text-xs text-white/40">Компания</p>
+                <p className="mt-0.5 text-sm font-semibold text-white/85">
+                  {order.selected_options?.company_name || order.template_name}
+                </p>
+                {order.selected_options?.company_description && (
+                  <p className="mt-1 text-xs text-white/50 line-clamp-2">
+                    {String(order.selected_options.company_description).slice(0, 120)}
+                    {String(order.selected_options.company_description).length > 120 ? "…" : ""}
+                  </p>
+                )}
+              </div>
+            )}
+            <div className="grid grid-cols-2 gap-3">
+              {(order.selected_options?.phone) && (
+                <div>
+                  <p className="text-xs text-white/40">Телефон</p>
+                  <p className="mt-0.5 text-xs text-white/70">{order.selected_options.phone}</p>
+                </div>
+              )}
+              {(order.selected_options?.email) && (
+                <div>
+                  <p className="text-xs text-white/40">Email</p>
+                  <p className="mt-0.5 text-xs text-white/70">{order.selected_options.email}</p>
+                </div>
+              )}
+              {(order.budget || order.selected_options?.budget) && (
+                <div>
+                  <p className="text-xs text-white/40">Бюджет</p>
+                  <p className="mt-0.5 text-xs text-white/70">{order.budget || order.selected_options?.budget}</p>
+                </div>
+              )}
             </div>
-            <div className="relative h-64 overflow-hidden rounded-b-2xl bg-black">
-              <iframe
-                src={`/preview/${order.template_id}`}
-                className="absolute inset-0 h-full w-full origin-top-left scale-50 border-none"
-                style={{ width: "200%", height: "200%" }}
-                title="Template preview"
-              />
-            </div>
-          </Card>
-        )}
+          </div>
+        </Card>
 
         <Card variant="subtle" padding="md">
           <h2 className="mb-2 text-xs font-semibold uppercase tracking-widest text-white/40">Экспорт</h2>

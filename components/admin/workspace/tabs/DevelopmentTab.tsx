@@ -38,10 +38,10 @@ type ProjectData = {
 
 const FONTS = ["Inter", "Manrope", "Montserrat", "Roboto", "Open Sans"] as const;
 
-type Device = "desktop" | "tablet" | "mobile";
+type Device = "desktop" | "mobile";
 
-const DEVICE_ICONS: Record<Device, string> = { desktop: "🖥", tablet: "📱", mobile: "📲" };
-const DEVICE_LABELS: Record<Device, string> = { desktop: "Desktop", tablet: "Tablet", mobile: "Mobile" };
+const DEVICE_ICONS: Record<Device, string> = { desktop: "🖥", mobile: "📱" };
+const DEVICE_LABELS: Record<Device, string> = { desktop: "Desktop", mobile: "Mobile" };
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -585,14 +585,12 @@ export default function DevelopmentTab({ orderId, order }: { orderId: string; or
               <div className="mb-3 flex flex-wrap gap-1.5">
                 {[
                   { label: "Hero Premium", type: "hero" as SectionType, content: { title: "Ваш бизнес — наш приоритет", subtitle: "Профессиональные услуги высокого качества. Работаем быстро и надёжно.", cta_text: "Оставить заявку" } },
-                  { label: "Hero SaaS", type: "hero" as SectionType, content: { title: "Автоматизируйте ваш бизнес", subtitle: "Умные инструменты для роста компании. Экономьте время и деньги.", cta_text: "Начать бесплатно" } },
                   { label: "Услуги с иконками", type: "services" as SectionType, content: { title: "Что мы делаем", items: ["Консультация и анализ", "Разработка решения", "Внедрение и поддержка", "Обучение команды"] } },
                   { label: "Отзывы Grid", type: "reviews" as SectionType, content: { title: "Что говорят клиенты", items: [{ author: "Алексей М.", text: "Отличная работа, всё сделали быстро и качественно!", rating: 5 }, { author: "Мария К.", text: "Профессиональный подход, рекомендую всем!", rating: 5 }, { author: "Игорь С.", text: "Результат превзошёл все ожидания.", rating: 5 }, { author: "Анна Д.", text: "Работаем уже 3 года, всегда довольны.", rating: 5 }] } },
                   { label: "FAQ Базовый", type: "faq" as SectionType, content: { title: "Часто задаваемые вопросы", items: [{ question: "Как быстро вы приступаете к работе?", answer: "Обычно мы начинаем в течение 1-2 рабочих дней после согласования." }, { question: "Есть ли гарантия на ваши услуги?", answer: "Да, мы даём гарантию на все наши работы. Подробности уточняйте у менеджера." }, { question: "Как связаться с вами?", answer: "Позвоните нам или оставьте заявку на сайте — ответим в течение часа." }] } },
                   { label: "Цены 3 тарифа", type: "pricing" as SectionType, content: { title: "Наши тарифы", plans: [{ name: "Базовый", price: "от 5 000 ₽", features: ["Базовый пакет услуг", "Поддержка по email", "1 месяц гарантии"] }, { name: "Стандарт", price: "от 15 000 ₽", features: ["Полный пакет услуг", "Приоритетная поддержка", "3 месяца гарантии", "Бесплатная консультация"] }, { name: "Премиум", price: "от 40 000 ₽", features: ["VIP обслуживание", "Личный менеджер", "6 месяцев гарантии", "Доступ 24/7"] }] } },
                   { label: "Hero Agency", type: "hero" as SectionType, content: { title: "Мы создаём то, что работает", subtitle: "Агентство полного цикла — от стратегии до результата.", cta_text: "Обсудить проект", variant: "agency" } },
                   { label: "Services Premium", type: "services" as SectionType, content: { title: "Наши услуги", items: ["Стратегический консалтинг", "Брендинг и дизайн", "Веб-разработка", "SEO и продвижение", "Контент-маркетинг", "Аналитика и отчётность"] } },
-                  { label: "Reviews Carousel", type: "reviews" as SectionType, content: { title: "Отзывы клиентов", items: [{ author: "Сергей В.", text: "Команда профессионалов! Результат превзошёл ожидания.", rating: 5 }, { author: "Наталья К.", text: "Работаем уже 2 года — всегда на высшем уровне.", rating: 5 }, { author: "Дмитрий П.", text: "Быстро, качественно, без лишних слов. Рекомендую!", rating: 5 }, { author: "Елена М.", text: "Очень довольна сотрудничеством. Профессиональный подход к каждой задаче.", rating: 5 }, { author: "Алексей Б.", text: "Лучший подрядчик, с которым мне приходилось работать.", rating: 5 }] } },
                   { label: "Pricing SaaS", type: "pricing" as SectionType, content: { title: "Простые и прозрачные цены", description: "Доступны ежемесячная и годовая оплата (скидка 20% при оплате за год)", plans: [{ name: "Стартер", price: "от 3 900 ₽/мес", features: ["До 3 пользователей", "5 GB хранилища", "Базовая аналитика", "Email поддержка"] }, { name: "Бизнес", price: "от 9 900 ₽/мес", features: ["До 20 пользователей", "50 GB хранилища", "Расширенная аналитика", "Приоритетная поддержка", "API доступ"] }, { name: "Про", price: "от 24 900 ₽/мес", features: ["Неограниченно пользователей", "500 GB хранилища", "Полная аналитика", "Выделенный менеджер", "API + webhooks", "SLA 99.9%"] }] } },
                   { label: "About Story", type: "about" as SectionType, content: { title: "Наша история", text: "2015 — Основание компании\nНачали с небольшой команды энтузиастов\n\n2018 — Первые 100 клиентов\nВышли на федеральный уровень\n\n2021 — Международная экспансия\nОткрыли офисы в 3 странах\n\n2024 — Лидер рынка\nБолее 1000 успешных проектов" } },
                 ].map((preset) => {
@@ -691,7 +689,7 @@ export default function DevelopmentTab({ orderId, order }: { orderId: string; or
       <div className="xl:sticky xl:top-20 xl:self-start space-y-3">
         {/* Device switcher */}
         <div className="flex gap-1">
-          {(["desktop", "tablet", "mobile"] as Device[]).map((d) => (
+          {(["desktop", "mobile"] as Device[]).map((d) => (
             <button
               key={d}
               onClick={() => setDevice(d)}

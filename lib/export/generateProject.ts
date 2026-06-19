@@ -698,9 +698,12 @@ export default function Footer({ section }: { section: SiteSection }) {
               <span className="text-slate-500">Vibecode Studio</span>
             </p>
           </div>
-          <p className="text-center text-xs text-slate-700">
-            Нажимая на кнопки, вы соглашаетесь с политикой конфиденциальности
-          </p>
+          <div className="text-center text-xs text-slate-700">
+            Нажимая на кнопки, вы соглашаетесь с{" "}
+            <a href="/privacy" className="text-slate-500 underline hover:text-slate-300 transition">
+              политикой конфиденциальности
+            </a>
+          </div>
         </div>
       </div>
     </footer>
@@ -709,6 +712,134 @@ export default function Footer({ section }: { section: SiteSection }) {
 `;
   },
 };
+
+// ── Legal generators ──────────────────────────────────────────────────────────
+
+function genCookieBanner(): string {
+  return `"use client";
+import { useState, useEffect } from "react";
+
+export default function CookieBanner() {
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const consent = localStorage.getItem("cookie_consent");
+    if (!consent) setVisible(true);
+  }, []);
+
+  function accept() {
+    localStorage.setItem("cookie_consent", "accepted");
+    setVisible(false);
+  }
+
+  function decline() {
+    localStorage.setItem("cookie_consent", "declined");
+    setVisible(false);
+  }
+
+  if (!visible) return null;
+
+  return (
+    <div className="fixed bottom-4 left-1/2 z-50 w-full max-w-lg -translate-x-1/2 px-4">
+      <div className="flex flex-col gap-3 rounded-xl bg-slate-900 px-5 py-4 shadow-xl ring-1 ring-white/10 sm:flex-row sm:items-center">
+        <p className="flex-1 text-sm text-slate-300">
+          Мы используем cookies для улучшения работы сайта.
+        </p>
+        <div className="flex shrink-0 gap-2">
+          <button
+            onClick={accept}
+            className="rounded-lg bg-white px-4 py-2 text-sm font-semibold text-slate-900 transition hover:bg-slate-100"
+          >
+            Принять
+          </button>
+          <button
+            onClick={decline}
+            className="rounded-lg border border-white/20 px-4 py-2 text-sm font-semibold text-slate-300 transition hover:bg-white/10"
+          >
+            Отклонить
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+`;
+}
+
+function genPrivacyPage(site: SiteJson): string {
+  const company = site.company.name || "Компания";
+  const email = site.contacts.email || "";
+  const phone = site.contacts.phone || "";
+  return `export default function PrivacyPage() {
+  return (
+    <main className="mx-auto max-w-3xl px-4 py-20 sm:px-6 lg:px-8">
+      <h1 className="mb-8 text-3xl font-black text-slate-900">
+        Политика конфиденциальности
+      </h1>
+
+      <div className="prose prose-slate max-w-none space-y-6 text-slate-700">
+        <section>
+          <h2 className="text-xl font-bold text-slate-800">1. Сбор данных</h2>
+          <p>
+            ${company} собирает персональные данные, которые вы предоставляете при заполнении
+            форм на сайте: имя, номер телефона, адрес электронной почты и иные контактные
+            сведения, необходимые для обработки вашего обращения.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="text-xl font-bold text-slate-800">2. Цели обработки</h2>
+          <p>
+            Собранные данные используются исключительно для обратной связи с вами, оказания
+            запрошенных услуг и улучшения качества обслуживания. Мы не передаём ваши данные
+            третьим лицам без вашего согласия, за исключением случаев, предусмотренных
+            действующим законодательством Российской Федерации.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="text-xl font-bold text-slate-800">3. Cookies</h2>
+          <p>
+            Сайт использует файлы cookies для корректной работы и улучшения пользовательского
+            опыта. Вы можете отключить cookies в настройках браузера, однако это может повлиять
+            на функциональность сайта.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="text-xl font-bold text-slate-800">4. Хранение данных</h2>
+          <p>
+            Персональные данные хранятся на защищённых серверах и не дольше, чем это необходимо
+            для достижения целей обработки. По истечении срока хранения данные уничтожаются.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="text-xl font-bold text-slate-800">5. Права пользователя</h2>
+          <p>
+            Вы вправе запросить доступ к своим персональным данным, их исправление или удаление,
+            а также отозвать согласие на обработку в любой момент, направив запрос на наши
+            контактные данные.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="text-xl font-bold text-slate-800">6. Контакты</h2>
+          <p>
+            По вопросам, связанным с обработкой персональных данных, обращайтесь:
+          </p>
+          <ul className="mt-2 list-disc pl-5 space-y-1">
+            <li>Компания: ${company}</li>
+            ${email ? `<li>Email: <a href="mailto:${email}" className="text-blue-600 hover:underline">${email}</a></li>` : ""}
+            ${phone ? `<li>Телефон: <a href="tel:${phone}" className="text-blue-600 hover:underline">${phone}</a></li>` : ""}
+          </ul>
+        </section>
+      </div>
+    </main>
+  );
+}
+`;
+}
 
 // ── File generators ───────────────────────────────────────────────────────────
 
@@ -875,6 +1006,7 @@ function genLayout(site: SiteJson, hasNav: boolean, hasMobileCTA: boolean): stri
 import "./globals.css";
 ${hasNav ? `import Navigation from "@/components/Navigation";` : ""}
 ${hasMobileCTA ? `import MobileCTA from "@/components/MobileCTA";` : ""}
+import CookieBanner from "@/components/CookieBanner";
 
 export const metadata: Metadata = {
   title: ${title},
@@ -902,6 +1034,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         ${hasNav ? `<Navigation />` : ""}
         <div${hasNav ? ` className="pt-[72px]"` : ""}>{children}</div>
         ${hasMobileCTA ? `<MobileCTA />` : ""}
+        <CookieBanner />
       </body>
     </html>
   );
@@ -1022,6 +1155,10 @@ export function generateProject(site: SiteJson): Record<string, string> {
   if (hasMobileCTA) {
     files["components/MobileCTA.tsx"] = genStickyMobileCTA(site.contacts);
   }
+
+  // Legal compliance
+  files["components/CookieBanner.tsx"] = genCookieBanner();
+  files["app/privacy/page.tsx"] = genPrivacyPage(site);
 
   // Section components
   for (const section of enabledSections) {

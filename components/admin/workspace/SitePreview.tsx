@@ -1,11 +1,10 @@
 import { BuildData } from "@/lib/build/buildOrderSite";
 import { SiteSection } from "@/types/sections";
 
-type PreviewDevice = "desktop" | "tablet" | "mobile";
+type PreviewDevice = "desktop" | "mobile";
 
 const DEVICE_WIDTH: Record<PreviewDevice, string> = {
   desktop: "100%",
-  tablet: "768px",
   mobile: "375px",
 };
 
@@ -361,7 +360,7 @@ export default function SitePreview({
             {data.content.domain_name ? `https://${data.content.domain_name}` : `preview — ${data.meta.template_name}`}
           </div>
           {device !== "desktop" && (
-            <span className="text-xs text-slate-400">{device === "tablet" ? "768px" : "375px"}</span>
+            <span className="text-xs text-slate-400">375px</span>
           )}
         </div>
 

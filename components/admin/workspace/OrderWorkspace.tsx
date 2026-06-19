@@ -3,7 +3,9 @@ import { useState } from "react";
 import { Btn } from "@/components/ui/Btn";
 import { Message } from "@/components/chat/ChatWindow";
 import OverviewTab from "./tabs/OverviewTab";
-import ChatTab from "./tabs/ChatTab";
+// ChatTab kept for reference but not in nav
+// import ChatTab from "./tabs/ChatTab";
+import BriefTab from "./tabs/BriefTab";
 import MaterialsTab from "./tabs/MaterialsTab";
 import DevelopmentTab from "./tabs/DevelopmentTab";
 import PreviewTab from "./tabs/PreviewTab";
@@ -21,7 +23,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
 
 const TABS = [
   { id: "overview", label: "Обзор" },
-  { id: "chat", label: "Чат" },
+  { id: "brief", label: "Бриф клиента" },
   { id: "materials", label: "Материалы" },
   { id: "development", label: "Разработка" },
   { id: "preview", label: "Предпросмотр" },
@@ -35,7 +37,7 @@ type TabId = (typeof TABS)[number]["id"];
 export default function OrderWorkspace({
   order,
   initialMessages,
-  adminId,
+  adminId: _adminId,
 }: {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   order: Record<string, any>;
@@ -90,9 +92,7 @@ export default function OrderWorkspace({
       {/* Tab content */}
       <div className={`mx-auto px-4 py-6 ${activeTab === "development" ? "max-w-7xl" : "max-w-5xl"}`}>
         {activeTab === "overview" && <OverviewTab order={order} />}
-        {activeTab === "chat" && (
-          <ChatTab orderId={order.id} adminId={adminId} initialMessages={initialMessages} />
-        )}
+        {activeTab === "brief" && <BriefTab orderId={order.id} order={order} projectData={order.project_data ?? null} />}
         {activeTab === "materials" && <MaterialsTab orderId={order.id} order={order} />}
         {activeTab === "development" && <DevelopmentTab orderId={order.id} order={order} />}
         {activeTab === "preview" && <PreviewTab orderId={order.id} />}
