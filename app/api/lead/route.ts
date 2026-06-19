@@ -36,6 +36,8 @@ export async function POST(req: NextRequest) {
       bgColor,
     } = body;
 
+    console.log("[lead] payload keys:", Object.keys(body));
+
     // Step 1: resolve authenticated user from Bearer token
     const admin = createAdminClient();
     let userId: string | null = null;
@@ -49,6 +51,7 @@ export async function POST(req: NextRequest) {
         userId = user?.id ?? null;
       }
     }
+    console.log("[lead] resolved userId:", userId ?? "anonymous");
 
     // Step 2: validated insert via contract layer
     const insert = await safeInsertOrder({
@@ -68,13 +71,15 @@ export async function POST(req: NextRequest) {
     });
 
     if (!insert.ok) {
+      console.error("[lead] insert failed:", insert.error, insert.fields ?? "");
       return NextResponse.json(
         { ok: false, savedToDb: false, error: insert.error },
-        { status: insert.fields ? 400 : 500 }
+        { status: insert.code === "FORBIDDEN" ? 400 : 500 }
       );
     }
 
     const orderId = insert.id;
+    console.log("[lead] order created:", orderId);
 
     // Step 3: Telegram — only fires after confirmed insert, never blocks response
     const { TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, NEXT_PUBLIC_SITE_URL } = process.env;
@@ -115,6 +120,7 @@ export async function POST(req: NextRequest) {
         );
         if (tgRes.ok) {
           telegramSent = true;
+          console.log("[lead] Telegram sent for order:", orderId);
         } else {
           console.error("[lead] Telegram failed:", await tgRes.text());
         }
