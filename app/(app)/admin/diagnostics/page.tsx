@@ -8,7 +8,7 @@ async function checkTable(table: string): Promise<CheckResult> {
   try {
     const admin = createAdminClient();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error } = await (admin.from(table as any) as any).select("id").limit(1);
+    const { error } = await (admin.from(table as any) as any).select("*", { count: "exact", head: true });
     return error ? { ok: false, msg: error.message } : { ok: true, msg: "OK" };
   } catch (e) {
     return { ok: false, msg: e instanceof Error ? e.message : "Unknown error" };
