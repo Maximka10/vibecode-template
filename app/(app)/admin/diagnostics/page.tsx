@@ -59,6 +59,7 @@ export default async function DiagnosticsPage() {
     "orders", "project_data", "site_builds", "section_templates",
     "project_templates", "messages", "profiles",
     "telegram_clients", "telegram_messages", "telegram_webhook_log", "telegram_attachments",
+    "deployment_queue", "deployment_logs",
   ];
 
   const [tableResults, storage] = await Promise.all([
@@ -78,6 +79,8 @@ export default async function DiagnosticsPage() {
     telegramWebhookSecret: envCheck("TELEGRAM_WEBHOOK_SECRET"),
     telegramBotUsername: envCheck("NEXT_PUBLIC_TELEGRAM_BOT_USERNAME"),
     siteUrl: envCheck("NEXT_PUBLIC_SITE_URL"),
+    vercelToken: envCheck("VERCEL_TOKEN"),
+    vercelTeamId: envCheck("VERCEL_TEAM_ID"),
   };
 
   // Check telegram CRM — count linked orders
@@ -95,6 +98,25 @@ export default async function DiagnosticsPage() {
     tgCrmStatus = { ok: true, msg: `${tgLinkedCount} заказов привязано · ${tgMsgCount} сообщений` };
   } catch {
     tgCrmStatus = { ok: false, msg: "Ошибка запроса CRM данных" };
+  }
+
+  // Deployment health
+  let deployStatus: CheckResult = { ok: true, msg: "Не проверялось" };
+  let deployCount = 0;
+  try {
+    const admin = createAdminClient();
+    const [queueRes, failedRes] = await Promise.all([
+      admin.from("deployment_queue").select("id", { count: "exact", head: true }),
+      admin.from("deployment_queue").select("id", { count: "exact", head: true }).eq("status", "failed"),
+    ]);
+    deployCount = queueRes.count ?? 0;
+    const failedCount = failedRes.count ?? 0;
+    deployStatus = {
+      ok: failedCount === 0 || deployCount > failedCount,
+      msg: `${deployCount} всего · ${failedCount} с ошибкой`,
+    };
+  } catch {
+    deployStatus = { ok: false, msg: "Ошибка запроса deployment_queue" };
   }
 
   return (
@@ -182,6 +204,24 @@ export default async function DiagnosticsPage() {
             ].map((rule) => (
               <CheckRow key={rule} label={rule} result={{ ok: true, msg: "OK" }} />
             ))}
+          </section>
+
+          {/* Deployment */}
+          <section className="rounded-2xl border border-white/8 bg-white/4 p-5">
+            <div className="mb-4 flex items-center gap-2">
+              <StatusDot ok={env.vercelToken.ok} warn={!env.vercelToken.ok} />
+              <h2 className="text-sm font-semibold">Vercel AutoDeploy</h2>
+            </div>
+            <CheckRow label="VERCEL_TOKEN" result={env.vercelToken} />
+            <CheckRow label="VERCEL_TEAM_ID (опционально)" result={env.vercelTeamId} warn />
+            <CheckRow label="NEXT_PUBLIC_SITE_URL (для dispatch)" result={env.siteUrl} />
+            <CheckRow label="deployment_queue" result={deployStatus} warn={!deployStatus.ok} />
+            <CheckRow label="Внутренний runner" result={{ ok: true, msg: "POST /api/internal/run-deployment" }} />
+            {!env.vercelToken.ok && (
+              <p className="mt-3 text-xs text-yellow-300/70">
+                Установите <code className="bg-white/10 px-1 rounded">VERCEL_TOKEN</code> в Vercel Dashboard → Settings → Environment Variables. Получите токен в Vercel → Account Settings → Tokens.
+              </p>
+            )}
           </section>
 
           {/* Export */}
