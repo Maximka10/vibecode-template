@@ -127,10 +127,6 @@ async function handleStart(chatId: number, from: TgUser, payload: string): Promi
     .from("orders")
     .update({
       telegram_client_id: clientId,
-      // Keep legacy columns in sync for backward compat
-      telegram_chat_id: from.id,
-      telegram_username: from.username ?? null,
-      telegram_linked_at: new Date().toISOString(),
     })
     .eq("id", orderId);
 
