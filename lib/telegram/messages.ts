@@ -11,6 +11,8 @@
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendMessage } from "./bot";
+import { processMedia } from "./media";
+import { after } from "next/server";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -284,58 +286,98 @@ export async function handleUpdate(update: TgUpdate): Promise<void> {
   // ── Photo (use largest size) ─────────────────────────────────────────────────
   if (msg.photo?.length) {
     const largest = msg.photo[msg.photo.length - 1];
-    await storeMessage({
+    const meta = { width: largest.width, height: largest.height, file_size: largest.file_size };
+    const photoId = await storeMessage({
       orderId, clientId, chatId, direction: "inbound", type: "photo",
       text: msg.caption ?? null, telegramMsgId: msgId,
       fileId: largest.file_id, fileUniqueId: largest.file_unique_id,
-      metadata: { width: largest.width, height: largest.height, file_size: largest.file_size },
+      metadata: meta,
     });
+    if (photoId) {
+      after(() => processMedia({
+        messageId: photoId, orderId,
+        fileId: largest.file_id, fileUniqueId: largest.file_unique_id,
+        messageType: "photo", metadata: meta,
+      }));
+    }
     return;
   }
 
   // ── Document ─────────────────────────────────────────────────────────────────
   if (msg.document) {
     const d = msg.document;
-    await storeMessage({
+    const meta = { mime_type: d.mime_type, file_name: d.file_name, file_size: d.file_size };
+    const docId = await storeMessage({
       orderId, clientId, chatId, direction: "inbound", type: "document",
       text: msg.caption ?? d.file_name ?? null, telegramMsgId: msgId,
       fileId: d.file_id, fileUniqueId: d.file_unique_id,
-      metadata: { mime_type: d.mime_type, file_name: d.file_name, file_size: d.file_size },
+      metadata: meta,
     });
+    if (docId) {
+      after(() => processMedia({
+        messageId: docId, orderId,
+        fileId: d.file_id, fileUniqueId: d.file_unique_id,
+        messageType: "document", metadata: meta,
+      }));
+    }
     return;
   }
 
   // ── Voice ────────────────────────────────────────────────────────────────────
   if (msg.voice) {
     const v = msg.voice;
-    await storeMessage({
+    const meta = { duration: v.duration, mime_type: v.mime_type, file_size: v.file_size };
+    const voiceId = await storeMessage({
       orderId, clientId, chatId, direction: "inbound", type: "voice",
       telegramMsgId: msgId, fileId: v.file_id, fileUniqueId: v.file_unique_id,
-      metadata: { duration: v.duration, mime_type: v.mime_type, file_size: v.file_size },
+      metadata: meta,
     });
+    if (voiceId) {
+      after(() => processMedia({
+        messageId: voiceId, orderId,
+        fileId: v.file_id, fileUniqueId: v.file_unique_id,
+        messageType: "voice", metadata: meta,
+      }));
+    }
     return;
   }
 
   // ── Video ────────────────────────────────────────────────────────────────────
   if (msg.video) {
     const v = msg.video;
-    await storeMessage({
+    const meta = { duration: v.duration, width: v.width, height: v.height, mime_type: v.mime_type, file_size: v.file_size };
+    const videoId = await storeMessage({
       orderId, clientId, chatId, direction: "inbound", type: "video",
       text: msg.caption ?? null, telegramMsgId: msgId,
       fileId: v.file_id, fileUniqueId: v.file_unique_id,
-      metadata: { duration: v.duration, width: v.width, height: v.height, mime_type: v.mime_type, file_size: v.file_size },
+      metadata: meta,
     });
+    if (videoId) {
+      after(() => processMedia({
+        messageId: videoId, orderId,
+        fileId: v.file_id, fileUniqueId: v.file_unique_id,
+        messageType: "video", metadata: meta,
+      }));
+    }
     return;
   }
 
   // ── VideoNote ────────────────────────────────────────────────────────────────
   if (msg.video_note) {
     const vn = msg.video_note;
-    await storeMessage({
+    const meta = { duration: vn.duration, file_size: vn.file_size };
+    const vnId = await storeMessage({
       orderId, clientId, chatId, direction: "inbound", type: "video_note",
       telegramMsgId: msgId, fileId: vn.file_id, fileUniqueId: vn.file_unique_id,
-      metadata: { duration: vn.duration, file_size: vn.file_size },
+      metadata: meta,
     });
+    if (vnId) {
+      after(() => processMedia({
+        messageId: vnId, orderId,
+        fileId: vn.file_id, fileUniqueId: vn.file_unique_id,
+        messageType: "video_note", metadata: meta,
+      }));
+    }
     return;
   }
 

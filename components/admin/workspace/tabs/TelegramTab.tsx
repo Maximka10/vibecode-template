@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef, useState, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { classifyFile, type MaterialTarget } from "@/lib/telegram/media";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -12,6 +13,7 @@ type TgMessage = {
   direction: "inbound" | "outbound";
   message_type: string;
   message_status: string;
+  media_status: string;
   content_text: string | null;
   file_id: string | null;
   file_unique_id: string | null;
@@ -41,12 +43,35 @@ type OrderInfo = {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
+
+function publicStorageUrl(bucket: string, path: string): string {
+  return `${SUPABASE_URL}/storage/v1/object/public/${bucket}/${path}`;
+}
+
+function mediaUrl(msg: TgMessage): string | null {
+  if (!msg.storage_path || !msg.storage_bucket) return null;
+  return publicStorageUrl(msg.storage_bucket, msg.storage_path);
+}
+
 function fmtTime(iso: string) {
   const d = new Date(iso);
   const now = new Date();
   const sameDay = d.toDateString() === now.toDateString();
   if (sameDay) return d.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
   return d.toLocaleDateString("ru-RU", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+}
+
+function fmtSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function fmtDuration(secs: number): string {
+  const m = Math.floor(secs / 60);
+  const s = secs % 60;
+  return `${m}:${String(s).padStart(2, "0")}`;
 }
 
 function clientDisplayName(c: TgClient | null): string {
@@ -65,9 +90,25 @@ const TYPE_ICONS: Record<string, string> = {
   system: "⚙️",
 };
 
-const MATERIAL_TYPES = ["logo", "hero", "gallery", "background", "team", "document"] as const;
-type MaterialType = (typeof MATERIAL_TYPES)[number];
-const MATERIAL_LABELS: Record<MaterialType, string> = {
+const DOC_ICONS: Record<string, string> = {
+  pdf: "📕",
+  docx: "📝",
+  doc: "📝",
+  xlsx: "📊",
+  xls: "📊",
+  zip: "🗜️",
+  txt: "📃",
+};
+
+function docIcon(fileName: string | null | undefined): string {
+  const ext = (fileName ?? "").split(".").pop()?.toLowerCase() ?? "";
+  return DOC_ICONS[ext] ?? "📄";
+}
+
+// ── MATERIAL_TYPES ────────────────────────────────────────────────────────────
+
+const MATERIAL_TYPES: MaterialTarget[] = ["logo", "hero", "gallery", "background", "team", "document"];
+const MATERIAL_LABELS: Record<MaterialTarget, string> = {
   logo: "Логотип",
   hero: "Hero фото",
   gallery: "Галерея",
@@ -76,17 +117,19 @@ const MATERIAL_LABELS: Record<MaterialType, string> = {
   document: "Документ",
 };
 
-// ── Sub-components ────────────────────────────────────────────────────────────
+// ── Material Promoter ─────────────────────────────────────────────────────────
 
 function MaterialPromoter({ orderId, msg }: { orderId: string; msg: TgMessage }) {
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [done, setDone] = useState(false);
 
-  async function promote(type: MaterialType) {
+  const suggested = classifyFile(msg.metadata?.file_name as string | null, msg.message_type);
+  const url = mediaUrl(msg);
+
+  async function promote(type: MaterialTarget) {
     setSaving(true);
     try {
-      // Fetch current project_data to merge file_metadata
       const pdRes = await fetch(`/api/orders/${orderId}/project-data`);
       const pd = await pdRes.json();
       const existing = pd.data?.content_edits ?? {};
@@ -96,9 +139,7 @@ function MaterialPromoter({ orderId, msg }: { orderId: string; msg: TgMessage })
       fileMeta[key] = {
         type,
         name: (msg.metadata?.file_name as string) ?? `telegram_${key}`,
-        url: msg.storage_path
-          ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${msg.storage_bucket}/${msg.storage_path}`
-          : null,
+        url,
         file_id: msg.file_id,
         source: "telegram",
         telegram_msg_id: msg.telegram_msg_id,
@@ -129,16 +170,19 @@ function MaterialPromoter({ orderId, msg }: { orderId: string; msg: TgMessage })
         → В материалы
       </button>
       {open && (
-        <div className="absolute bottom-full left-0 mb-1 z-10 min-w-36 rounded-xl border border-white/10 bg-slate-900 p-1.5 shadow-xl">
+        <div className="absolute bottom-full left-0 mb-1 z-10 min-w-40 rounded-xl border border-white/10 bg-slate-900 p-1.5 shadow-xl">
           {MATERIAL_TYPES.map((t) => (
             <button
               key={t}
               type="button"
               disabled={saving}
               onClick={() => promote(t)}
-              className="block w-full rounded-lg px-3 py-1.5 text-left text-xs text-white/70 transition hover:bg-white/8 hover:text-white"
+              className={`flex w-full items-center justify-between rounded-lg px-3 py-1.5 text-left text-xs transition hover:bg-white/8 ${
+                t === suggested ? "font-semibold text-cyan-300" : "text-white/70 hover:text-white"
+              }`}
             >
-              {MATERIAL_LABELS[t]}
+              <span>{MATERIAL_LABELS[t]}</span>
+              {t === suggested && <span className="text-[9px] text-cyan-500/60">авто</span>}
             </button>
           ))}
         </div>
@@ -147,7 +191,197 @@ function MaterialPromoter({ orderId, msg }: { orderId: string; msg: TgMessage })
   );
 }
 
-function MessageBubble({ msg, orderId }: { msg: TgMessage; orderId: string }) {
+// ── Media status indicator ────────────────────────────────────────────────────
+
+function MediaStatus({ status }: { status: string }) {
+  if (status === "pending" || status === "downloading") {
+    return (
+      <span className="flex items-center gap-1 text-[10px] text-white/35">
+        <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-white/30" />
+        Загрузка…
+      </span>
+    );
+  }
+  if (status === "failed") {
+    return <span className="text-[10px] text-red-400/60">⚠ Ошибка загрузки</span>;
+  }
+  return null;
+}
+
+// ── Photo Modal ───────────────────────────────────────────────────────────────
+
+function PhotoModal({ url, onClose }: { url: string; onClose: () => void }) {
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [onClose]);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div className="relative max-h-[90vh] max-w-[90vw]" onClick={(e) => e.stopPropagation()}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={url} alt="" className="max-h-[85vh] max-w-[85vw] rounded-xl object-contain shadow-2xl" />
+        <div className="absolute bottom-3 right-3 flex gap-2">
+          <a
+            href={url}
+            download
+            className="rounded-lg border border-white/20 bg-black/60 px-3 py-1.5 text-xs text-white/80 hover:text-white"
+            onClick={(e) => e.stopPropagation()}
+          >
+            ↓ Скачать
+          </a>
+          <button
+            onClick={onClose}
+            className="rounded-lg border border-white/20 bg-black/60 px-3 py-1.5 text-xs text-white/80 hover:text-white"
+          >
+            ✕
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Media renderers ───────────────────────────────────────────────────────────
+
+function PhotoContent({ msg, onExpand }: { msg: TgMessage; onExpand: () => void }) {
+  const url = mediaUrl(msg);
+  if (!url) {
+    return (
+      <div className="flex flex-col gap-1">
+        <span className="text-[11px] opacity-50">📷 Фото получено</span>
+        <MediaStatus status={msg.media_status} />
+      </div>
+    );
+  }
+  return (
+    <div className="flex flex-col gap-1">
+      <button
+        type="button"
+        onClick={onExpand}
+        className="group relative overflow-hidden rounded-lg"
+        style={{ maxWidth: 220 }}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={url}
+          alt="photo"
+          className="w-full rounded-lg object-cover transition group-hover:opacity-90"
+          style={{ maxHeight: 180 }}
+        />
+        <div className="absolute inset-0 flex items-center justify-center opacity-0 transition group-hover:opacity-100">
+          <span className="rounded-full bg-black/50 px-3 py-1 text-xs text-white">⛶ Открыть</span>
+        </div>
+      </button>
+      {msg.content_text && (
+        <p className="mt-1 text-sm leading-relaxed">{msg.content_text}</p>
+      )}
+    </div>
+  );
+}
+
+function DocumentContent({ msg }: { msg: TgMessage }) {
+  const url = mediaUrl(msg);
+  const fileName = msg.metadata?.file_name as string | null;
+  const fileSize = msg.metadata?.file_size as number | null;
+
+  return (
+    <div className="flex items-center gap-3 rounded-lg border border-white/10 bg-white/5 px-3 py-2.5" style={{ minWidth: 180, maxWidth: 260 }}>
+      <span className="text-2xl">{docIcon(fileName)}</span>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-medium">{fileName ?? "Документ"}</p>
+        {fileSize && <p className="text-[10px] text-white/40">{fmtSize(fileSize)}</p>}
+        <MediaStatus status={msg.media_status} />
+      </div>
+      {url && (
+        <a
+          href={url}
+          download={fileName ?? true}
+          className="shrink-0 rounded-lg border border-white/10 bg-white/8 px-2 py-1 text-[11px] text-white/60 hover:text-white"
+        >
+          ↓
+        </a>
+      )}
+    </div>
+  );
+}
+
+function VoiceContent({ msg }: { msg: TgMessage }) {
+  const url = mediaUrl(msg);
+  const duration = msg.metadata?.duration as number | null;
+
+  if (!url) {
+    return (
+      <div className="flex items-center gap-2">
+        <span className="text-lg">🎤</span>
+        <div>
+          {duration && <p className="text-xs text-white/50">{fmtDuration(duration)}</p>}
+          <MediaStatus status={msg.media_status} />
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="flex flex-col gap-1.5" style={{ minWidth: 200 }}>
+      <div className="flex items-center gap-1.5 text-xs text-white/50">
+        <span>🎤</span>
+        {duration && <span>{fmtDuration(duration)}</span>}
+      </div>
+      <audio controls src={url} className="h-8 w-full" style={{ colorScheme: "dark" }} />
+    </div>
+  );
+}
+
+function VideoContent({ msg, isNote = false }: { msg: TgMessage; isNote?: boolean }) {
+  const url = mediaUrl(msg);
+  const duration = msg.metadata?.duration as number | null;
+  const fileSize = msg.metadata?.file_size as number | null;
+
+  if (!url) {
+    return (
+      <div className="flex items-center gap-2">
+        <span className="text-lg">{isNote ? "📹" : "🎥"}</span>
+        <div>
+          <span className="text-[11px] opacity-50">{isNote ? "Видеосообщение" : "Видео"}</span>
+          {duration && <p className="text-[10px] text-white/40">{fmtDuration(duration)}</p>}
+          <MediaStatus status={msg.media_status} />
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="flex flex-col gap-1" style={{ maxWidth: 260 }}>
+      <video
+        controls
+        src={url}
+        className={`rounded-lg ${isNote ? "h-40 w-40 object-cover" : "w-full rounded-lg"}`}
+        style={{ maxHeight: 180 }}
+      />
+      {(duration || fileSize) && (
+        <p className="text-[10px] text-white/40">
+          {duration && fmtDuration(duration)}{fileSize && ` · ${fmtSize(fileSize)}`}
+        </p>
+      )}
+      {msg.content_text && <p className="text-sm leading-relaxed">{msg.content_text}</p>}
+    </div>
+  );
+}
+
+// ── Message Bubble ────────────────────────────────────────────────────────────
+
+function MessageBubble({
+  msg,
+  orderId,
+  onPhotoExpand,
+}: {
+  msg: TgMessage;
+  orderId: string;
+  onPhotoExpand: (url: string) => void;
+}) {
   const isOut = msg.direction === "outbound";
   const isSys = msg.direction === "inbound" && msg.message_type === "system";
 
@@ -161,8 +395,32 @@ function MessageBubble({ msg, orderId }: { msg: TgMessage; orderId: string }) {
     );
   }
 
-  const hasMedia = ["photo", "document", "voice", "video", "video_note", "sticker"].includes(msg.message_type);
-  const canPromote = (msg.message_type === "photo" || msg.message_type === "document") && !isOut;
+  const url = mediaUrl(msg);
+  const canPromote = ["photo", "document"].includes(msg.message_type) && !isOut;
+
+  const renderMediaContent = () => {
+    switch (msg.message_type) {
+      case "photo":
+        return (
+          <PhotoContent
+            msg={msg}
+            onExpand={() => { if (url) onPhotoExpand(url); }}
+          />
+        );
+      case "document":
+        return <DocumentContent msg={msg} />;
+      case "voice":
+        return <VoiceContent msg={msg} />;
+      case "video":
+        return <VideoContent msg={msg} />;
+      case "video_note":
+        return <VideoContent msg={msg} isNote />;
+      default:
+        return null;
+    }
+  };
+
+  const mediaContent = renderMediaContent();
 
   return (
     <div className={`flex ${isOut ? "justify-end" : "justify-start"} mb-2`}>
@@ -174,7 +432,8 @@ function MessageBubble({ msg, orderId }: { msg: TgMessage; orderId: string }) {
               : "rounded-bl-sm bg-white/10 text-white/90"
           }`}
         >
-          {hasMedia && (
+          {/* Non-renderable types: sticker, or fallback */}
+          {!mediaContent && msg.message_type !== "text" && (
             <div className="mb-1 flex items-center gap-1 text-xs opacity-70">
               <span>{TYPE_ICONS[msg.message_type] ?? "📎"}</span>
               <span className="capitalize">{msg.message_type}</span>
@@ -183,9 +442,9 @@ function MessageBubble({ msg, orderId }: { msg: TgMessage; orderId: string }) {
               )}
             </div>
           )}
-          {msg.content_text && <p className="leading-relaxed whitespace-pre-wrap">{msg.content_text}</p>}
-          {hasMedia && !msg.content_text && !msg.storage_path && (
-            <p className="text-[11px] opacity-50">Файл получен · скачивание ожидается</p>
+          {mediaContent}
+          {msg.message_type === "text" && msg.content_text && (
+            <p className="leading-relaxed whitespace-pre-wrap">{msg.content_text}</p>
           )}
         </div>
         <div className={`mt-0.5 flex items-center gap-1.5 ${isOut ? "flex-row-reverse" : ""}`}>
@@ -208,7 +467,9 @@ function NotLinkedPanel({ orderId }: { orderId: string }) {
   const link = `https://t.me/${botUsername}?start=${orderId}`;
 
   function copy() {
-    navigator.clipboard.writeText(link).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); });
+    navigator.clipboard
+      .writeText(link)
+      .then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); });
   }
 
   return (
@@ -254,7 +515,11 @@ const STATUS_LABELS: Record<string, string> = {
   cancelled: "❌ Отменена",
 };
 
-function OrderContextPanel({ order, client, projectData }: {
+function OrderContextPanel({
+  order,
+  client,
+  projectData,
+}: {
   order: OrderInfo;
   client: TgClient | null;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -269,7 +534,12 @@ function OrderContextPanel({ order, client, projectData }: {
             <p className="font-bold">{clientDisplayName(client)}</p>
             {client.username && <p className="text-white/40">@{client.username}</p>}
             <p className="text-white/30 text-xs">
-              Привязан {new Date(client.linked_at).toLocaleDateString("ru-RU", { day: "numeric", month: "short", year: "numeric" })}
+              Привязан{" "}
+              {new Date(client.linked_at).toLocaleDateString("ru-RU", {
+                day: "numeric",
+                month: "short",
+                year: "numeric",
+              })}
             </p>
           </div>
         ) : (
@@ -280,7 +550,9 @@ function OrderContextPanel({ order, client, projectData }: {
       <div className="rounded-2xl border border-white/8 bg-white/3 p-4">
         <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-white/30">Заказ</p>
         <div className="space-y-2 text-xs text-white/60">
-          <p className="font-semibold text-white/80 text-sm">{order.template_name ?? order.id.slice(0, 8)}</p>
+          <p className="font-semibold text-white/80 text-sm">
+            {order.template_name ?? order.id.slice(0, 8)}
+          </p>
           <p>{STATUS_LABELS[order.status] ?? order.status}</p>
         </div>
       </div>
@@ -289,7 +561,9 @@ function OrderContextPanel({ order, client, projectData }: {
         <div className="rounded-2xl border border-white/8 bg-white/3 p-4">
           <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-white/30">Контакты</p>
           <div className="space-y-1.5 text-xs text-white/60">
-            {projectData.company_name && <p className="font-semibold text-white/80">{projectData.company_name}</p>}
+            {projectData.company_name && (
+              <p className="font-semibold text-white/80">{projectData.company_name}</p>
+            )}
             {projectData.phone && <p>📞 {projectData.phone}</p>}
             {projectData.email && <p>✉️ {projectData.email}</p>}
             {projectData.domain_name && <p>🌐 {projectData.domain_name}</p>}
@@ -322,9 +596,10 @@ export default function TelegramTab({
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
+  const [photoModal, setPhotoModal] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  // ── Load initial data ────────────────────────────────────────────────────
+  // ── Load initial data ──────────────────────────────────────────────────────
   const load = useCallback(async () => {
     const res = await fetch(`/api/orders/${orderId}/telegram-messages`);
     const d = await res.json();
@@ -332,7 +607,6 @@ export default function TelegramTab({
       setMessages(d.messages);
       setOrder(d.order);
       setClient(d.client);
-      // Mark as read
       await fetch(`/api/orders/${orderId}/telegram-messages`, { method: "PATCH" });
     }
     setLoading(false);
@@ -340,12 +614,12 @@ export default function TelegramTab({
 
   useEffect(() => { load(); }, [load]);
 
-  // ── Scroll to bottom on new messages ────────────────────────────────────
+  // ── Scroll to bottom on new messages ──────────────────────────────────────
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // ── Supabase Realtime subscription ───────────────────────────────────────
+  // ── Supabase Realtime: INSERT + UPDATE ────────────────────────────────────
   useEffect(() => {
     const supabase = createClient();
     const channel = supabase
@@ -364,10 +638,24 @@ export default function TelegramTab({
             if (prev.some((m) => m.id === newMsg.id)) return prev;
             return [...prev, newMsg];
           });
-          // Auto-mark as read when tab is open
           if (newMsg.direction === "inbound") {
             fetch(`/api/orders/${orderId}/telegram-messages`, { method: "PATCH" });
           }
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "telegram_messages",
+          filter: `order_id=eq.${orderId}`,
+        },
+        (payload) => {
+          const updated = payload.new as TgMessage;
+          setMessages((prev) =>
+            prev.map((m) => (m.id === updated.id ? { ...m, ...updated } : m))
+          );
         }
       )
       .subscribe();
@@ -390,7 +678,6 @@ export default function TelegramTab({
       const d = await res.json();
       if (d.ok) {
         setText("");
-        // Message will arrive via Realtime; add optimistically too
         if (d.message) setMessages((prev) => [...prev, d.message]);
       } else {
         setSendError(d.error ?? "Ошибка отправки");
@@ -409,80 +696,99 @@ export default function TelegramTab({
   const isLinked = !!order?.telegram_chat_id;
 
   return (
-    <div className="flex gap-5">
-      {/* ── Conversation ── */}
-      <div className="flex min-w-0 flex-1 flex-col rounded-2xl border border-white/8 bg-white/3" style={{ height: "calc(100vh - 240px)" }}>
-        {isLinked && client ? (
-          <>
-            {/* Header */}
-            <div className="flex items-center gap-3 border-b border-white/8 px-4 py-3">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-cyan-500/20 text-base font-bold text-cyan-400">
-                {(client.first_name?.[0] ?? client.username?.[0] ?? "?").toUpperCase()}
+    <>
+      {photoModal && (
+        <PhotoModal url={photoModal} onClose={() => setPhotoModal(null)} />
+      )}
+
+      <div className="flex gap-5">
+        {/* ── Conversation ── */}
+        <div
+          className="flex min-w-0 flex-1 flex-col rounded-2xl border border-white/8 bg-white/3"
+          style={{ height: "calc(100vh - 240px)" }}
+        >
+          {isLinked && client ? (
+            <>
+              {/* Header */}
+              <div className="flex items-center gap-3 border-b border-white/8 px-4 py-3">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-cyan-500/20 text-base font-bold text-cyan-400">
+                  {(client.first_name?.[0] ?? client.username?.[0] ?? "?").toUpperCase()}
+                </div>
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-bold">{clientDisplayName(client)}</p>
+                  {client.username && (
+                    <a
+                      href={`https://t.me/${client.username}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-white/35 hover:text-cyan-400"
+                    >
+                      @{client.username}
+                    </a>
+                  )}
+                </div>
+                <span className="ml-auto shrink-0 rounded-full border border-green-500/30 bg-green-500/10 px-2.5 py-0.5 text-xs font-semibold text-green-400">
+                  Привязан
+                </span>
               </div>
-              <div className="min-w-0">
-                <p className="truncate text-sm font-bold">{clientDisplayName(client)}</p>
-                {client.username && (
-                  <a
-                    href={`https://t.me/${client.username}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-xs text-white/35 hover:text-cyan-400"
-                  >
-                    @{client.username}
-                  </a>
+
+              {/* Messages */}
+              <div className="flex-1 overflow-y-auto px-4 py-4">
+                {messages.length === 0 ? (
+                  <p className="py-12 text-center text-sm text-white/25">Сообщений пока нет</p>
+                ) : (
+                  messages.map((m) => (
+                    <MessageBubble
+                      key={m.id}
+                      msg={m}
+                      orderId={orderId}
+                      onPhotoExpand={setPhotoModal}
+                    />
+                  ))
                 )}
+                <div ref={bottomRef} />
               </div>
-              <span className="ml-auto shrink-0 rounded-full border border-green-500/30 bg-green-500/10 px-2.5 py-0.5 text-xs font-semibold text-green-400">
-                Привязан
-              </span>
-            </div>
 
-            {/* Messages */}
-            <div className="flex-1 overflow-y-auto px-4 py-4">
-              {messages.length === 0 ? (
-                <p className="py-12 text-center text-sm text-white/25">Сообщений пока нет</p>
-              ) : (
-                messages.map((m) => <MessageBubble key={m.id} msg={m} orderId={orderId} />)
-              )}
-              <div ref={bottomRef} />
-            </div>
+              {/* Send box */}
+              <div className="border-t border-white/8 p-3">
+                {sendError && <p className="mb-2 text-xs text-red-400">{sendError}</p>}
+                <form onSubmit={handleSend} className="flex gap-2">
+                  <textarea
+                    className="flex-1 resize-none rounded-xl border border-white/10 bg-white/6 px-3 py-2 text-sm text-white placeholder-white/25 outline-none transition focus:border-cyan-500/40 focus:ring-1 focus:ring-cyan-500/10"
+                    rows={2}
+                    value={text}
+                    onChange={(e) => setText(e.target.value)}
+                    placeholder="Написать сообщение…"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !e.shiftKey) {
+                        e.preventDefault();
+                        handleSend(e);
+                      }
+                    }}
+                  />
+                  <button
+                    type="submit"
+                    disabled={!text.trim() || sending}
+                    className="flex h-full items-center rounded-xl border border-cyan-500/30 bg-cyan-500/15 px-4 text-sm font-semibold text-cyan-400 transition hover:bg-cyan-500/25 disabled:opacity-40"
+                  >
+                    {sending ? "…" : "→"}
+                  </button>
+                </form>
+                <p className="mt-1 text-[10px] text-white/20">
+                  Enter — отправить · Shift+Enter — перенос строки
+                </p>
+              </div>
+            </>
+          ) : (
+            <NotLinkedPanel orderId={orderId} />
+          )}
+        </div>
 
-            {/* Send box */}
-            <div className="border-t border-white/8 p-3">
-              {sendError && (
-                <p className="mb-2 text-xs text-red-400">{sendError}</p>
-              )}
-              <form onSubmit={handleSend} className="flex gap-2">
-                <textarea
-                  className="flex-1 resize-none rounded-xl border border-white/10 bg-white/6 px-3 py-2 text-sm text-white placeholder-white/25 outline-none transition focus:border-cyan-500/40 focus:ring-1 focus:ring-cyan-500/10"
-                  rows={2}
-                  value={text}
-                  onChange={(e) => setText(e.target.value)}
-                  placeholder="Написать сообщение…"
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(e); }
-                  }}
-                />
-                <button
-                  type="submit"
-                  disabled={!text.trim() || sending}
-                  className="flex h-full items-center rounded-xl border border-cyan-500/30 bg-cyan-500/15 px-4 text-sm font-semibold text-cyan-400 transition hover:bg-cyan-500/25 disabled:opacity-40"
-                >
-                  {sending ? "…" : "→"}
-                </button>
-              </form>
-              <p className="mt-1 text-[10px] text-white/20">Enter — отправить · Shift+Enter — перенос строки</p>
-            </div>
-          </>
-        ) : (
-          <NotLinkedPanel orderId={orderId} />
+        {/* ── Context sidebar ── */}
+        {order && (
+          <OrderContextPanel order={order} client={client} projectData={projectData} />
         )}
       </div>
-
-      {/* ── Context sidebar ── */}
-      {order && (
-        <OrderContextPanel order={order} client={client} projectData={projectData} />
-      )}
-    </div>
+    </>
   );
 }
