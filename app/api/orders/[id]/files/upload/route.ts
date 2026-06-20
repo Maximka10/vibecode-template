@@ -57,6 +57,7 @@ export async function POST(
   contentEdits.file_metadata = fileMetadata;
   await admin.from("project_data").upsert({ order_id: id, content_edits: contentEdits }, { onConflict: "order_id" });
 
-  const { data: urlData } = admin.storage.from(BUCKET).getPublicUrl(path);
-  return NextResponse.json({ ok: true, path, url: urlData.publicUrl, metadata: fileMetadata[path] });
+  const { data: signedData } = await admin.storage.from(BUCKET).createSignedUrl(path, 3600);
+  const url = signedData?.signedUrl ?? admin.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
+  return NextResponse.json({ ok: true, path, url, metadata: fileMetadata[path] });
 }

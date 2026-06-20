@@ -1,3 +1,5 @@
+import { formatWorkingHours } from "@/lib/utils/workingHours";
+
 export type BuildData = {
   meta: {
     template_id: string;
@@ -90,7 +92,7 @@ export function buildOrderSite(
       name: ce.hero?.title || pd.company_name || order.template_name || "Компания",
       description: ce.hero?.subtitle || pd.company_description || "",
       address: pd.address ?? "",
-      working_hours: pd.working_hours ?? "",
+      working_hours: formatWorkingHours(pd.working_hours) || (pd.working_hours ?? ""),
     },
     contacts: {
       phone: pd.phone ?? "",

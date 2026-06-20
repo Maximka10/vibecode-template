@@ -1,5 +1,6 @@
 import { BuildData } from "@/lib/build/buildOrderSite";
 import { SiteSection } from "@/types/sections";
+import { formatWorkingHours } from "@/lib/utils/workingHours";
 
 type PreviewDevice = "desktop" | "mobile";
 
@@ -216,7 +217,7 @@ function SectionContacts({ content, primary }: { content: Record<string, unknown
     content.telegram && { icon: "💬", label: "Telegram", value: s(content.telegram) },
     content.whatsapp && { icon: "📱", label: "WhatsApp", value: s(content.whatsapp) },
     content.address && { icon: "📍", label: "Адрес", value: s(content.address) },
-    content.working_hours && { icon: "🕐", label: "Режим работы", value: s(content.working_hours) },
+    content.working_hours && { icon: "🕐", label: "Режим работы", value: formatWorkingHours(s(content.working_hours)) || s(content.working_hours) },
   ].filter(Boolean) as { icon: string; label: string; value: string }[];
 
   return (

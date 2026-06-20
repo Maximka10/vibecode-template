@@ -519,18 +519,39 @@ export default function CTA({ section }: { section: SiteSection }) {
 
   contacts: () => `import { SiteSection } from "@/types";
 
+function fmtHours(raw?: string | null): string {
+  if (!raw) return "";
+  try {
+    const s = JSON.parse(raw) as Record<string, { open: string; close: string; closed: boolean }>;
+    if (!s.mon) return raw;
+    const DAYS = ["mon","tue","wed","thu","fri","sat","sun"] as const;
+    const LABELS: Record<string, string> = { mon:"Пн",tue:"Вт",wed:"Ср",thu:"Чт",fri:"Пт",sat:"Сб",sun:"Вс" };
+    const groups: string[] = [];
+    let i = 0;
+    while (i < DAYS.length) {
+      const key = DAYS[i]; const day = s[key]; let j = i + 1;
+      while (j < DAYS.length) { const n = s[DAYS[j]]; if (n.closed !== day.closed || n.open !== day.open || n.close !== day.close) break; j++; }
+      const range = j - i > 1 ? \`\${LABELS[DAYS[i]]}–\${LABELS[DAYS[j-1]]}\` : LABELS[key];
+      groups.push(day.closed ? \`\${range}: выходной\` : \`\${range}: \${day.open}–\${day.close}\`);
+      i = j;
+    }
+    return groups.join(", ");
+  } catch { return raw; }
+}
+
 export default function Contacts({ section }: { section: SiteSection }) {
   const { title, phone, email, telegram, whatsapp, address, working_hours } = section.content as {
     title?: string; phone?: string; email?: string; telegram?: string; whatsapp?: string;
     address?: string; working_hours?: string;
   };
+  const hoursDisplay = fmtHours(working_hours);
   const items = [
     phone && { icon: "📞", label: "Телефон", value: phone, href: \`tel:\${phone}\` },
     email && { icon: "✉️", label: "Email", value: email, href: \`mailto:\${email}\` },
     telegram && { icon: "💬", label: "Telegram", value: telegram, href: \`https://t.me/\${telegram.replace("@", "")}\` },
     whatsapp && { icon: "📱", label: "WhatsApp", value: whatsapp, href: \`https://wa.me/\${whatsapp.replace(/[^0-9]/g, "")}\` },
     address && { icon: "📍", label: "Адрес", value: address, href: null },
-    working_hours && { icon: "🕐", label: "Режим работы", value: working_hours, href: null },
+    hoursDisplay && { icon: "🕐", label: "Режим работы", value: hoursDisplay, href: null },
   ].filter(Boolean) as { icon: string; label: string; value: string; href: string | null }[];
 
   return (

@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Btn } from "@/components/ui/Btn";
 import { Card } from "@/components/ui/Card";
 import { BuildData } from "@/lib/build/buildOrderSite";
+import { SiteSection } from "@/types/sections";
 import SitePreview from "@/components/admin/workspace/SitePreview";
 
 type SiteBuild = {
@@ -16,18 +17,30 @@ type SiteBuild = {
   created_at: string;
 };
 
+type DeviceMode = "desktop" | "mobile";
+
 export default function PreviewTab({ orderId }: { orderId: string }) {
   const [build, setBuild] = useState<SiteBuild | null>(null);
+  const [sections, setSections] = useState<SiteSection[]>([]);
   const [loading, setLoading] = useState(true);
   const [building, setBuilding] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [device, setDevice] = useState<DeviceMode>("desktop");
 
   async function loadBuild() {
     setLoading(true);
     try {
-      const res = await fetch(`/api/orders/${orderId}/build`);
-      const data = await res.json();
-      if (data.ok) setBuild(data.build);
+      const [buildRes, pdRes] = await Promise.all([
+        fetch(`/api/orders/${orderId}/build`),
+        fetch(`/api/orders/${orderId}/project-data`),
+      ]);
+      const buildData = await buildRes.json();
+      const pdData = await pdRes.json();
+      if (buildData.ok) setBuild(buildData.build);
+      if (pdData.ok) {
+        const sects: SiteSection[] = pdData.data?.content_edits?.sections ?? [];
+        setSections(sects);
+      }
     } finally {
       setLoading(false);
     }
@@ -53,6 +66,10 @@ export default function PreviewTab({ orderId }: { orderId: string }) {
     }
   }
 
+  const previewUrl = build
+    ? `/api/orders/${orderId}/build`
+    : undefined;
+
   return (
     <div className="space-y-5">
       {/* Toolbar */}
@@ -65,7 +82,21 @@ export default function PreviewTab({ orderId }: { orderId: string }) {
             </p>
           )}
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          {/* Device toggle */}
+          <div className="flex rounded-xl border border-white/10 overflow-hidden">
+            {(["desktop", "mobile"] as DeviceMode[]).map((d) => (
+              <button
+                key={d}
+                onClick={() => setDevice(d)}
+                className={`px-3 py-1.5 text-xs font-semibold transition ${
+                  device === d ? "bg-white/10 text-white" : "text-white/40 hover:text-white/60"
+                }`}
+              >
+                {d === "desktop" ? "🖥 Desktop" : "📱 Mobile"}
+              </button>
+            ))}
+          </div>
           {build && (
             <Btn variant="ghost" size="sm" onClick={loadBuild}>
               ↺ Обновить
@@ -83,6 +114,12 @@ export default function PreviewTab({ orderId }: { orderId: string }) {
         </div>
       )}
 
+      {sections.length === 0 && !loading && (
+        <div className="rounded-xl border border-yellow-500/20 bg-yellow-500/8 px-4 py-2 text-xs text-yellow-300">
+          Секции не настроены. Перейдите во вкладку «Разработка» для добавления секций.
+        </div>
+      )}
+
       {loading ? (
         <p className="py-12 text-center text-sm text-white/30">Загрузка…</p>
       ) : build ? (
@@ -92,7 +129,7 @@ export default function PreviewTab({ orderId }: { orderId: string }) {
             {[
               { label: "Шаблон", value: build.build_data.meta.template_name || build.build_data.meta.template_id },
               { label: "Версия", value: `#${build.version}` },
-              { label: "Услуг", value: build.build_data.services.length },
+              { label: "Секций", value: sections.filter((s) => s.enabled !== false).length || "—" },
               { label: "Домен", value: build.build_data.content.domain_name || "—" },
             ].map((s) => (
               <Card key={s.label} variant="solid" padding="sm">
@@ -131,16 +168,31 @@ export default function PreviewTab({ orderId }: { orderId: string }) {
             </div>
           </Card>
 
-          {/* Preview */}
-          <SitePreview data={build.build_data} />
+          {/* Full-page preview */}
+          <div className="relative">
+            <div className={`transition-all duration-300 ${device === "mobile" ? "max-w-[390px] mx-auto" : ""}`}>
+              <SitePreview
+                data={build.build_data}
+                sections={sections.length > 0 ? sections : undefined}
+                device={device}
+              />
+            </div>
+          </div>
 
           <div className="flex gap-2">
-            <Btn variant="outline" size="sm" onClick={() => alert("Будет реализовано на следующем этапе")}>
+            <Btn
+              variant="outline"
+              size="sm"
+              href={`/api/orders/${orderId}/export-zip`}
+              external
+            >
               ↓ Скачать ZIP
             </Btn>
-            <Btn variant="ghost" size="sm" onClick={() => alert("Будет реализовано на следующем этапе")}>
-              Деплой на Vercel
-            </Btn>
+            {previewUrl && (
+              <Btn variant="ghost" size="sm" onClick={() => window.open(`/preview/${build.build_data.meta.template_id}`, "_blank")}>
+                Открыть шаблон ↗
+              </Btn>
+            )}
           </div>
         </>
       ) : (

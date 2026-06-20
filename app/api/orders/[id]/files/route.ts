@@ -29,12 +29,20 @@ export async function GET(
 
     if (error || !data) { results[folder] = []; continue; }
 
-    results[folder] = data.map((f) => {
-      const path = `${id}/${folder}/${f.name}`;
-      const { data: urlData } = admin.storage.from(BUCKET).getPublicUrl(path);
+    const paths = data.map((f) => `${id}/${folder}/${f.name}`);
+    const { data: signed } = await admin.storage.from(BUCKET).createSignedUrls(paths, 3600);
+    const urlMap: Record<string, string> = {};
+    for (const s of signed ?? []) {
+      if (s.signedUrl && s.path) urlMap[s.path] = s.signedUrl;
+    }
+
+    results[folder] = data.map((f, idx) => {
+      const path = paths[idx];
+      // Fall back to public URL if signed URL is unavailable
+      const url = urlMap[path] ?? admin.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
       return {
         name: f.name,
-        url: urlData.publicUrl,
+        url,
         size: f.metadata?.size as number | undefined,
         created_at: f.created_at ?? undefined,
         path,

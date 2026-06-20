@@ -445,6 +445,7 @@ export default function DevelopmentTab({ orderId, order }: { orderId: string; or
   const [showSaveTemplate, setShowSaveTemplate] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [aiDisabled, setAiDisabled] = useState(false);
+  const [applyingMaterials, setApplyingMaterials] = useState(false);
 
   useEffect(() => {
     fetch(`/api/orders/${orderId}/project-data`)
@@ -587,6 +588,42 @@ export default function DevelopmentTab({ orderId, order }: { orderId: string; or
     setGenerating(false);
   }
 
+  // ── Auto-assign materials by type ─────────────────────────────────────────
+  async function handleApplyMaterials() {
+    setApplyingMaterials(true);
+    try {
+      const res = await fetch(`/api/orders/${orderId}/files`);
+      const data = await res.json();
+      if (!data.ok) return;
+      const allFiles: { name: string; url: string; metadata?: { type?: string } }[] = [
+        ...(data.files.logo ?? []),
+        ...(data.files.photos ?? []),
+        ...(data.files.documents ?? []),
+      ];
+      const byType: Record<string, string[]> = {};
+      for (const f of allFiles) {
+        const t = f.metadata?.type || "other";
+        if (!byType[t]) byType[t] = [];
+        byType[t].push(f.url);
+      }
+      setSections((prev) => prev.map((sec) => {
+        if (sec.type === "gallery" && byType.gallery?.length) {
+          return { ...sec, content: { ...sec.content, images: byType.gallery } };
+        }
+        if (sec.type === "hero" && byType.hero?.length) {
+          return { ...sec, content: { ...sec.content, heroImage: byType.hero[0] } };
+        }
+        if (sec.type === "about" && byType.team?.length) {
+          return { ...sec, content: { ...sec.content, image: byType.team[0] } };
+        }
+        return sec;
+      }));
+      setDirty(true);
+    } finally {
+      setApplyingMaterials(false);
+    }
+  }
+
   // ── Save as template ──────────────────────────────────────────────────────
   async function handleSaveTemplate() {
     if (!templateName.trim() || sections.length === 0) return;
@@ -617,6 +654,9 @@ export default function DevelopmentTab({ orderId, order }: { orderId: string; or
               {generating ? "Генерация…" : "✨ Сгенерировать контент"}
             </Btn>
           )}
+          <Btn onClick={handleApplyMaterials} disabled={applyingMaterials} loading={applyingMaterials} variant="ghost" size="sm">
+            {applyingMaterials ? "Применение…" : "🖼 Применить материалы"}
+          </Btn>
           <Btn onClick={() => setShowSaveTemplate(true)} variant="ghost" size="sm" disabled={sections.length === 0}>
             💾 Сохранить как шаблон
           </Btn>
