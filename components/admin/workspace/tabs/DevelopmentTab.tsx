@@ -271,17 +271,41 @@ function SectionEditor({
     }
     case "gallery": {
       const images = (c.images as string[]) ?? [];
+      const displayMode = (c.display_mode as string) ?? "contain";
       return (
         <div className="space-y-3">
           <Field label="Заголовок"><input className={FIELD_CLS} value={String(c.title ?? "")} onChange={(e) => set("title", e.target.value)} /></Field>
-          <Field label="URL изображений (каждый с новой строки)">
-            <textarea
-              className={`${FIELD_CLS} resize-none font-mono`}
-              rows={4}
-              value={images.join("\n")}
-              onChange={(e) => set("images", e.target.value.split("\n").map((s) => s.trim()).filter(Boolean))}
-              placeholder="https://..."
-            />
+          <Field label="Режим отображения">
+            <div className="flex gap-2">
+              {(["contain", "cover"] as const).map((mode) => (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => set("display_mode", mode)}
+                  className={`rounded-lg border px-3 py-1.5 text-xs font-semibold transition ${displayMode === mode ? "border-cyan-500/50 bg-cyan-500/15 text-cyan-300" : "border-white/10 bg-white/5 text-white/40 hover:text-white/70"}`}
+                >
+                  {mode === "contain" ? "Вписать (Contain)" : "Обрезать (Cover)"}
+                </button>
+              ))}
+            </div>
+          </Field>
+          <Field label="Изображения">
+            {images.length > 0 && (
+              <div className="mb-2 space-y-1.5">
+                {images.map((img, i) => (
+                  <div key={i} className="flex items-center gap-2 rounded-lg border border-white/8 bg-white/4 p-1.5">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={img} alt="" className="h-10 w-14 shrink-0 rounded object-cover" onError={(e) => { (e.target as HTMLImageElement).style.opacity = "0.3"; }} />
+                    <span className="flex-1 truncate font-mono text-[10px] text-white/40">{img.split("/").pop()}</span>
+                    <div className="flex shrink-0 gap-0.5">
+                      <button type="button" disabled={i === 0} onClick={() => { const a = [...images]; [a[i-1], a[i]] = [a[i], a[i-1]]; set("images", a); }} className="rounded p-1 text-white/30 hover:text-white disabled:opacity-20">↑</button>
+                      <button type="button" disabled={i === images.length - 1} onClick={() => { const a = [...images]; [a[i], a[i+1]] = [a[i+1], a[i]]; set("images", a); }} className="rounded p-1 text-white/30 hover:text-white disabled:opacity-20">↓</button>
+                      <button type="button" onClick={() => set("images", images.filter((_, j) => j !== i))} className="rounded p-1 text-red-400/60 hover:text-red-400">✕</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
             <GalleryPicker
               orderId={orderId}
               onPick={(url) => set("images", [...images, url])}

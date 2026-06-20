@@ -331,7 +331,10 @@ export default function Services({ section }: { section: SiteSection }) {
 }
 `,
 
-  gallery: (_s, _site) => `import { SiteSection } from "@/types";
+  gallery: (s, _site) => {
+    const displayMode = (s.content as { display_mode?: string }).display_mode ?? "contain";
+    const objFit = displayMode === "cover" ? "object-cover" : "object-contain";
+    return `import { SiteSection } from "@/types";
 import Image from "next/image";
 
 export default function Gallery({ section }: { section: SiteSection }) {
@@ -347,7 +350,7 @@ export default function Gallery({ section }: { section: SiteSection }) {
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {images.map((src, i) => (
             <div key={i} className="relative aspect-video overflow-hidden rounded-2xl bg-slate-100 transition hover:scale-[1.01]">
-              <Image src={src} alt={\`Фото \${i + 1}\`} fill className="object-cover" />
+              <Image src={src} alt={\`Фото \${i + 1}\`} fill className="${objFit}" />
             </div>
           ))}
         </div>
@@ -355,7 +358,8 @@ export default function Gallery({ section }: { section: SiteSection }) {
     </section>
   );
 }
-`,
+`;
+  },
 
   reviews: (_s, _site) => `import { SiteSection } from "@/types";
 
