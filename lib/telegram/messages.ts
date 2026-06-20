@@ -12,7 +12,29 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendMessage } from "./bot";
 import { processMedia } from "./media";
-import { after } from "next/server";
+
+// Kick off media processing as a separate serverless invocation.
+// after() is unreliable on Vercel — the execution context is torn down
+// before outbound HTTP calls (getFile + download + upload) complete.
+function dispatchMediaProcessing(input: Parameters<typeof processMedia>[0]): void {
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL;
+  if (!baseUrl) {
+    // Fallback: best-effort in-process (works locally, may be killed on Vercel)
+    void processMedia(input);
+    return;
+  }
+  const secret = process.env.TELEGRAM_WEBHOOK_SECRET;
+  fetch(`${baseUrl}/api/internal/process-media`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(secret ? { "x-internal-secret": secret } : {}),
+    },
+    body: JSON.stringify(input),
+  }).catch((err: unknown) => {
+    console.error("[tg/messages] dispatchMediaProcessing fetch failed:", err);
+  });
+}
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -290,11 +312,11 @@ export async function handleUpdate(update: TgUpdate): Promise<void> {
       metadata: meta,
     });
     if (photoId) {
-      after(() => processMedia({
+      dispatchMediaProcessing({
         messageId: photoId, orderId,
         fileId: largest.file_id, fileUniqueId: largest.file_unique_id,
         messageType: "photo", metadata: meta,
-      }));
+      });
     }
     return;
   }
@@ -310,11 +332,11 @@ export async function handleUpdate(update: TgUpdate): Promise<void> {
       metadata: meta,
     });
     if (docId) {
-      after(() => processMedia({
+      dispatchMediaProcessing({
         messageId: docId, orderId,
         fileId: d.file_id, fileUniqueId: d.file_unique_id,
         messageType: "document", metadata: meta,
-      }));
+      });
     }
     return;
   }
@@ -329,11 +351,11 @@ export async function handleUpdate(update: TgUpdate): Promise<void> {
       metadata: meta,
     });
     if (voiceId) {
-      after(() => processMedia({
+      dispatchMediaProcessing({
         messageId: voiceId, orderId,
         fileId: v.file_id, fileUniqueId: v.file_unique_id,
         messageType: "voice", metadata: meta,
-      }));
+      });
     }
     return;
   }
@@ -349,11 +371,11 @@ export async function handleUpdate(update: TgUpdate): Promise<void> {
       metadata: meta,
     });
     if (videoId) {
-      after(() => processMedia({
+      dispatchMediaProcessing({
         messageId: videoId, orderId,
         fileId: v.file_id, fileUniqueId: v.file_unique_id,
         messageType: "video", metadata: meta,
-      }));
+      });
     }
     return;
   }
@@ -368,11 +390,11 @@ export async function handleUpdate(update: TgUpdate): Promise<void> {
       metadata: meta,
     });
     if (vnId) {
-      after(() => processMedia({
+      dispatchMediaProcessing({
         messageId: vnId, orderId,
         fileId: vn.file_id, fileUniqueId: vn.file_unique_id,
         messageType: "video_note", metadata: meta,
-      }));
+      });
     }
     return;
   }
