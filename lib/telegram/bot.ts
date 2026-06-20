@@ -5,21 +5,26 @@
  * All functions are fire-and-forget safe (never throw, log on failure).
  */
 
-const BASE = () => {
-  const token = process.env.TELEGRAM_BOT_TOKEN;
-  if (!token) throw new Error("[telegram/bot] TELEGRAM_BOT_TOKEN not set");
-  return `https://api.telegram.org/bot${token}`;
-};
+const getToken = (): string | null => process.env.TELEGRAM_BOT_TOKEN ?? null;
 
-type TelegramResponse = { ok: boolean; result?: unknown; description?: string };
+type TelegramResponse = { ok: boolean; result?: unknown; description?: string; error_code?: number };
 
 async function callBot(method: string, body: Record<string, unknown>): Promise<TelegramResponse> {
-  const res = await fetch(`${BASE()}/${method}`, {
+  const token = getToken();
+  if (!token) {
+    console.error("[telegram/bot] TELEGRAM_BOT_TOKEN is not set");
+    return { ok: false, description: "TELEGRAM_BOT_TOKEN not set" };
+  }
+  const url = `https://api.telegram.org/bot${token}/${method}`;
+  console.log(`[telegram/bot] callBot ${method} chat_id=${String(body.chat_id ?? "")}`);
+  const res = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
-  return res.json() as Promise<TelegramResponse>;
+  const json = await res.json() as TelegramResponse;
+  console.log(`[telegram/bot] ${method} response ok=${json.ok} error_code=${json.error_code ?? "-"} description=${json.description ?? "-"}`);
+  return json;
 }
 
 /** Send a plain-text or Markdown message to a chat. Returns Telegram message_id or null. */
@@ -38,10 +43,10 @@ export async function sendMessage(
     if (r.ok && r.result && typeof r.result === "object") {
       return (r.result as { message_id: number }).message_id ?? null;
     }
-    console.error("[telegram/bot] sendMessage failed — ok:", r.ok, "description:", r.description);
+    console.error("[telegram/bot] sendMessage failed — ok:", r.ok, "error_code:", r.error_code, "description:", r.description);
     return null;
   } catch (err) {
-    console.error("[telegram/bot] sendMessage error:", err instanceof Error ? err.message : err);
+    console.error("[telegram/bot] sendMessage threw:", err instanceof Error ? err.message : String(err));
     return null;
   }
 }

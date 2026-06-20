@@ -26,9 +26,15 @@ export async function POST(req: NextRequest) {
   if (!order_id || typeof order_id !== "string") return NextResponse.json({ ok: false, error: "order_id required" }, { status: 400 });
   if (!text || typeof text !== "string" || !text.trim()) return NextResponse.json({ ok: false, error: "text required" }, { status: 400 });
 
-  const admin = createAdminClient();
+  const hasToken = !!process.env.TELEGRAM_BOT_TOKEN;
+  console.log(`[telegram/send] start — order_id=${order_id} text_len=${text.trim().length} has_token=${hasToken}`);
 
-  console.log(`[telegram/send] order_id=${order_id} text_len=${text.trim().length}`);
+  if (!hasToken) {
+    console.error("[telegram/send] TELEGRAM_BOT_TOKEN is not configured");
+    return NextResponse.json({ ok: false, error: "Bot token not configured" }, { status: 500 });
+  }
+
+  const admin = createAdminClient();
 
   // Fetch order + linked client (join telegram_clients for chat_id)
   const { data: order, error: orderErr } = await admin
