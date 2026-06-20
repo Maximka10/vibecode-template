@@ -16,6 +16,7 @@
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { acquireLock, releaseLock, guardTransition } from "./orderGuard";
+import { sendClientStatusNotification } from "@/lib/telegram/bot";
 
 // ── Re-export types so consumers import from one place ───────────────────────
 
@@ -141,7 +142,7 @@ export async function transitionOrder(input: TransitionInput): Promise<Transitio
     const { data: order, error: fetchError } = await admin
       .from("orders")
       .select(
-        "id, status, user_id, template_id, template_name, total_price"
+        "id, status, user_id, template_id, template_name, total_price, telegram_chat_id, project_url"
       )
       .eq("id", orderId)
       .single();
@@ -199,6 +200,17 @@ export async function transitionOrder(input: TransitionInput): Promise<Transitio
     sendTelegramNotification(order, action, rule.to).catch((err) => {
       console.error("[orderWorkflow] Telegram threw unexpectedly:", err);
     });
+
+    // Send client notification if their Telegram is linked
+    if (order.telegram_chat_id) {
+      sendClientStatusNotification(
+        order.telegram_chat_id as number,
+        rule.to,
+        order.project_url as string | null
+      ).catch((err) => {
+        console.error("[orderWorkflow] Client Telegram notification failed:", err);
+      });
+    }
 
     return { ok: true, orderId, status: rule.to, previousStatus };
   } finally {
