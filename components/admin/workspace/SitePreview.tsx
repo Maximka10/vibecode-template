@@ -76,9 +76,9 @@ function SectionHero({ content, primary, secondary, contactLink }: { content: Re
 
 function SectionAbout({ content, primary }: { content: Record<string, unknown>; primary: string }) {
   return (
-    <div className="px-8 py-14 bg-white border-b border-slate-100">
+    <div className="px-4 py-12 bg-white border-b border-slate-100 sm:px-8 sm:py-14">
       <div className="mb-3 h-1 w-10 rounded-full" style={{ backgroundColor: primary }} />
-      {!!content.title && <h2 className="mb-5 text-2xl font-black text-slate-900">{s(content.title)}</h2>}
+      {!!content.title && <h2 className="mb-4 text-xl font-black text-slate-900 sm:mb-5 sm:text-2xl">{s(content.title)}</h2>}
       {!!content.text && <p className="text-sm leading-relaxed text-slate-600 whitespace-pre-line max-w-3xl">{s(content.text)}</p>}
     </div>
   );
@@ -87,19 +87,19 @@ function SectionAbout({ content, primary }: { content: Record<string, unknown>; 
 function SectionServices({ content, primary }: { content: Record<string, unknown>; primary: string }) {
   const items = (content.items as string[]) ?? [];
   return (
-    <div className="px-8 py-14 bg-slate-50 border-b border-slate-100">
+    <div className="px-4 py-12 bg-slate-50 border-b border-slate-100 sm:px-8 sm:py-14">
       <div className="mb-3 h-1 w-10 rounded-full" style={{ backgroundColor: primary }} />
-      {!!content.title && <h2 className="mb-7 text-2xl font-black text-slate-900">{s(content.title)}</h2>}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {!!content.title && <h2 className="mb-6 text-xl font-black text-slate-900 sm:mb-7 sm:text-2xl">{s(content.title)}</h2>}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {items.map((item, i) => (
-          <div key={i} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div key={i} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
             <div
-              className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl text-lg text-white"
+              className="mb-3 flex h-9 w-9 items-center justify-center rounded-xl text-base text-white sm:h-10 sm:w-10 sm:text-lg"
               style={{ backgroundColor: primary }}
             >
               {ICONS[i % ICONS.length]}
             </div>
-            <p className="font-bold text-slate-800 leading-snug">{item}</p>
+            <p className="text-sm font-bold text-slate-800 leading-snug sm:text-base">{item}</p>
           </div>
         ))}
       </div>
@@ -108,24 +108,40 @@ function SectionServices({ content, primary }: { content: Record<string, unknown
 }
 
 function SectionGallery({ content }: { content: Record<string, unknown> }) {
-  const images = (content.images as string[]) ?? [];
+  type GalleryImg = { url: string; title?: string; description?: string; main?: boolean };
+  const rawImages = (content.images as (string | GalleryImg)[]) ?? [];
+  const images: GalleryImg[] = rawImages.map((i) => typeof i === "string" ? { url: i } : i);
   const displayMode = (content.display_mode as string) ?? "contain";
   const imgClass = displayMode === "cover" ? "object-cover" : "object-contain bg-slate-50";
+  const mainImg = images.find((i) => i.main) ?? images[0];
   return (
-    <div className="px-8 py-14 bg-white border-b border-slate-100">
-      {!!content.title && <h2 className="mb-7 text-2xl font-black text-slate-900">{s(content.title)}</h2>}
+    <div className="px-4 py-12 bg-white border-b border-slate-100 sm:px-8 sm:py-14">
+      {!!content.title && <h2 className="mb-6 text-xl font-black text-slate-900 sm:mb-7 sm:text-2xl">{s(content.title)}</h2>}
       {images.length > 0 ? (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {images.map((img, i) => (
+        <div className="space-y-3">
+          {mainImg && (
             // eslint-disable-next-line @next/next/no-img-element
             <img
-              key={i}
-              src={img}
-              alt=""
-              className={`rounded-2xl w-full aspect-video ${imgClass}`}
+              src={mainImg.url}
+              alt={mainImg.title ?? ""}
+              className={`w-full rounded-2xl aspect-video ${imgClass}`}
               onError={(e) => { (e.target as HTMLImageElement).src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='128'%3E%3Crect width='200' height='128' rx='16' fill='%23f1f5f9'/%3E%3Ctext x='50%25' y='55%25' dominant-baseline='middle' text-anchor='middle' font-size='32' fill='%23cbd5e1'%3E🖼%3C/text%3E%3C/svg%3E"; }}
             />
-          ))}
+          )}
+          {images.length > 1 && (
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
+              {images.filter((_, i) => !(images[0] === mainImg ? i === 0 : images.indexOf(mainImg) === i)).slice(0, 8).map((img, i) => (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  key={i}
+                  src={img.url}
+                  alt={img.title ?? ""}
+                  className={`w-full rounded-xl aspect-square ${imgClass}`}
+                  onError={(e) => { (e.target as HTMLImageElement).src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Crect width='100' height='100' rx='12' fill='%23f1f5f9'/%3E%3Ctext x='50%25' y='55%25' dominant-baseline='middle' text-anchor='middle' font-size='24' fill='%23cbd5e1'%3E🖼%3C/text%3E%3C/svg%3E"; }}
+                />
+              ))}
+            </div>
+          )}
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -141,10 +157,10 @@ function SectionGallery({ content }: { content: Record<string, unknown> }) {
 function SectionReviews({ content, primary }: { content: Record<string, unknown>; primary: string }) {
   const items = (content.items as { author: string; text: string; rating: number }[]) ?? [];
   return (
-    <div className="px-8 py-14 bg-slate-50 border-b border-slate-100">
+    <div className="px-4 py-12 bg-slate-50 border-b border-slate-100 sm:px-8 sm:py-14">
       <div className="mb-3 h-1 w-10 rounded-full" style={{ backgroundColor: primary }} />
-      {!!content.title && <h2 className="mb-7 text-2xl font-black text-slate-900">{s(content.title)}</h2>}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      {!!content.title && <h2 className="mb-6 text-xl font-black text-slate-900 sm:mb-7 sm:text-2xl">{s(content.title)}</h2>}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {items.map((r, i) => (
           <div key={i} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
             <div className="flex gap-0.5">
@@ -188,10 +204,10 @@ function SectionPricing({ content, primary, contactLink }: { content: Record<str
   const plans = (content.plans as { name: string; price: string; features: string[] }[]) ?? [];
   const href = resolveCtaHref(s(content.contact_link) || contactLink);
   return (
-    <div className="px-8 py-14 bg-slate-50 border-b border-slate-100">
+    <div className="px-4 py-12 bg-slate-50 border-b border-slate-100 sm:px-8 sm:py-14">
       <div className="mb-3 h-1 w-10 rounded-full" style={{ backgroundColor: primary }} />
-      {!!content.title && <h2 className="mb-7 text-2xl font-black text-slate-900">{s(content.title)}</h2>}
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
+      {!!content.title && <h2 className="mb-6 text-xl font-black text-slate-900 sm:mb-7 sm:text-2xl">{s(content.title)}</h2>}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         {plans.map((p, i) => (
           <div
             key={i}

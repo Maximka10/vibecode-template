@@ -264,8 +264,15 @@ function SectionEditor({
       );
     }
     case "gallery": {
-      const images = (c.images as string[]) ?? [];
+      type GalleryImg = { url: string; title?: string; description?: string; notes?: string; main?: boolean };
+      const rawImages = (c.images as (string | GalleryImg)[]) ?? [];
+      const images: GalleryImg[] = rawImages.map((i) => typeof i === "string" ? { url: i } : i);
       const displayMode = (c.display_mode as string) ?? "contain";
+      const [expandedIdx, setExpandedIdx] = useState<number | null>(null);
+      function updateImg(idx: number, patch: Partial<GalleryImg>) {
+        const next = images.map((im, j) => j === idx ? { ...im, ...patch } : im);
+        set("images", next);
+      }
       return (
         <div className="space-y-3">
           <Field label="Заголовок"><input className={FIELD_CLS} value={String(c.title ?? "")} onChange={(e) => set("title", e.target.value)} /></Field>
@@ -287,22 +294,33 @@ function SectionEditor({
             {images.length > 0 && (
               <div className="mb-2 space-y-1.5">
                 {images.map((img, i) => (
-                  <div key={i} className="flex items-center gap-2 rounded-lg border border-white/8 bg-white/4 p-1.5">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={img} alt="" className="h-10 w-14 shrink-0 rounded object-cover" onError={(e) => { (e.target as HTMLImageElement).style.opacity = "0.3"; }} />
-                    <span className="flex-1 truncate font-mono text-[10px] text-white/40">{img.split("/").pop()}</span>
-                    <div className="flex shrink-0 gap-0.5">
-                      <button type="button" disabled={i === 0} onClick={() => { const a = [...images]; [a[i-1], a[i]] = [a[i], a[i-1]]; set("images", a); }} className="rounded p-1 text-white/30 hover:text-white disabled:opacity-20">↑</button>
-                      <button type="button" disabled={i === images.length - 1} onClick={() => { const a = [...images]; [a[i], a[i+1]] = [a[i+1], a[i]]; set("images", a); }} className="rounded p-1 text-white/30 hover:text-white disabled:opacity-20">↓</button>
-                      <button type="button" onClick={() => set("images", images.filter((_, j) => j !== i))} className="rounded p-1 text-red-400/60 hover:text-red-400">✕</button>
+                  <div key={i} className="rounded-lg border border-white/8 bg-white/4">
+                    <div className="flex items-center gap-2 p-1.5">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={img.url} alt="" className="h-10 w-14 shrink-0 rounded object-cover" onError={(e) => { (e.target as HTMLImageElement).style.opacity = "0.3"; }} />
+                      <button type="button" title="Главное фото" onClick={() => updateImg(i, { main: !img.main })} className={`text-base shrink-0 ${img.main ? "opacity-100" : "opacity-20 hover:opacity-60"}`}>⭐</button>
+                      <span className="flex-1 truncate font-mono text-[10px] text-white/40">{img.title || img.url.split("/").pop()}</span>
+                      <button type="button" onClick={() => setExpandedIdx(expandedIdx === i ? null : i)} className="rounded p-1 text-xs text-white/30 hover:text-white">✏</button>
+                      <div className="flex shrink-0 gap-0.5">
+                        <button type="button" disabled={i === 0} onClick={() => { const a = [...images]; [a[i-1], a[i]] = [a[i], a[i-1]]; set("images", a); }} className="rounded p-1 text-white/30 hover:text-white disabled:opacity-20">↑</button>
+                        <button type="button" disabled={i === images.length - 1} onClick={() => { const a = [...images]; [a[i], a[i+1]] = [a[i+1], a[i]]; set("images", a); }} className="rounded p-1 text-white/30 hover:text-white disabled:opacity-20">↓</button>
+                        <button type="button" onClick={() => { set("images", images.filter((_, j) => j !== i)); if (expandedIdx === i) setExpandedIdx(null); }} className="rounded p-1 text-red-400/60 hover:text-red-400">✕</button>
+                      </div>
                     </div>
+                    {expandedIdx === i && (
+                      <div className="space-y-2 border-t border-white/8 px-2 pb-2 pt-2">
+                        <input className={`${FIELD_CLS} text-xs`} value={img.title ?? ""} onChange={(e) => updateImg(i, { title: e.target.value })} placeholder="Название фото" />
+                        <input className={`${FIELD_CLS} text-xs`} value={img.description ?? ""} onChange={(e) => updateImg(i, { description: e.target.value })} placeholder="Описание" />
+                        <input className={`${FIELD_CLS} text-xs`} value={img.notes ?? ""} onChange={(e) => updateImg(i, { notes: e.target.value })} placeholder="Примечание по размещению" />
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
             )}
             <GalleryPicker
               orderId={orderId}
-              onPick={(url) => set("images", [...images, url])}
+              onPick={(url) => set("images", [...images, { url }])}
             />
           </Field>
         </div>

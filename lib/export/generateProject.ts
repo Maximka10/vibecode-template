@@ -343,9 +343,14 @@ export default function Services({ section }: { section: SiteSection }) {
     return `import { SiteSection } from "@/types";
 import Image from "next/image";
 
+type GalleryImg = { url: string; title?: string; description?: string; main?: boolean };
+
 export default function Gallery({ section }: { section: SiteSection }) {
-  const { title, images } = section.content as { title?: string; images?: string[] };
-  if (!images?.length) return null;
+  const { title, images: rawImages } = section.content as { title?: string; images?: (string | GalleryImg)[] };
+  if (!rawImages?.length) return null;
+  const images: GalleryImg[] = rawImages.map((i) => typeof i === "string" ? { url: i } : i);
+  const mainImg = images.find((i) => i.main) ?? images[0];
+  const rest = images.filter((i) => i !== mainImg);
   return (
     <section className="px-4 py-20 bg-white sm:px-6 lg:px-8" id="gallery">
       <div className="mx-auto max-w-5xl">
@@ -353,12 +358,21 @@ export default function Gallery({ section }: { section: SiteSection }) {
         {title && (
           <h2 className="mb-10 text-2xl font-black text-slate-900 sm:text-3xl lg:text-4xl">{title}</h2>
         )}
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {images.map((src, i) => (
-            <div key={i} className="relative aspect-video overflow-hidden rounded-2xl bg-slate-100 transition hover:scale-[1.01]">
-              <Image src={src} alt={\`Фото \${i + 1}\`} fill className="${objFit}" />
+        <div className="space-y-3">
+          {mainImg && (
+            <div className="relative aspect-video w-full overflow-hidden rounded-2xl bg-slate-100">
+              <Image src={mainImg.url} alt={mainImg.title ?? title ?? "Галерея"} fill className="${objFit}" />
             </div>
-          ))}
+          )}
+          {rest.length > 0 && (
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
+              {rest.slice(0, 8).map((img, i) => (
+                <div key={i} className="relative aspect-square overflow-hidden rounded-xl bg-slate-100 transition hover:scale-[1.02]">
+                  <Image src={img.url} alt={img.title ?? \`Фото \${i + 2}\`} fill className="${objFit}" />
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </section>
