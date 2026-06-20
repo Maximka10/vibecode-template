@@ -11,6 +11,7 @@ import DevelopmentTab from "./tabs/DevelopmentTab";
 import PreviewTab from "./tabs/PreviewTab";
 import HistoryTab from "./tabs/HistoryTab";
 import ExportTab from "./tabs/ExportTab";
+import TelegramTab from "./tabs/TelegramTab";
 
 const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
   new: { label: "Новая", color: "bg-blue-500/15 text-blue-300 border-blue-500/30" },
@@ -29,6 +30,7 @@ const TABS = [
   { id: "preview", label: "Предпросмотр" },
   { id: "export", label: "Экспорт" },
   { id: "history", label: "История" },
+  { id: "telegram", label: "💬 Telegram" },
 ] as const;
 
 type TabId = (typeof TABS)[number]["id"];
@@ -94,7 +96,7 @@ export default function OrderWorkspace({
       </div>
 
       {/* Tab content */}
-      <div className={`mx-auto px-4 py-6 ${activeTab === "development" ? "max-w-7xl" : "max-w-5xl"}`}>
+      <div className={`mx-auto px-4 py-6 ${activeTab === "development" || activeTab === "telegram" ? "max-w-7xl" : "max-w-5xl"}`}>
         {activeTab === "overview" && <OverviewTab order={order} projectData={projectData} />}
         {activeTab === "brief" && <BriefTab orderId={order.id} order={order} projectData={projectData ?? null} />}
         {activeTab === "materials" && <MaterialsTab orderId={order.id} order={order} />}
@@ -102,6 +104,7 @@ export default function OrderWorkspace({
         {activeTab === "preview" && <PreviewTab orderId={order.id} />}
         {activeTab === "export" && <ExportTab orderId={order.id} />}
         {activeTab === "history" && <HistoryTab order={order} messages={initialMessages} />}
+        {activeTab === "telegram" && <TelegramTab orderId={order.id} projectData={projectData} />}
       </div>
     </main>
   );
