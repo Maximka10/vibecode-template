@@ -195,18 +195,24 @@ const COMPONENT_TEMPLATES: Record<SectionType, (s: SiteSection, site: SiteJson) 
     const phone = (s.content as { phone?: string }).phone ?? "";
     const phoneStr = JSON.stringify(phone);
     const ctaHref = JSON.stringify(resolveContactLink(site.contact_link ?? "", site.contacts));
+    const heroImage = (s.content as { heroImage?: string }).heroImage ?? "";
+    const heroImageStr = JSON.stringify(heroImage);
     return `import { SiteSection } from "@/types";
 
 export default function Hero({ section }: { section: SiteSection }) {
-  const { title, subtitle, cta_text, phone } = section.content as {
-    title?: string; subtitle?: string; cta_text?: string; phone?: string;
+  const { title, subtitle, cta_text, phone, heroImage } = section.content as {
+    title?: string; subtitle?: string; cta_text?: string; phone?: string; heroImage?: string;
   };
   const tel = phone || ${phoneStr};
+  const bg = heroImage || ${heroImageStr};
   return (
     <section
       className="relative flex min-h-[90svh] flex-col items-center justify-center px-4 py-24 text-center text-white sm:px-6 sm:py-32 lg:px-8"
       style={{ background: \`linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%)\` }}
     >
+      {bg && (
+        <img src={bg} alt="" className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-20" />
+      )}
       {/* Decorative blobs */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         <div className="absolute -top-1/4 left-1/4 h-[600px] w-[600px] rounded-full bg-white/5 blur-3xl" />

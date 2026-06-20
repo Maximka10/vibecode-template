@@ -19,13 +19,31 @@ function resolveCtaHref(contactLink?: string): string {
   return contactLink;
 }
 
+function ctaIcon(href: string): string {
+  if (href.includes("t.me") || href.includes("telegram")) return "💬 ";
+  if (href.includes("wa.me") || href.includes("whatsapp")) return "📱 ";
+  if (href.includes("vk.com")) return "VK ";
+  if (href.startsWith("tel:")) return "📞 ";
+  if (href.startsWith("http")) return "🌐 ";
+  return "";
+}
+
 function SectionHero({ content, primary, secondary, contactLink }: { content: Record<string, unknown>; primary: string; secondary: string; contactLink?: string }) {
-  const href = s(content.contact_link) || contactLink || "#contacts";
+  const href = resolveCtaHref(s(content.contact_link) || contactLink);
+  const heroImage = s(content.heroImage);
   return (
     <div
-      className="relative px-6 py-16 text-white sm:px-8 sm:py-20"
+      className="relative overflow-hidden px-6 py-16 text-white sm:px-8 sm:py-20"
       style={{ background: `linear-gradient(135deg, ${primary}, ${secondary})` }}
     >
+      {heroImage && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={heroImage}
+          alt=""
+          className="absolute inset-0 h-full w-full object-cover opacity-20"
+        />
+      )}
       <div className="relative mx-auto max-w-4xl">
         {!!content.title && (
           <h1 className="text-3xl font-black leading-tight sm:text-4xl lg:text-5xl break-words">{s(content.title)}</h1>
@@ -36,11 +54,11 @@ function SectionHero({ content, primary, secondary, contactLink }: { content: Re
         {!!content.cta_text && (
           <div className="mt-8">
             <a
-              href={resolveCtaHref(href)}
+              href={href}
               className="inline-flex items-center gap-2 rounded-full px-8 py-3 text-sm font-bold shadow-lg transition hover:opacity-90"
               style={{ backgroundColor: "white", color: primary }}
             >
-              {s(content.cta_text)}
+              {ctaIcon(href)}{s(content.cta_text)}
             </a>
           </div>
         )}
@@ -225,7 +243,7 @@ function SectionCTA({ content, primary, secondary, contactLink }: { content: Rec
           className="mt-8 inline-flex items-center gap-2 rounded-full px-10 py-4 text-sm font-bold shadow-lg transition hover:opacity-90"
           style={{ backgroundColor: "white", color: primary }}
         >
-          {s(content.cta_text)} →
+          {ctaIcon(href)}{s(content.cta_text)}
         </a>
       )}
     </div>

@@ -224,6 +224,16 @@ function SectionEditor({
           <Field label="Заголовок"><input className={FIELD_CLS} value={String(c.title ?? "")} onChange={(e) => set("title", e.target.value)} placeholder="Название / слоган" /></Field>
           <Field label="Подзаголовок"><textarea className={`${FIELD_CLS} resize-none`} rows={2} value={String(c.subtitle ?? "")} onChange={(e) => set("subtitle", e.target.value)} placeholder="Краткое описание" /></Field>
           <Field label="Текст кнопки CTA"><input className={FIELD_CLS} value={String(c.cta_text ?? "")} onChange={(e) => set("cta_text", e.target.value)} placeholder="Оставить заявку" /></Field>
+          <Field label="Фоновое изображение" hint="Накладывается на градиент с прозрачностью">
+            {!!c.heroImage && (
+              <div className="mb-2 flex items-center gap-2">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={String(c.heroImage)} alt="" className="h-12 w-20 rounded-lg object-cover" />
+                <button type="button" onClick={() => set("heroImage", "")} className="text-xs text-red-400/60 hover:text-red-400">✕ Удалить</button>
+              </div>
+            )}
+            <GalleryPicker orderId={orderId} onPick={(url) => set("heroImage", url)} />
+          </Field>
         </div>
       );
     case "about":
@@ -434,6 +444,25 @@ function SectionEditor({
   }
 }
 
+// ── Section Completeness ──────────────────────────────────────────────────────
+function sectionComplete(s: SiteSection): boolean {
+  const c = s.content;
+  switch (s.type) {
+    case "hero": return !!(c.title && c.cta_text);
+    case "about": return !!(c.title && c.text);
+    case "services": return Array.isArray(c.items) && (c.items as unknown[]).length > 0;
+    case "gallery": return Array.isArray(c.images) && (c.images as unknown[]).length > 0;
+    case "reviews": return Array.isArray(c.items) && (c.items as unknown[]).length > 0;
+    case "faq": return Array.isArray(c.items) && (c.items as unknown[]).length > 0;
+    case "pricing": return Array.isArray(c.plans) && (c.plans as unknown[]).length > 0;
+    case "cta": return !!(c.title && c.cta_text);
+    case "contacts": return !!(c.phone || c.email || c.telegram);
+    case "map": return !!(c.address || c.embed_url);
+    case "footer": return !!c.company_name;
+    default: return true;
+  }
+}
+
 // ── Main Component ────────────────────────────────────────────────────────────
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -482,6 +511,14 @@ export default function DevelopmentTab({ orderId, order }: { orderId: string; or
     window.addEventListener("beforeunload", handler);
     return () => window.removeEventListener("beforeunload", handler);
   }, [dirty]);
+
+  // Autosave after 3 seconds of inactivity when dirty
+  useEffect(() => {
+    if (!dirty || saving) return;
+    const t = setTimeout(() => { handleSave(); }, 3000);
+    return () => clearTimeout(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dirty, pd, sections]);
 
   // ── Build live preview data ───────────────────────────────────────────────
   const previewData = useMemo((): BuildData => {
@@ -863,6 +900,7 @@ export default function DevelopmentTab({ orderId, order }: { orderId: string; or
                         <button onClick={() => moveSection(i, 1)} disabled={i === sections.length - 1} className="text-white/20 hover:text-white/60 disabled:opacity-20 text-xs leading-none">▼</button>
                       </div>
                       <span className="flex-1 text-sm font-semibold text-white/80">{SECTION_TYPE_LABELS[s.type]}</span>
+                      <span title={sectionComplete(s) ? "Заполнено" : "Требует заполнения"} className="text-xs">{sectionComplete(s) ? "✅" : "⚠️"}</span>
                       <button
                         onClick={() => toggleSection(s.id)}
                         className={`rounded-full px-2 py-0.5 text-xs font-semibold border transition ${s.enabled ? "border-green-500/30 bg-green-500/10 text-green-400" : "border-white/10 text-white/30"}`}
