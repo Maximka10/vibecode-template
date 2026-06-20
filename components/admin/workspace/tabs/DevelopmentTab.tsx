@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/Card";
 import { Btn } from "@/components/ui/Btn";
 import SitePreview from "@/components/admin/workspace/SitePreview";
 import { BuildData } from "@/lib/build/buildOrderSite";
+import { formatWorkingHours } from "@/lib/utils/workingHours";
 import {
   SiteSection,
   SectionType,
@@ -106,24 +107,7 @@ function parseWeekSchedule(raw?: string | null): WeekSchedule {
   return { ...DEFAULT_SCHEDULE };
 }
 function buildSchedulePreview(s: WeekSchedule): string {
-  const groups: string[] = [];
-  let i = 0;
-  while (i < DAY_KEYS.length) {
-    const key = DAY_KEYS[i];
-    const day = s[key];
-    let j = i + 1;
-    while (j < DAY_KEYS.length) {
-      const next = s[DAY_KEYS[j]];
-      if (next.closed !== day.closed || next.open !== day.open || next.close !== day.close) break;
-      j++;
-    }
-    const range = j - i > 1
-      ? `${DAY_LABELS[DAY_KEYS[i]]}–${DAY_LABELS[DAY_KEYS[j - 1]]}`
-      : DAY_LABELS[key];
-    groups.push(day.closed ? `${range}: выходной` : `${range}: ${day.open}–${day.close}`);
-    i = j;
-  }
-  return groups.join(", ");
+  return formatWorkingHours(JSON.stringify(s));
 }
 function WorkingHoursEditor({ value, onChange }: { value?: string | null; onChange: (v: string) => void }) {
   const [schedule, setSchedule] = useState<WeekSchedule>(() => parseWeekSchedule(value));
