@@ -366,8 +366,10 @@ export default function AdminOrders({
     total: number;
     new: number;
     inProgress: number;
+    waitingClient: number;
     completed: number;
     clients: number;
+    tgLinked: number;
     revenue: number;
   };
   activeTab: string;
@@ -435,12 +437,14 @@ export default function AdminOrders({
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-8">
           <StatCard label="Всего заказов" value={stats.total} accent="cyan" icon={<IconOrders />} />
           <StatCard label="Новых" value={stats.new} accent="blue" icon={<IconNew />} />
           <StatCard label="В работе" value={stats.inProgress} accent="yellow" icon={<IconInProgress />} />
+          <StatCard label="Ожидает клиента" value={stats.waitingClient} accent="orange" />
           <StatCard label="Готово" value={stats.completed} accent="green" icon={<IconCompleted />} />
           <StatCard label="Клиентов" value={stats.clients} accent="purple" icon={<IconClients />} />
+          <StatCard label="Telegram CRM" value={stats.tgLinked} sub="привязано заказов" accent="cyan" />
           <StatCard
             label="Выручка"
             value={stats.revenue ? `${stats.revenue.toLocaleString("ru-RU")} ₽` : "—"}

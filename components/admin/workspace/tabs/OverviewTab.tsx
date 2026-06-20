@@ -113,6 +113,23 @@ export default function OverviewTab({ order: initialOrder, projectData }: { orde
   const [developerNote, setDeveloperNote] = useState<string>(projectData?.developer_note ?? "");
   const [noteSaving, setNoteSaving] = useState(false);
   const [noteSaved, setNoteSaved] = useState(false);
+  const [isPortfolio, setIsPortfolio] = useState<boolean>(Boolean(order.is_portfolio));
+  const [portfolioIndustry, setPortfolioIndustry] = useState<string>(order.portfolio_industry ?? "");
+  const [leadStatus, setLeadStatus] = useState<string>(order.lead_status ?? "new");
+  const [portfolioSaving, setPortfolioSaving] = useState(false);
+
+  async function savePortfolioField(patch: Record<string, unknown>) {
+    setPortfolioSaving(true);
+    try {
+      await fetch(`/api/orders/${order.id}/portfolio`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(patch),
+      });
+    } finally {
+      setPortfolioSaving(false);
+    }
+  }
 
   async function saveDeveloperNote() {
     setNoteSaving(true);
@@ -310,6 +327,57 @@ export default function OverviewTab({ order: initialOrder, projectData }: { orde
           >
             {noteSaved ? "✓ Сохранено" : noteSaving ? "Сохранение…" : "Сохранить"}
           </button>
+        </Card>
+
+        {/* Lead status */}
+        <Card variant="solid" padding="md">
+          <h2 className="mb-3 text-xs font-semibold uppercase tracking-widest text-white/40">Воронка продаж</h2>
+          <select
+            value={leadStatus}
+            onChange={(e) => {
+              setLeadStatus(e.target.value);
+              void savePortfolioField({ lead_status: e.target.value });
+            }}
+            className="w-full rounded-xl border border-white/12 bg-white/8 px-3 py-2 text-sm text-white outline-none focus:border-cyan-500/60"
+          >
+            <option value="new">🆕 Новый лид</option>
+            <option value="contacted">📞 Связались</option>
+            <option value="qualified">✅ Квалифицирован</option>
+            <option value="proposal_sent">📄 Предложение отправлено</option>
+            <option value="won">🏆 Победа</option>
+            <option value="lost">❌ Проигрыш</option>
+          </select>
+          {portfolioSaving && <p className="mt-1 text-xs text-white/25">Сохранение...</p>}
+        </Card>
+
+        {/* Portfolio */}
+        <Card variant="solid" padding="md">
+          <h2 className="mb-3 text-xs font-semibold uppercase tracking-widest text-white/40">Портфолио</h2>
+          <label className="flex cursor-pointer items-center gap-3">
+            <div
+              onClick={() => {
+                const next = !isPortfolio;
+                setIsPortfolio(next);
+                void savePortfolioField({ is_portfolio: next });
+              }}
+              className={`relative h-5 w-9 rounded-full transition ${isPortfolio ? "bg-cyan-500" : "bg-white/15"}`}
+            >
+              <span
+                className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform ${isPortfolio ? "translate-x-4" : "translate-x-0.5"}`}
+              />
+            </div>
+            <span className="text-sm text-white/70">Добавить в портфолио</span>
+          </label>
+          {isPortfolio && (
+            <input
+              type="text"
+              placeholder="Отрасль (кофейня, барбершоп...)"
+              value={portfolioIndustry}
+              onChange={(e) => setPortfolioIndustry(e.target.value)}
+              onBlur={() => void savePortfolioField({ portfolio_industry: portfolioIndustry })}
+              className="mt-3 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white/80 placeholder-white/25 focus:border-cyan-500/50 focus:outline-none"
+            />
+          )}
         </Card>
 
         {/* Quick actions */}

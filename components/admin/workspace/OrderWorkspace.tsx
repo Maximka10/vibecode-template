@@ -12,6 +12,7 @@ import PreviewTab from "./tabs/PreviewTab";
 import HistoryTab from "./tabs/HistoryTab";
 import ExportTab from "./tabs/ExportTab";
 import TelegramTab from "./tabs/TelegramTab";
+import DeployTab from "./tabs/DeployTab";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
@@ -29,6 +30,7 @@ const TABS = [
   { id: "materials", label: "Материалы" },
   { id: "development", label: "Разработка" },
   { id: "preview", label: "Предпросмотр" },
+  { id: "deploy", label: "🚀 Деплой" },
   { id: "export", label: "Экспорт" },
   { id: "history", label: "История" },
   { id: "telegram", label: "💬 Telegram" },
@@ -103,6 +105,7 @@ export default function OrderWorkspace({
         {activeTab === "materials" && <MaterialsTab orderId={order.id} order={order} />}
         {activeTab === "development" && <DevelopmentTab orderId={order.id} order={order} />}
         {activeTab === "preview" && <PreviewTab orderId={order.id} />}
+        {activeTab === "deploy" && <DeployTab orderId={order.id} />}
         {activeTab === "export" && <ExportTab orderId={order.id} />}
         {activeTab === "history" && <HistoryTab order={order} messages={initialMessages} />}
         {activeTab === "telegram" && (
