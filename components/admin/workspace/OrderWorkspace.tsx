@@ -12,6 +12,7 @@ import PreviewTab from "./tabs/PreviewTab";
 import HistoryTab from "./tabs/HistoryTab";
 import ExportTab from "./tabs/ExportTab";
 import TelegramTab from "./tabs/TelegramTab";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
   new: { label: "Новая", color: "bg-blue-500/15 text-blue-300 border-blue-500/30" },
@@ -104,7 +105,11 @@ export default function OrderWorkspace({
         {activeTab === "preview" && <PreviewTab orderId={order.id} />}
         {activeTab === "export" && <ExportTab orderId={order.id} />}
         {activeTab === "history" && <HistoryTab order={order} messages={initialMessages} />}
-        {activeTab === "telegram" && <TelegramTab orderId={order.id} projectData={projectData} />}
+        {activeTab === "telegram" && (
+          <ErrorBoundary label="Telegram CRM">
+            <TelegramTab orderId={order.id} projectData={projectData} />
+          </ErrorBoundary>
+        )}
       </div>
     </main>
   );

@@ -10,18 +10,8 @@ export default async function AdminPage({
 }) {
   const auth = await getUserWithRole();
 
-  // Debug logging — remove after fix confirmed
-  console.log("AUTH USER:", auth?.user?.id ?? null);
-  console.log("AUTH ROLE:", auth?.role ?? null);
-
   if (!auth) redirect("/auth/login");
-
-  const { user, role } = auth;
-
-  if (role !== "admin") {
-    console.log("AUTH DENIED: role is", role, "for user", user.id);
-    redirect("/dashboard");
-  }
+  if (auth.role !== "admin") redirect("/dashboard");
 
   const admin = createAdminClient();
   const { tab = "orders" } = await searchParams;

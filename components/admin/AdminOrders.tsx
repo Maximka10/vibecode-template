@@ -408,9 +408,32 @@ export default function AdminOrders({
     { id: "workspace", label: "Workspace" },
   ];
 
+  const tgLinked = orders.filter((o) => o.telegram_client_id).length;
+
   return (
     <main className="min-h-screen bg-slate-950 text-white">
       <div className="mx-auto max-w-5xl px-4 py-6 space-y-6">
+        {/* Quick nav */}
+        <div className="flex flex-wrap gap-2">
+          <a
+            href="/admin/crm"
+            className="flex items-center gap-2 rounded-xl border border-cyan-500/30 bg-cyan-500/10 px-4 py-2 text-sm font-semibold text-cyan-400 transition hover:bg-cyan-500/20"
+          >
+            💬 Telegram CRM
+            {tgLinked > 0 && (
+              <span className="rounded-full bg-cyan-500 px-1.5 py-0.5 text-[10px] font-bold text-white">
+                {tgLinked}
+              </span>
+            )}
+          </a>
+          <a
+            href="/admin/diagnostics"
+            className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white/50 transition hover:text-white/80"
+          >
+            Диагностика
+          </a>
+        </div>
+
         {/* Stats */}
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
           <StatCard label="Всего заказов" value={stats.total} accent="cyan" icon={<IconOrders />} />

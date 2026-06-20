@@ -55,7 +55,11 @@ export default async function DiagnosticsPage() {
   if (!auth) redirect("/auth/login");
   if (auth.role !== "admin") redirect("/dashboard");
 
-  const TABLES = ["orders", "project_data", "site_builds", "section_templates", "project_templates", "messages", "profiles"];
+  const TABLES = [
+    "orders", "project_data", "site_builds", "section_templates",
+    "project_templates", "messages", "profiles",
+    "telegram_clients", "telegram_messages", "telegram_webhook_log", "telegram_attachments",
+  ];
 
   const [tableResults, storage] = await Promise.all([
     Promise.all(TABLES.map((t) => checkTable(t).then((r) => ({ table: t, ...r })))),
@@ -71,7 +75,27 @@ export default async function DiagnosticsPage() {
     anthropic: envCheck("ANTHROPIC_API_KEY"),
     telegramToken: envCheck("TELEGRAM_BOT_TOKEN"),
     telegramChat: envCheck("TELEGRAM_CHAT_ID"),
+    telegramWebhookSecret: envCheck("TELEGRAM_WEBHOOK_SECRET"),
+    telegramBotUsername: envCheck("NEXT_PUBLIC_TELEGRAM_BOT_USERNAME"),
+    siteUrl: envCheck("NEXT_PUBLIC_SITE_URL"),
   };
+
+  // Check telegram CRM — count linked orders
+  let tgLinkedCount = 0;
+  let tgMsgCount = 0;
+  let tgCrmStatus: CheckResult = { ok: true, msg: "Не проверялось" };
+  try {
+    const admin = createAdminClient();
+    const [linkedRes, msgRes] = await Promise.all([
+      admin.from("orders").select("id", { count: "exact", head: true }).not("telegram_client_id", "is", null),
+      admin.from("telegram_messages").select("id", { count: "exact", head: true }),
+    ]);
+    tgLinkedCount = linkedRes.count ?? 0;
+    tgMsgCount = msgRes.count ?? 0;
+    tgCrmStatus = { ok: true, msg: `${tgLinkedCount} заказов привязано · ${tgMsgCount} сообщений` };
+  } catch {
+    tgCrmStatus = { ok: false, msg: "Ошибка запроса CRM данных" };
+  }
 
   return (
     <div className="min-h-screen bg-slate-950 text-white">
@@ -110,6 +134,25 @@ export default async function DiagnosticsPage() {
             )}
           </section>
 
+          {/* Telegram CRM */}
+          <section className="rounded-2xl border border-white/8 bg-white/4 p-5">
+            <div className="mb-4 flex items-center gap-2">
+              <StatusDot ok={tgCrmStatus.ok} />
+              <h2 className="text-sm font-semibold">Telegram CRM</h2>
+            </div>
+            <CheckRow label="CRM данные" result={tgCrmStatus} />
+            <CheckRow label="Webhook endpoint" result={{ ok: true, msg: "POST /api/telegram/webhook" }} />
+            <CheckRow label="TELEGRAM_BOT_TOKEN" result={env.telegramToken} warn />
+            <CheckRow label="TELEGRAM_WEBHOOK_SECRET" result={env.telegramWebhookSecret} warn />
+            <CheckRow label="NEXT_PUBLIC_TELEGRAM_BOT_USERNAME" result={env.telegramBotUsername} warn />
+            <CheckRow label="NEXT_PUBLIC_SITE_URL" result={env.siteUrl} warn />
+            {!env.telegramToken.ok && (
+              <p className="mt-3 text-xs text-yellow-300/70">
+                Установите TELEGRAM_BOT_TOKEN и TELEGRAM_WEBHOOK_SECRET для работы CRM. Зарегистрируйте webhook через POST /api/telegram/webhook.
+              </p>
+            )}
+          </section>
+
           {/* Environment */}
           <section className="rounded-2xl border border-white/8 bg-white/4 p-5">
             <div className="mb-4 flex items-center gap-2">
@@ -120,7 +163,6 @@ export default async function DiagnosticsPage() {
             <CheckRow label="NEXT_PUBLIC_SUPABASE_ANON_KEY" result={env.supabaseAnon} />
             <CheckRow label="SUPABASE_SERVICE_ROLE_KEY" result={env.supabaseService} />
             <CheckRow label="ANTHROPIC_API_KEY (AI-генерация)" result={env.anthropic} warn />
-            <CheckRow label="TELEGRAM_BOT_TOKEN (уведомления)" result={env.telegramToken} warn />
             <CheckRow label="TELEGRAM_CHAT_ID (уведомления)" result={env.telegramChat} warn />
           </section>
 
