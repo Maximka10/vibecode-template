@@ -28,35 +28,32 @@ export async function POST(req: NextRequest) {
 
   const admin = createAdminClient();
 
-  // Fetch order + linked client
+  // Fetch order + linked client (join telegram_clients for chat_id)
   const { data: order } = await admin
     .from("orders")
-    .select("id, telegram_chat_id, telegram_client_id")
+    .select("id, telegram_client_id")
     .eq("id", order_id)
     .single();
 
   if (!order) return NextResponse.json({ ok: false, error: "Order not found" }, { status: 404 });
-  if (!order.telegram_chat_id) return NextResponse.json({ ok: false, error: "Order has no linked Telegram account" }, { status: 400 });
+  if (!order.telegram_client_id) return NextResponse.json({ ok: false, error: "Order has no linked Telegram account" }, { status: 400 });
+
+  const clientId = order.telegram_client_id as string;
+
+  const { data: tgClient } = await admin
+    .from("telegram_clients")
+    .select("id, chat_id")
+    .eq("id", clientId)
+    .single();
+
+  if (!tgClient?.chat_id) return NextResponse.json({ ok: false, error: "Telegram client record not found" }, { status: 500 });
 
   // Send via Bot API
-  const tgMsgId = await sendMessage(order.telegram_chat_id as number, text);
+  const tgMsgId = await sendMessage(tgClient.chat_id as number, text);
 
   if (!tgMsgId) {
     return NextResponse.json({ ok: false, error: "Failed to send via Telegram" }, { status: 502 });
   }
-
-  // Resolve client_id (should exist if linked)
-  let clientId: string | null = order.telegram_client_id as string | null;
-  if (!clientId) {
-    const { data: c } = await admin
-      .from("telegram_clients")
-      .select("id")
-      .eq("chat_id", order.telegram_chat_id)
-      .single();
-    clientId = c?.id ?? null;
-  }
-
-  if (!clientId) return NextResponse.json({ ok: false, error: "Client record not found" }, { status: 500 });
 
   // Store outbound message
   const { data: msg, error } = await admin
