@@ -73,12 +73,12 @@ export default async function DashboardPage() {
 
   // Fetch developer notes via admin client (bypasses RLS safely after auth check)
   const orderIds = orders?.map((o) => o.id) ?? [];
-  let pdMap: Record<string, { developer_note?: string }> = {};
+  let pdMap: Record<string, { developer_note?: string; domain_name?: string }> = {};
   if (orderIds.length > 0) {
     const admin = createAdminClient();
     const { data: pds } = await admin
       .from("project_data")
-      .select("order_id, developer_note")
+      .select("order_id, developer_note, domain_name")
       .in("order_id", orderIds);
     pdMap = Object.fromEntries((pds ?? []).map((pd) => [pd.order_id, pd]));
   }
@@ -223,6 +223,24 @@ export default async function DashboardPage() {
                           <div className="mt-3 rounded-xl border border-cyan-500/20 bg-cyan-500/8 px-3 py-2.5">
                             <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-cyan-400/70">Сообщение от команды</p>
                             <p className="text-sm text-white/80">{pd.developer_note}</p>
+                          </div>
+                        )}
+
+                        {/* Domain preview link */}
+                        {(order.project_url || pd.domain_name) && (
+                          <div className="mt-3 flex items-center gap-2 rounded-xl border border-white/8 bg-white/4 px-3 py-2.5">
+                            <span className="text-sm">🌐</span>
+                            <div className="min-w-0 flex-1">
+                              <p className="text-[10px] font-semibold uppercase tracking-widest text-white/30">Сайт</p>
+                              <p className="truncate text-xs font-semibold text-cyan-400">
+                                {order.project_url || pd.domain_name}
+                              </p>
+                            </div>
+                            {order.project_url && (
+                              <Link href={order.project_url} target="_blank" rel="noopener noreferrer" className="shrink-0 text-xs text-white/40 hover:text-white/70">
+                                Открыть ↗
+                              </Link>
+                            )}
                           </div>
                         )}
 
