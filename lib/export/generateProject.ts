@@ -4,6 +4,7 @@ export type SiteJson = {
   meta: { title: string; description: string; domain: string };
   branding: { primary: string; secondary: string; accent?: string };
   font?: string;
+  contact_link?: string;
   company: { name: string; description: string; address: string; working_hours: string };
   contacts: { phone: string; email: string; telegram: string; whatsapp?: string | undefined };
   sections: SiteSection[];
@@ -182,10 +183,18 @@ function genStickyMobileCTA(contacts: SiteJson["contacts"]): string {
 
 // ── Component templates ───────────────────────────────────────────────────────
 
-const COMPONENT_TEMPLATES: Record<SectionType, (s: SiteSection) => string> = {
-  hero: (s) => {
+function resolveContactLink(contactLink: string, contacts: SiteJson["contacts"]): string {
+  if (contactLink) return contactLink;
+  if (contacts.telegram) return `https://t.me/${contacts.telegram.replace("@", "")}`;
+  if (contacts.phone) return `tel:${contacts.phone}`;
+  return "#contacts";
+}
+
+const COMPONENT_TEMPLATES: Record<SectionType, (s: SiteSection, site: SiteJson) => string> = {
+  hero: (s, site) => {
     const phone = (s.content as { phone?: string }).phone ?? "";
     const phoneStr = JSON.stringify(phone);
+    const ctaHref = JSON.stringify(resolveContactLink(site.contact_link ?? "", site.contacts));
     return `import { SiteSection } from "@/types";
 
 export default function Hero({ section }: { section: SiteSection }) {
@@ -227,7 +236,7 @@ export default function Hero({ section }: { section: SiteSection }) {
         <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
           {cta_text && (
             <a
-              href="#contacts"
+              href={${ctaHref}}
               className="w-full rounded-full bg-white py-4 px-8 text-lg font-bold shadow-lg transition hover:-translate-y-0.5 hover:shadow-xl active:scale-95 sm:w-auto"
               style={{ color: "var(--primary)" }}
             >
@@ -256,7 +265,7 @@ export default function Hero({ section }: { section: SiteSection }) {
 `;
   },
 
-  about: () => `import { SiteSection } from "@/types";
+  about: (_s, _site) => `import { SiteSection } from "@/types";
 
 export default function About({ section }: { section: SiteSection }) {
   const { title, text } = section.content as { title?: string; text?: string };
@@ -280,7 +289,7 @@ export default function About({ section }: { section: SiteSection }) {
 }
 `,
 
-  services: () => `import { SiteSection } from "@/types";
+  services: (_s, _site) => `import { SiteSection } from "@/types";
 
 const ICONS = ["✦", "◈", "◆", "⬡", "◉", "⬟"];
 
@@ -322,7 +331,7 @@ export default function Services({ section }: { section: SiteSection }) {
 }
 `,
 
-  gallery: () => `import { SiteSection } from "@/types";
+  gallery: (_s, _site) => `import { SiteSection } from "@/types";
 import Image from "next/image";
 
 export default function Gallery({ section }: { section: SiteSection }) {
@@ -348,7 +357,7 @@ export default function Gallery({ section }: { section: SiteSection }) {
 }
 `,
 
-  reviews: () => `import { SiteSection } from "@/types";
+  reviews: (_s, _site) => `import { SiteSection } from "@/types";
 
 type Review = { author: string; text: string; rating: number };
 
@@ -384,7 +393,7 @@ export default function Reviews({ section }: { section: SiteSection }) {
 }
 `,
 
-  faq: () => `"use client";
+  faq: (_s, _site) => `"use client";
 import { useState } from "react";
 import { SiteSection } from "@/types";
 
@@ -430,7 +439,9 @@ export default function FAQ({ section }: { section: SiteSection }) {
 }
 `,
 
-  pricing: () => `import { SiteSection } from "@/types";
+  pricing: (_s, site) => {
+    const ctaHref = JSON.stringify(resolveContactLink(site.contact_link ?? "", site.contacts));
+    return `import { SiteSection } from "@/types";
 
 type Plan = { name: string; price: string; features: string[] };
 
@@ -467,7 +478,7 @@ export default function Pricing({ section }: { section: SiteSection }) {
                 ))}
               </ul>
               <a
-                href="#contacts"
+                href={${ctaHref}}
                 className="mt-7 block rounded-full py-3 text-center text-sm font-bold transition hover:opacity-80"
                 style={i === 1
                   ? { backgroundColor: "var(--primary)", color: "white" }
@@ -482,9 +493,12 @@ export default function Pricing({ section }: { section: SiteSection }) {
     </section>
   );
 }
-`,
+`;
+  },
 
-  cta: () => `import { SiteSection } from "@/types";
+  cta: (_s, site) => {
+    const ctaHref = JSON.stringify(resolveContactLink(site.contact_link ?? "", site.contacts));
+    return `import { SiteSection } from "@/types";
 
 export default function CTA({ section }: { section: SiteSection }) {
   const { title, subtitle, cta_text } = section.content as {
@@ -504,7 +518,7 @@ export default function CTA({ section }: { section: SiteSection }) {
         {subtitle && <p className="mt-4 text-base opacity-85 sm:text-lg">{subtitle}</p>}
         {cta_text && (
           <a
-            href="#contacts"
+            href={${ctaHref}}
             className="mt-10 inline-flex w-full items-center justify-center gap-2 rounded-full bg-white py-4 px-8 text-lg font-bold shadow-xl transition hover:-translate-y-0.5 hover:shadow-2xl active:scale-95 sm:w-auto sm:px-12"
             style={{ color: "var(--primary)" }}
           >
@@ -515,9 +529,10 @@ export default function CTA({ section }: { section: SiteSection }) {
     </section>
   );
 }
-`,
+`;
+  },
 
-  contacts: () => `import { SiteSection } from "@/types";
+  contacts: (_s, _site) => `import { SiteSection } from "@/types";
 
 function fmtHours(raw?: string | null): string {
   if (!raw) return "";
@@ -593,7 +608,7 @@ export default function Contacts({ section }: { section: SiteSection }) {
 }
 `,
 
-  map: () => `import { SiteSection } from "@/types";
+  map: (_s, _site) => `import { SiteSection } from "@/types";
 
 function buildYandexEmbed(address: string): string {
   return \`https://yandex.ru/map-widget/v1/?text=\${encodeURIComponent(address)}&z=15&lang=ru_RU\`;
@@ -659,7 +674,7 @@ export default function Map({ section }: { section: SiteSection }) {
 }
 `,
 
-  footer: (s) => {
+  footer: (s, _site) => {
     const phone = (s.content as { phone?: string }).phone ?? "";
     const email = (s.content as { email?: string }).email ?? "";
     const phoneStr = JSON.stringify(phone);
@@ -1187,7 +1202,7 @@ export function generateProject(site: SiteJson): Record<string, string> {
     const tpl = COMPONENT_TEMPLATES[type];
     if (tpl) {
       const name = type.charAt(0).toUpperCase() + type.slice(1);
-      files[`components/sections/${name}.tsx`] = tpl(section);
+      files[`components/sections/${name}.tsx`] = tpl(section, site);
     }
   }
 

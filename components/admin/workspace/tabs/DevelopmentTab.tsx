@@ -494,8 +494,9 @@ export default function DevelopmentTab({ orderId, order }: { orderId: string; or
       contacts: { phone: pd.phone || "", email: pd.email || "", telegram: pd.telegram || "" },
       services: pd.services ?? [],
       branding: { primary_color: pd.branding?.primary_color ?? templatePrimary, secondary_color: pd.branding?.secondary_color ?? templateSecondary },
+      font: pd.font || undefined,
       seo: { title: pd.seo_title || pd.company_name || "", description: pd.seo_description || "" },
-      content: { domain_name: pd.domain_name || "" },
+      content: { domain_name: pd.domain_name || "", contact_link: pd.contact_link || undefined },
     };
   }, [pd, order]);
 

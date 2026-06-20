@@ -13,30 +13,38 @@ const ICONS = ["✦", "◈", "◆", "⬡", "◉", "⬟"];
 
 function s(v: unknown): string { return v != null ? String(v) : ""; }
 
-function SectionHero({ content, primary, secondary }: { content: Record<string, unknown>; primary: string; secondary: string }) {
+function resolveCtaHref(contactLink?: string): string {
+  if (!contactLink) return "#contacts";
+  if (contactLink.startsWith("tel:") || contactLink.startsWith("http") || contactLink.startsWith("https://")) return contactLink;
+  return contactLink;
+}
+
+function SectionHero({ content, primary, secondary, contactLink }: { content: Record<string, unknown>; primary: string; secondary: string; contactLink?: string }) {
+  const href = s(content.contact_link) || contactLink || "#contacts";
   return (
     <div
-      className="relative px-8 py-20 text-white"
+      className="relative px-6 py-16 text-white sm:px-8 sm:py-20"
       style={{ background: `linear-gradient(135deg, ${primary}, ${secondary})` }}
     >
       <div className="relative mx-auto max-w-4xl">
         {!!content.title && (
-          <h1 className="text-4xl font-black leading-tight sm:text-5xl">{s(content.title)}</h1>
+          <h1 className="text-3xl font-black leading-tight sm:text-4xl lg:text-5xl break-words">{s(content.title)}</h1>
         )}
         {!!content.subtitle && (
-          <p className="mt-4 max-w-2xl text-base leading-relaxed opacity-85">{s(content.subtitle)}</p>
+          <p className="mt-4 max-w-2xl text-sm leading-relaxed opacity-85 sm:text-base">{s(content.subtitle)}</p>
         )}
         {!!content.cta_text && (
           <div className="mt-8">
-            <span
-              className="inline-flex items-center gap-2 rounded-full px-8 py-3 text-sm font-bold shadow-lg"
+            <a
+              href={resolveCtaHref(href)}
+              className="inline-flex items-center gap-2 rounded-full px-8 py-3 text-sm font-bold shadow-lg transition hover:opacity-90"
               style={{ backgroundColor: "white", color: primary }}
             >
               {s(content.cta_text)}
-            </span>
+            </a>
           </div>
         )}
-        <div className="mt-10 flex flex-wrap gap-6 opacity-70">
+        <div className="mt-10 flex flex-wrap gap-4 opacity-70">
           {[{ icon: "⭐", text: "5.0 рейтинг" }, { icon: "✓", text: "Гарантия" }, { icon: "🚀", text: "Быстро" }].map((b) => (
             <div key={b.text} className="flex items-center gap-1.5 text-xs font-semibold">
               <span>{b.icon}</span><span>{b.text}</span>
@@ -64,7 +72,7 @@ function SectionServices({ content, primary }: { content: Record<string, unknown
     <div className="px-8 py-14 bg-slate-50 border-b border-slate-100">
       <div className="mb-3 h-1 w-10 rounded-full" style={{ backgroundColor: primary }} />
       {!!content.title && <h2 className="mb-7 text-2xl font-black text-slate-900">{s(content.title)}</h2>}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {items.map((item, i) => (
           <div key={i} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
             <div
@@ -87,20 +95,20 @@ function SectionGallery({ content }: { content: Record<string, unknown> }) {
     <div className="px-8 py-14 bg-white border-b border-slate-100">
       {!!content.title && <h2 className="mb-7 text-2xl font-black text-slate-900">{s(content.title)}</h2>}
       {images.length > 0 ? (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {images.map((img, i) => (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               key={i}
               src={img}
               alt=""
-              className="rounded-2xl object-cover w-full h-32"
+              className="rounded-2xl w-full aspect-video object-contain bg-slate-50"
               onError={(e) => { (e.target as HTMLImageElement).src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='128'%3E%3Crect width='200' height='128' rx='16' fill='%23f1f5f9'/%3E%3Ctext x='50%25' y='55%25' dominant-baseline='middle' text-anchor='middle' font-size='32' fill='%23cbd5e1'%3E🖼%3C/text%3E%3C/svg%3E"; }}
             />
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           {[1, 2, 3].map((i) => (
             <div key={i} className="h-32 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-300 text-2xl">🖼</div>
           ))}
@@ -156,8 +164,9 @@ function SectionFAQ({ content, primary }: { content: Record<string, unknown>; pr
   );
 }
 
-function SectionPricing({ content, primary }: { content: Record<string, unknown>; primary: string }) {
+function SectionPricing({ content, primary, contactLink }: { content: Record<string, unknown>; primary: string; contactLink?: string }) {
   const plans = (content.plans as { name: string; price: string; features: string[] }[]) ?? [];
+  const href = resolveCtaHref(s(content.contact_link) || contactLink);
   return (
     <div className="px-8 py-14 bg-slate-50 border-b border-slate-100">
       <div className="mb-3 h-1 w-10 rounded-full" style={{ backgroundColor: primary }} />
@@ -183,6 +192,15 @@ function SectionPricing({ content, primary }: { content: Record<string, unknown>
                 </li>
               ))}
             </ul>
+            <a
+              href={href}
+              className="mt-5 block rounded-full py-2.5 text-center text-xs font-bold transition hover:opacity-80"
+              style={i === 1
+                ? { backgroundColor: primary, color: "white" }
+                : { backgroundColor: "#f1f5f9", color: primary }}
+            >
+              Выбрать
+            </a>
           </div>
         ))}
       </div>
@@ -190,7 +208,8 @@ function SectionPricing({ content, primary }: { content: Record<string, unknown>
   );
 }
 
-function SectionCTA({ content, primary, secondary }: { content: Record<string, unknown>; primary: string; secondary: string }) {
+function SectionCTA({ content, primary, secondary, contactLink }: { content: Record<string, unknown>; primary: string; secondary: string; contactLink?: string }) {
+  const href = resolveCtaHref(s(content.contact_link) || contactLink);
   return (
     <div
       className="px-8 py-20 text-center text-white"
@@ -199,12 +218,13 @@ function SectionCTA({ content, primary, secondary }: { content: Record<string, u
       {!!content.title && <h2 className="text-3xl font-black">{s(content.title)}</h2>}
       {!!content.subtitle && <p className="mt-3 text-base opacity-80">{s(content.subtitle)}</p>}
       {!!content.cta_text && (
-        <span
-          className="mt-8 inline-flex items-center gap-2 rounded-full px-10 py-4 text-sm font-bold shadow-lg"
+        <a
+          href={href}
+          className="mt-8 inline-flex items-center gap-2 rounded-full px-10 py-4 text-sm font-bold shadow-lg transition hover:opacity-90"
           style={{ backgroundColor: "white", color: primary }}
         >
           {s(content.cta_text)} →
-        </span>
+        </a>
       )}
     </div>
   );
@@ -314,23 +334,32 @@ function SectionFooter({ content, primary }: { content: Record<string, unknown>;
   );
 }
 
-function renderSection(section: SiteSection, primary: string, secondary: string) {
+function renderSection(section: SiteSection, primary: string, secondary: string, contactLink?: string) {
   const c = section.content;
   switch (section.type) {
-    case "hero":     return <SectionHero     key={section.id} content={c} primary={primary} secondary={secondary} />;
+    case "hero":     return <SectionHero     key={section.id} content={c} primary={primary} secondary={secondary} contactLink={contactLink} />;
     case "about":    return <SectionAbout    key={section.id} content={c} primary={primary} />;
     case "services": return <SectionServices key={section.id} content={c} primary={primary} />;
     case "gallery":  return <SectionGallery  key={section.id} content={c} />;
     case "reviews":  return <SectionReviews  key={section.id} content={c} primary={primary} />;
     case "faq":      return <SectionFAQ      key={section.id} content={c} primary={primary} />;
-    case "pricing":  return <SectionPricing  key={section.id} content={c} primary={primary} />;
-    case "cta":      return <SectionCTA      key={section.id} content={c} primary={primary} secondary={secondary} />;
+    case "pricing":  return <SectionPricing  key={section.id} content={c} primary={primary} contactLink={contactLink} />;
+    case "cta":      return <SectionCTA      key={section.id} content={c} primary={primary} secondary={secondary} contactLink={contactLink} />;
     case "contacts": return <SectionContacts key={section.id} content={c} primary={primary} />;
     case "map":      return <SectionMap      key={section.id} content={c} primary={primary} />;
     case "footer":   return <SectionFooter   key={section.id} content={c} primary={primary} />;
     default:         return null;
   }
 }
+
+const FONT_FAMILIES: Record<string, string> = {
+  Inter: '"Inter", system-ui, sans-serif',
+  Manrope: '"Manrope", system-ui, sans-serif',
+  Montserrat: '"Montserrat", system-ui, sans-serif',
+  Roboto: '"Roboto", system-ui, sans-serif',
+  "Open Sans": '"Open Sans", system-ui, sans-serif',
+  "PT Sans": '"PT Sans", system-ui, sans-serif',
+};
 
 export default function SitePreview({
   data,
@@ -343,13 +372,18 @@ export default function SitePreview({
 }) {
   const primary = data.branding.primary_color || "#6366f1";
   const secondary = data.branding.secondary_color || "#8b5cf6";
+  const contactLink = data.content.contact_link;
+  const fontFamily = data.font ? (FONT_FAMILIES[data.font] ?? data.font) : undefined;
 
   return (
     <div
       className="mx-auto transition-all duration-300"
       style={{ maxWidth: DEVICE_WIDTH[device], width: "100%" }}
     >
-      <div className="overflow-hidden rounded-2xl border border-white/10 bg-white text-slate-900 shadow-2xl">
+      <div
+        className="overflow-hidden rounded-2xl border border-white/10 bg-white text-slate-900 shadow-2xl"
+        style={fontFamily ? { fontFamily } : undefined}
+      >
         {/* Browser chrome */}
         <div className="flex items-center gap-2 border-b border-slate-200 bg-slate-100 px-4 py-2.5">
           <div className="flex gap-1.5">
@@ -368,13 +402,13 @@ export default function SitePreview({
         {/* Content */}
         <div>
           {sections && sections.length > 0
-            ? sections.filter((s) => s.enabled).map((s) => renderSection(s, primary, secondary))
+            ? sections.filter((s) => s.enabled).map((s) => renderSection(s, primary, secondary, contactLink))
             : (
               /* Fallback when no sections configured yet */
               <>
                 <SectionHero
                   content={{ title: data.company.name || "Название компании", subtitle: data.company.description, cta_text: data.content.hero_cta }}
-                  primary={primary} secondary={secondary}
+                  primary={primary} secondary={secondary} contactLink={contactLink}
                 />
                 {data.services.length > 0 && (
                   <SectionServices content={{ title: "Наши услуги", items: data.services }} primary={primary} />

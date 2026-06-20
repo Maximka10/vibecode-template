@@ -24,12 +24,14 @@ export type BuildData = {
     primary_color: string;
     secondary_color: string;
   };
+  font?: string;
   seo: {
     title: string;
     description: string;
   };
   content: {
     domain_name: string;
+    contact_link?: string;
     hero_cta?: string;
     about_title?: string;
     about_text?: string;
@@ -59,6 +61,8 @@ type ProjectData = {
   services?: string[] | null;
   seo_title?: string | null;
   seo_description?: string | null;
+  font?: string | null;
+  contact_link?: string | null;
   branding?: { primary_color?: string; secondary_color?: string } | null;
   content_edits?: ContentEdits | null;
 };
@@ -104,12 +108,14 @@ export function buildOrderSite(
       primary_color: pd.branding?.primary_color ?? "#6366f1",
       secondary_color: pd.branding?.secondary_color ?? "#8b5cf6",
     },
+    font: pd.font ?? undefined,
     seo: {
       title: pd.seo_title ?? ce.hero?.title ?? pd.company_name ?? order.template_name ?? "",
       description: pd.seo_description ?? ce.about?.text ?? pd.company_description ?? "",
     },
     content: {
       domain_name: pd.domain_name ?? "",
+      contact_link: pd.contact_link ?? undefined,
       hero_cta: ce.hero?.cta,
       about_title: ce.about?.title,
       about_text: ce.about?.text || pd.company_description || undefined,
