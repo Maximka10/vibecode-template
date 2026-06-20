@@ -110,6 +110,24 @@ export default function OverviewTab({ order: initialOrder, projectData }: { orde
   const [cancelOpen, setCancelOpen] = useState(false);
   const [cancelLoading, setCancelLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [developerNote, setDeveloperNote] = useState<string>(projectData?.developer_note ?? "");
+  const [noteSaving, setNoteSaving] = useState(false);
+  const [noteSaved, setNoteSaved] = useState(false);
+
+  async function saveDeveloperNote() {
+    setNoteSaving(true);
+    try {
+      await fetch(`/api/orders/${order.id}/project-data`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ developer_note: developerNote }),
+      });
+      setNoteSaved(true);
+      setTimeout(() => setNoteSaved(false), 2000);
+    } finally {
+      setNoteSaving(false);
+    }
+  }
 
   const statusCfg = STATUS_CONFIG[order.status] ?? { label: order.status, color: "bg-white/10 text-white/60 border-white/10" };
 
@@ -272,6 +290,26 @@ export default function OverviewTab({ order: initialOrder, projectData }: { orde
               <p className="text-center text-xs text-white/25">Нет доступных переходов</p>
             )}
           </div>
+        </Card>
+
+        {/* Developer note for client */}
+        <Card variant="solid" padding="md">
+          <h2 className="mb-3 text-xs font-semibold uppercase tracking-widest text-white/40">Сообщение для клиента</h2>
+          <p className="mb-2 text-xs text-white/35">Клиент видит это в личном кабинете</p>
+          <textarea
+            rows={3}
+            className="w-full resize-none rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white/80 placeholder-white/25 focus:border-cyan-500/50 focus:outline-none"
+            placeholder="Собираем структуру сайта…"
+            value={developerNote}
+            onChange={(e) => setDeveloperNote(e.target.value)}
+          />
+          <button
+            onClick={saveDeveloperNote}
+            disabled={noteSaving}
+            className="mt-2 w-full rounded-xl border border-white/10 py-2 text-xs font-semibold text-white/50 transition hover:border-cyan-500/30 hover:text-cyan-300 disabled:opacity-40"
+          >
+            {noteSaved ? "✓ Сохранено" : noteSaving ? "Сохранение…" : "Сохранить"}
+          </button>
         </Card>
 
         {/* Quick actions */}

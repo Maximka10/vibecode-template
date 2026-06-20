@@ -1,47 +1,68 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import ClientChat from "@/components/chat/ClientChat";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { Btn } from "@/components/ui/Btn";
 import { Card } from "@/components/ui/Card";
 
-const STATUS_META: Record<string, { label: string; color: string; hint: string }> = {
+const STATUS_META: Record<string, { label: string; color: string; hint: string; progress: number }> = {
   new: {
     label: "Новая заявка",
     color: "bg-blue-500/15 text-blue-300 border-blue-500/30",
     hint: "Заявка получена. Менеджер свяжется с вами в течение 1 часа.",
+    progress: 10,
   },
   contacted: {
     label: "Связались",
     color: "bg-purple-500/15 text-purple-300 border-purple-500/30",
     hint: "Менеджер уточнил детали и готов приступить к работе.",
+    progress: 25,
   },
   in_progress: {
     label: "В работе",
     color: "bg-yellow-500/15 text-yellow-300 border-yellow-500/30",
     hint: "Разработчик работает над вашим сайтом. Срок — 3 рабочих дня.",
+    progress: 60,
   },
   waiting_client: {
     label: "Ожидаем вас",
     color: "bg-orange-500/15 text-orange-300 border-orange-500/30",
-    hint: "Нам нужна ваша обратная связь. Пожалуйста, ответьте в чате ниже.",
+    hint: "Нам нужна ваша обратная связь. Проверьте email или Telegram.",
+    progress: 75,
   },
   completed: {
     label: "Готово",
     color: "bg-green-500/15 text-green-300 border-green-500/30",
     hint: "Сайт запущен. Поздравляем с запуском!",
+    progress: 100,
   },
   cancelled: {
     label: "Отменена",
     color: "bg-red-500/15 text-red-300 border-red-500/30",
     hint: "Заявка отменена.",
+    progress: 0,
   },
 };
+
+const CHECKLIST: { label: string; statuses: string[] }[] = [
+  { label: "Заявка получена", statuses: ["new", "contacted", "in_progress", "waiting_client", "completed"] },
+  { label: "Менеджер связался", statuses: ["contacted", "in_progress", "waiting_client", "completed"] },
+  { label: "Разработка начата", statuses: ["in_progress", "waiting_client", "completed"] },
+  { label: "Правки внесены", statuses: ["waiting_client", "completed"] },
+  { label: "Сайт готов", statuses: ["completed"] },
+];
+
+const TIMELINE: { label: string; statuses: string[] }[] = [
+  { label: "Заявка создана", statuses: ["new", "contacted", "in_progress", "waiting_client", "completed", "cancelled"] },
+  { label: "Менеджер связался", statuses: ["contacted", "in_progress", "waiting_client", "completed"] },
+  { label: "Разработка начата", statuses: ["in_progress", "waiting_client", "completed"] },
+  { label: "Ожидание клиента", statuses: ["waiting_client"] },
+  { label: "Проект завершён", statuses: ["completed"] },
+];
 
 export default async function DashboardPage() {
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
-
   if (!user) redirect("/auth/login");
 
   const { data: orders } = await supabase
@@ -49,6 +70,18 @@ export default async function DashboardPage() {
     .select("*")
     .eq("user_id", user.id)
     .order("created_at", { ascending: false });
+
+  // Fetch developer notes via admin client (bypasses RLS safely after auth check)
+  const orderIds = orders?.map((o) => o.id) ?? [];
+  let pdMap: Record<string, { developer_note?: string }> = {};
+  if (orderIds.length > 0) {
+    const admin = createAdminClient();
+    const { data: pds } = await admin
+      .from("project_data")
+      .select("order_id, developer_note")
+      .in("order_id", orderIds);
+    pdMap = Object.fromEntries((pds ?? []).map((pd) => [pd.order_id, pd]));
+  }
 
   const activeOrders = orders?.filter((o) => o.status !== "cancelled" && o.status !== "completed") ?? [];
   const doneOrders = orders?.filter((o) => o.status === "completed") ?? [];
@@ -128,9 +161,13 @@ export default async function DashboardPage() {
                       label: order.status,
                       color: "border-white/15 bg-white/8 text-white/50",
                       hint: "",
+                      progress: 0,
                     };
+                    const pd = pdMap[order.id] ?? {};
+
                     return (
                       <Card key={order.id} variant="solid" padding="md" hover>
+                        {/* Header */}
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
                             <p className="truncate font-bold text-white">
@@ -151,13 +188,74 @@ export default async function DashboardPage() {
                             {meta.label}
                           </span>
                         </div>
+
+                        {/* Progress bar */}
+                        <div className="mt-4">
+                          <div className="flex items-center justify-between mb-1.5">
+                            <p className="text-xs text-white/40">Прогресс</p>
+                            <p className="text-xs font-semibold text-white/60">{meta.progress}%</p>
+                          </div>
+                          <div className="h-1.5 w-full rounded-full bg-white/8">
+                            <div
+                              className="h-1.5 rounded-full bg-gradient-to-r from-cyan-500 to-cyan-400 transition-all"
+                              style={{ width: `${meta.progress}%` }}
+                            />
+                          </div>
+                        </div>
+
+                        {/* Status hint */}
                         {meta.hint && (
                           <p className="mt-3 border-t border-white/8 pt-3 text-xs leading-relaxed text-white/40">
                             {meta.hint}
                           </p>
                         )}
-                        <div className="mt-3">
-                          <ClientChat orderId={order.id} />
+
+                        {/* Developer note */}
+                        {pd.developer_note && (
+                          <div className="mt-3 rounded-xl border border-cyan-500/20 bg-cyan-500/8 px-3 py-2.5">
+                            <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-cyan-400/70">Сообщение от команды</p>
+                            <p className="text-sm text-white/80">{pd.developer_note}</p>
+                          </div>
+                        )}
+
+                        {/* Checklist */}
+                        <div className="mt-4 border-t border-white/8 pt-4">
+                          <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-white/30">Этапы</p>
+                          <div className="grid grid-cols-1 gap-1 sm:grid-cols-2">
+                            {CHECKLIST.map((item) => {
+                              const done = item.statuses.includes(order.status);
+                              return (
+                                <div key={item.label} className="flex items-center gap-2 text-xs">
+                                  {done
+                                    ? <span className="text-green-400 font-bold shrink-0">✓</span>
+                                    : <span className="text-white/20 shrink-0">○</span>
+                                  }
+                                  <span className={done ? "text-white/70" : "text-white/30"}>{item.label}</span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        {/* Timeline */}
+                        <div className="mt-4 border-t border-white/8 pt-4">
+                          <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-white/30">История</p>
+                          <div className="relative space-y-2 pl-4">
+                            <div className="absolute left-1.5 top-0 bottom-0 w-px bg-white/8" />
+                            {TIMELINE.filter((t) => t.statuses.includes(order.status)).map((item, i, arr) => (
+                              <div key={item.label} className="relative flex items-center gap-2 text-xs">
+                                <span className={`absolute -left-4 mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full ${i === arr.length - 1 ? "bg-cyan-400" : "bg-white/30"}`} />
+                                <span className={i === arr.length - 1 ? "text-white/80 font-semibold" : "text-white/40"}>
+                                  {item.label}
+                                </span>
+                                {i === 0 && (
+                                  <span className="ml-auto text-white/25">
+                                    {new Date(order.created_at).toLocaleDateString("ru-RU", { day: "numeric", month: "short" })}
+                                  </span>
+                                )}
+                              </div>
+                            ))}
+                          </div>
                         </div>
                       </Card>
                     );
@@ -194,6 +292,10 @@ export default async function DashboardPage() {
                         <span className="shrink-0 rounded-full border border-green-500/30 bg-green-500/15 px-3 py-1 text-xs font-semibold text-green-300">
                           Готово ✓
                         </span>
+                      </div>
+                      {/* Progress bar — full */}
+                      <div className="mt-3 h-1.5 w-full rounded-full bg-white/8">
+                        <div className="h-1.5 w-full rounded-full bg-green-500/50" />
                       </div>
                       {order.project_url && (
                         <Link
