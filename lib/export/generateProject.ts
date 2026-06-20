@@ -1085,6 +1085,7 @@ export const metadata: Metadata = {
     description: ${description},
   },
   robots: { index: true, follow: true },
+  icons: { icon: "/favicon.svg", shortcut: "/favicon.svg" },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -1151,11 +1152,15 @@ ${sectionComponents}
 }
 
 function genReadme(site: SiteJson): string {
-  return `# ${site.company.name || "Сайт компании"}
+  const name = site.company.name || "Сайт компании";
+  const domain = site.meta.domain ? `https://${site.meta.domain}` : "";
+  return `# ${name}
 
-Сгенерировано — [Vibecode Studio](https://vibecode-studio-pink.vercel.app)
+Сгенерировано в [Vibecode Studio](https://vibecode-studio-pink.vercel.app)
 
-## Запуск
+---
+
+## Локальный запуск
 
 \`\`\`bash
 npm install
@@ -1164,14 +1169,137 @@ npm run dev
 
 Откройте [http://localhost:3000](http://localhost:3000)
 
-## Деплой
+---
 
-\`\`\`bash
-npm run build
-npm start
+## Деплой на Vercel (рекомендуется)
+
+### Вариант 1 — Drag & Drop (без GitHub)
+
+1. Выполните сборку:
+   \`\`\`bash
+   npm install
+   npm run build
+   \`\`\`
+2. Зайдите на [vercel.com](https://vercel.com) → **New Project**
+3. Перетащите папку проекта в браузер
+4. Нажмите **Deploy**
+
+### Вариант 2 — через GitHub
+
+1. Создайте репозиторий на [github.com](https://github.com)
+2. Загрузите файлы:
+   \`\`\`bash
+   git init
+   git add .
+   git commit -m "init"
+   git remote add origin https://github.com/YOUR_NAME/YOUR_REPO.git
+   git push -u origin main
+   \`\`\`
+3. Зайдите на [vercel.com](https://vercel.com) → **New Project** → выберите репозиторий
+4. Нажмите **Deploy** — автодеплой на каждый push
+
+---
+
+## Деплой на Netlify
+
+1. Выполните сборку:
+   \`\`\`bash
+   npm install
+   npm run build
+   \`\`\`
+2. Зайдите на [netlify.com](https://netlify.com) → **Add new site** → **Deploy manually**
+3. Перетащите папку \`.next\` (или настройте Build command: \`npm run build\`, Publish: \`.next\`)
+
+---
+
+## Подключение домена
+
+### Vercel
+1. Откройте проект → **Settings** → **Domains**
+2. Введите ваш домен: \`${domain || "example.com"}\`
+3. Добавьте DNS-запись в панели регистратора:
+   - Тип: \`CNAME\`
+   - Имя: \`@\` (или \`www\`)
+   - Значение: \`cname.vercel-dns.com\`
+
+### Netlify
+1. **Domain settings** → **Add custom domain**
+2. DNS-запись:
+   - Тип: \`CNAME\`
+   - Значение: \`[ваш-проект].netlify.app\`
+
+---
+
+## Структура проекта
+
+\`\`\`
+├── app/
+│   ├── layout.tsx       # Корневой layout, метаданные
+│   ├── page.tsx         # Главная страница
+│   ├── globals.css      # Глобальные стили, CSS-переменные
+│   └── privacy/         # Политика конфиденциальности
+├── components/
+│   ├── sections/        # Секции сайта (Hero, About, Services…)
+│   ├── Navigation.tsx   # Хедер с навигацией
+│   └── CookieBanner.tsx
+├── content/
+│   └── site.json        # Данные сайта (контент, контакты, цвета)
+├── public/
+│   └── favicon.svg      # Фавикон
+└── types/
+    └── index.ts
 \`\`\`
 
-Или задеплойте на [Vercel](https://vercel.com).
+---
+
+Создано в Vibecode Studio
+`;
+}
+
+function genEnvExample(): string {
+  return `# .env.example — скопируйте в .env.local для локальной разработки
+# Все переменные опциональны для статического сайта
+
+# Домен сайта (используется для OpenGraph и sitemap)
+# NEXT_PUBLIC_SITE_URL=https://example.com
+`;
+}
+
+function genRobotsTxt(domain: string): string {
+  const siteUrl = domain ? `https://${domain}` : "";
+  return `User-agent: *
+Allow: /
+Disallow: /api/
+${siteUrl ? `\nSitemap: ${siteUrl}/sitemap.xml` : ""}
+`;
+}
+
+function genSitemapXml(site: SiteJson): string {
+  const base = site.meta.domain ? `https://${site.meta.domain}` : "https://example.com";
+  const now = new Date().toISOString().split("T")[0];
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>${base}/</loc>
+    <lastmod>${now}</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>${base}/privacy</loc>
+    <lastmod>${now}</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+</urlset>
+`;
+}
+
+function genFaviconSvg(primary: string): string {
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <rect width="32" height="32" rx="8" fill="${primary}"/>
+  <text x="16" y="22" text-anchor="middle" font-size="18" font-family="system-ui,sans-serif" font-weight="bold" fill="white">V</text>
+</svg>
 `;
 }
 
@@ -1194,6 +1322,10 @@ export function generateProject(site: SiteJson): Record<string, string> {
   files["postcss.config.js"] = genPostcssConfig();
   files[".gitignore"] = "node_modules\n.next\n.env.local\n";
   files["README.md"] = genReadme(site);
+  files[".env.example"] = genEnvExample();
+  files["public/robots.txt"] = genRobotsTxt(site.meta.domain);
+  files["public/sitemap.xml"] = genSitemapXml(site);
+  files["public/favicon.svg"] = genFaviconSvg(primary);
 
   // Types
   files["types/index.ts"] = genTypes();

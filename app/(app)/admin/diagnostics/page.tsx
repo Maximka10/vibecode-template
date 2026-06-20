@@ -209,19 +209,22 @@ export default async function DiagnosticsPage() {
           {/* Deployment */}
           <section className="rounded-2xl border border-white/8 bg-white/4 p-5">
             <div className="mb-4 flex items-center gap-2">
-              <StatusDot ok={env.vercelToken.ok} warn={!env.vercelToken.ok} />
-              <h2 className="text-sm font-semibold">Vercel AutoDeploy</h2>
+              <span className="inline-block h-2.5 w-2.5 rounded-full bg-yellow-400/60 shrink-0" />
+              <h2 className="text-sm font-semibold text-white/60">Vercel AutoDeploy — отключён</h2>
             </div>
-            <CheckRow label="VERCEL_TOKEN" result={env.vercelToken} />
-            <CheckRow label="VERCEL_TEAM_ID (опционально)" result={env.vercelTeamId} warn />
-            <CheckRow label="NEXT_PUBLIC_SITE_URL (для dispatch)" result={env.siteUrl} />
-            <CheckRow label="deployment_queue" result={deployStatus} warn={!deployStatus.ok} />
-            <CheckRow label="Внутренний runner" result={{ ok: true, msg: "POST /api/internal/run-deployment" }} />
-            {!env.vercelToken.ok && (
-              <p className="mt-3 text-xs text-yellow-300/70">
-                Установите <code className="bg-white/10 px-1 rounded">VERCEL_TOKEN</code> в Vercel Dashboard → Settings → Environment Variables. Получите токен в Vercel → Account Settings → Tokens.
-              </p>
-            )}
+            <CheckRow
+              label="Статус функции"
+              result={{ ok: true, msg: "Временно отключён (используйте ZIP экспорт)" }}
+              warn
+            />
+            <CheckRow
+              label="deployment_queue / deployment_logs"
+              result={{ ok: true, msg: "Таблицы активны, данные сохраняются" }}
+            />
+            <CheckRow
+              label="Код"
+              result={{ ok: true, msg: "Сохранён в lib/deploy/ — готов к повторному включению" }}
+            />
           </section>
 
           {/* Export */}

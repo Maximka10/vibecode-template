@@ -1,19 +1,16 @@
 /**
- * POST /api/internal/run-deployment
+ * POST /api/internal/run-deployment — EXPERIMENTAL / DISABLED (CRM-6 freeze)
  *
- * Internal-only route. Executes the full Vercel deployment pipeline
- * as a separate serverless invocation with its own execution lifetime,
- * avoiding the Vercel cutoff that kills fire-and-forget async work.
+ * Automatic deployment is temporarily disabled. This route returns 503.
+ * Re-enable: remove the early return below, uncomment the restore block in
+ * app/api/orders/[id]/deploy/route.ts, and set VERCEL_TOKEN env var.
  *
  * Protected by TELEGRAM_WEBHOOK_SECRET (reuses existing internal secret).
- * Body: { jobId: string; orderId: string }
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { updateJob, appendLog } from "@/lib/deploy/DeploymentService";
-import { runDeployment } from "@/lib/deploy/runDeployment";
 
-export const maxDuration = 300; // 5 minutes — Vercel Pro/Enterprise only
+export const maxDuration = 300;
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
   const secret = process.env.TELEGRAM_WEBHOOK_SECRET;
@@ -24,7 +21,21 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     }
   }
 
-  let body: { jobId?: string; orderId?: string };
+  return NextResponse.json(
+    { disabled: true, message: "Automatic deployment temporarily disabled. Use ZIP export instead." },
+    { status: 503 }
+  );
+}
+
+/*
+// ── Restore block — uncomment to re-enable auto-deployment ────────────────────
+// Also restore imports: updateJob, appendLog from DeploymentService; runDeployment from runDeployment
+
+async function runHandler(req: NextRequest): Promise<NextResponse> {
+  const { updateJob, appendLog } = await import("@/lib/deploy/DeploymentService");
+  const { runDeployment } = await import("@/lib/deploy/runDeployment");
+
+  let body: { jobId: string; orderId: string };
   try {
     body = await req.json();
   } catch {
@@ -39,7 +50,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
     await runDeployment(jobId, orderId);
     return NextResponse.json({ ok: true });
-  } catch (err: unknown) {
+  } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error("[run-deployment] failed:", message);
     await updateJob(jobId, { status: "failed", error: message });
@@ -47,3 +58,5 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ ok: false, error: message }, { status: 500 });
   }
 }
+// ─────────────────────────────────────────────────────────────────────────────
+*/

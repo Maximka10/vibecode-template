@@ -30,7 +30,7 @@ const TABS = [
   { id: "materials", label: "Материалы" },
   { id: "development", label: "Разработка" },
   { id: "preview", label: "Предпросмотр" },
-  { id: "deploy", label: "🚀 Деплой" },
+  { id: "deploy", label: "Деплой / ZIP" },
   { id: "export", label: "Экспорт" },
   { id: "history", label: "История" },
   { id: "telegram", label: "💬 Telegram" },
