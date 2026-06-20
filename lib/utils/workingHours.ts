@@ -6,6 +6,20 @@ const DAY_LABELS: Record<DayKey, string> = {
 
 type DaySchedule = { open: string; close: string; closed: boolean };
 
+export function formatWorkingHoursTable(raw?: string | null): Array<{ day: string; value: string }> | null {
+  if (!raw) return null;
+  try {
+    const s = JSON.parse(raw) as Record<DayKey, DaySchedule>;
+    if (!s.mon) return null;
+    return DAY_KEYS.map((k) => ({
+      day: DAY_LABELS[k],
+      value: s[k].closed ? "Выходной" : `${s[k].open} – ${s[k].close}`,
+    }));
+  } catch {
+    return null;
+  }
+}
+
 export function formatWorkingHours(raw?: string | null): string {
   if (!raw) return "";
   try {

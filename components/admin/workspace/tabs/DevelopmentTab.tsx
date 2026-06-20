@@ -24,6 +24,7 @@ type ProjectData = {
   address?: string;
   working_hours?: string;
   domain_name?: string;
+  contact_link?: string;
   services?: string[];
   seo_title?: string;
   seo_description?: string;
@@ -757,6 +758,9 @@ export default function DevelopmentTab({ orderId, order }: { orderId: string; or
             </Field>
             <Field label="Домен сайта">
               <input className={FIELD_CLS} value={pd.domain_name ?? ""} onChange={(e) => { setPd((p) => ({ ...p, domain_name: e.target.value })); setDirty(true); }} placeholder="example.ru" />
+            </Field>
+            <Field label="Ссылка для связи (CTA)" hint="Используется в кнопках «Оставить заявку»">
+              <input className={FIELD_CLS} value={pd.contact_link ?? ""} onChange={(e) => { setPd((p) => ({ ...p, contact_link: e.target.value })); setDirty(true); }} placeholder="https://t.me/username или tel:+7..." />
             </Field>
             <Field label="SEO заголовок">
               <input className={FIELD_CLS} value={pd.seo_title ?? ""} onChange={(e) => { setPd((p) => ({ ...p, seo_title: e.target.value })); setDirty(true); }} />

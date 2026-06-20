@@ -116,7 +116,7 @@ function SectionReviews({ content, primary }: { content: Record<string, unknown>
     <div className="px-8 py-14 bg-slate-50 border-b border-slate-100">
       <div className="mb-3 h-1 w-10 rounded-full" style={{ backgroundColor: primary }} />
       {!!content.title && <h2 className="mb-7 text-2xl font-black text-slate-900">{s(content.title)}</h2>}
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         {items.map((r, i) => (
           <div key={i} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
             <div className="flex gap-0.5">
@@ -162,7 +162,7 @@ function SectionPricing({ content, primary }: { content: Record<string, unknown>
     <div className="px-8 py-14 bg-slate-50 border-b border-slate-100">
       <div className="mb-3 h-1 w-10 rounded-full" style={{ backgroundColor: primary }} />
       {!!content.title && <h2 className="mb-7 text-2xl font-black text-slate-900">{s(content.title)}</h2>}
-      <div className="grid gap-5 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
         {plans.map((p, i) => (
           <div
             key={i}

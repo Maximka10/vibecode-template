@@ -101,9 +101,17 @@ export default async function DashboardPage() {
             <h1 className="mt-1 text-3xl font-black">Мои заказы</h1>
             <p className="mt-1 text-sm text-white/40">{user.email}</p>
           </div>
-          <Btn href="/templates" variant="outline" size="sm" className="shrink-0 mt-1">
-            + Новый сайт
-          </Btn>
+          <div className="flex shrink-0 flex-col items-end gap-2 mt-1">
+            <Btn href="/templates" variant="outline" size="sm">
+              + Новый сайт
+            </Btn>
+            <a
+              href="/"
+              className="text-xs text-white/30 transition hover:text-white/60"
+            >
+              ← Вернуться на сайт
+            </a>
+          </div>
         </div>
 
         <div className="mt-8 h-px bg-white/8" />

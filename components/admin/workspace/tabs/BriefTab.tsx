@@ -1,24 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-
-// ── Working hours ─────────────────────────────────────────────────────────────
-type DayKey = "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun";
-const DAY_KEYS: DayKey[] = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
-const DAY_LABELS: Record<DayKey, string> = { mon: "Пн", tue: "Вт", wed: "Ср", thu: "Чт", fri: "Пт", sat: "Сб", sun: "Вс" };
-
-function formatWorkingHoursTable(raw?: string | null): Array<{ day: string; value: string }> | null {
-  if (!raw) return null;
-  try {
-    const s = JSON.parse(raw) as Record<DayKey, { open: string; close: string; closed: boolean }>;
-    if (!s.mon) return null;
-    return DAY_KEYS.map((k) => ({
-      day: DAY_LABELS[k],
-      value: s[k].closed ? "Выходной" : `${s[k].open} – ${s[k].close}`,
-    }));
-  } catch {
-    return null;
-  }
-}
+import { formatWorkingHoursTable } from "@/lib/utils/workingHours";
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 function CopyBtn({ text }: { text: string }) {

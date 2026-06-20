@@ -67,6 +67,7 @@ export default function OrderWorkspace({
             </span>
           </div>
           <div className="flex shrink-0 gap-2">
+            <Btn href={`/admin/orders/${order.id}/brief`} variant="ghost" size="sm" external>Бриф ↗</Btn>
             <Btn href={`/preview/${order.template_id}`} variant="ghost" size="sm" external>Превью ↗</Btn>
             <Btn href={`/customize/${order.template_id}`} variant="outline" size="sm">Редактор →</Btn>
           </div>
