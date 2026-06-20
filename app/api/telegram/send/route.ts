@@ -28,35 +28,52 @@ export async function POST(req: NextRequest) {
 
   const admin = createAdminClient();
 
+  console.log(`[telegram/send] order_id=${order_id} text_len=${text.trim().length}`);
+
   // Fetch order + linked client (join telegram_clients for chat_id)
-  const { data: order } = await admin
+  const { data: order, error: orderErr } = await admin
     .from("orders")
     .select("id, telegram_client_id")
     .eq("id", order_id)
     .single();
 
-  if (!order) return NextResponse.json({ ok: false, error: "Order not found" }, { status: 404 });
-  if (!order.telegram_client_id) return NextResponse.json({ ok: false, error: "Order has no linked Telegram account" }, { status: 400 });
+  if (orderErr || !order) {
+    console.error("[telegram/send] order not found:", orderErr?.message);
+    return NextResponse.json({ ok: false, error: "Order not found" }, { status: 404 });
+  }
+  if (!order.telegram_client_id) {
+    console.error("[telegram/send] order has no telegram_client_id");
+    return NextResponse.json({ ok: false, error: "Order has no linked Telegram account" }, { status: 400 });
+  }
 
   const clientId = order.telegram_client_id as string;
+  console.log(`[telegram/send] client_id=${clientId}`);
 
-  const { data: tgClient } = await admin
+  const { data: tgClient, error: clientErr } = await admin
     .from("telegram_clients")
     .select("id, chat_id")
     .eq("id", clientId)
     .single();
 
-  if (!tgClient?.chat_id) return NextResponse.json({ ok: false, error: "Telegram client record not found" }, { status: 500 });
+  if (clientErr || !tgClient?.chat_id) {
+    console.error("[telegram/send] telegram_clients lookup failed:", clientErr?.message, "chat_id:", tgClient?.chat_id);
+    return NextResponse.json({ ok: false, error: "Telegram client record not found" }, { status: 500 });
+  }
+
+  console.log(`[telegram/send] sending to chat_id=${tgClient.chat_id}`);
 
   // Send via Bot API
   const tgMsgId = await sendMessage(tgClient.chat_id as number, text);
 
   if (!tgMsgId) {
+    console.error("[telegram/send] sendMessage returned null — check TELEGRAM_BOT_TOKEN and bot API response");
     return NextResponse.json({ ok: false, error: "Failed to send via Telegram" }, { status: 502 });
   }
 
+  console.log(`[telegram/send] telegram msg_id=${tgMsgId} — inserting outbound row`);
+
   // Store outbound message
-  const { data: msg, error } = await admin
+  const { data: msg, error: insertErr } = await admin
     .from("telegram_messages")
     .insert({
       order_id,
@@ -71,10 +88,11 @@ export async function POST(req: NextRequest) {
     .select("*")
     .single();
 
-  if (error) {
-    console.error("[telegram/send] DB insert error:", error.message);
+  if (insertErr) {
+    console.error("[telegram/send] DB insert error:", insertErr.message);
     return NextResponse.json({ ok: false, error: "Message sent but DB insert failed" }, { status: 500 });
   }
 
+  console.log(`[telegram/send] ✓ done msg.id=${msg?.id}`);
   return NextResponse.json({ ok: true, message: msg });
 }

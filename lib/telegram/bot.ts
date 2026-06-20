@@ -38,7 +38,7 @@ export async function sendMessage(
     if (r.ok && r.result && typeof r.result === "object") {
       return (r.result as { message_id: number }).message_id ?? null;
     }
-    console.error("[telegram/bot] sendMessage failed:", r.description);
+    console.error("[telegram/bot] sendMessage failed — ok:", r.ok, "description:", r.description);
     return null;
   } catch (err) {
     console.error("[telegram/bot] sendMessage error:", err instanceof Error ? err.message : err);

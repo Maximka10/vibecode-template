@@ -693,7 +693,7 @@ export default function TelegramTab({
     return <p className="py-16 text-center text-sm text-white/30">Загрузка…</p>;
   }
 
-  const isLinked = !!order?.telegram_chat_id;
+  const isLinked = !!order?.telegram_client_id;
 
   return (
     <>
