@@ -231,31 +231,76 @@ async function storeMessage(input: StoreInput): Promise<string | null> {
 // ── Order lookup by chat_id ───────────────────────────────────────────────────
 
 async function findOrderByChatId(
-  chatId: number
+  chatId: number,
+  disambiguationChoice?: number
 ): Promise<{ orderId: string; clientId: string } | null> {
   const admin = createAdminClient();
 
-  // Find active client record
-  const { data: client } = await admin
-    .from("telegram_clients")
-    .select("id")
+  // Find active client record (with active_order_id for multi-order disambiguation)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: client } = await (admin.from("telegram_clients") as any)
+    .select("id, active_order_id")
     .eq("chat_id", chatId)
     .single();
 
   if (!client) return null;
 
-  // Find their most recent non-cancelled order
-  const { data: order } = await admin
-    .from("orders")
-    .select("id")
-    .eq("telegram_client_id", client.id)
-    .not("status", "eq", "cancelled")
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .single();
+  const clientRecord = client as { id: string; active_order_id: string | null };
 
-  if (!order) return null;
-  return { orderId: order.id, clientId: client.id };
+  // Find all non-cancelled orders for this client
+  const { data: orders } = await admin
+    .from("orders")
+    .select("id, template_name")
+    .eq("telegram_client_id", clientRecord.id)
+    .not("status", "eq", "cancelled")
+    .order("created_at", { ascending: false });
+
+  if (!orders || orders.length === 0) return null;
+
+  // If user sent a disambiguation choice, update and return
+  if (disambiguationChoice !== undefined) {
+    const chosen = orders[disambiguationChoice - 1];
+    if (chosen) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (admin.from("telegram_clients") as any)
+        .update({ active_order_id: chosen.id })
+        .eq("id", clientRecord.id);
+      await sendMessage(chatId, `✅ Выбрана заявка: *${chosen.template_name ?? chosen.id.slice(0, 8)}*`);
+      return { orderId: chosen.id, clientId: clientRecord.id };
+    }
+  }
+
+  // Single order — update active_order_id and return
+  if (orders.length === 1) {
+    if (clientRecord.active_order_id !== orders[0].id) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (admin.from("telegram_clients") as any)
+        .update({ active_order_id: orders[0].id })
+        .eq("id", clientRecord.id);
+    }
+    return { orderId: orders[0].id, clientId: clientRecord.id };
+  }
+
+  // Multiple orders — check if there's a valid active selection
+  const activeOrder = clientRecord.active_order_id
+    ? orders.find((o) => o.id === clientRecord.active_order_id)
+    : null;
+
+  if (activeOrder) {
+    return { orderId: activeOrder.id, clientId: clientRecord.id };
+  }
+
+  // No valid selection — send disambiguation message
+  const list = orders
+    .map((o, i) => `${i + 1}. ${o.template_name ?? o.id.slice(0, 8)}`)
+    .join("\n");
+
+  await sendMessage(
+    chatId,
+    `У вас несколько активных заявок. Напишите номер нужной:\n\n${list}`
+  );
+
+  return null;
 }
 
 // ── Main update handler ───────────────────────────────────────────────────────
@@ -282,16 +327,27 @@ export async function handleUpdate(update: TgUpdate): Promise<void> {
     return;
   }
 
+  // ── Check if this is a disambiguation choice (digit 1-9) ────────────────────
+  const trimmedText = msg.text?.trim() ?? "";
+  const digitChoice = /^[1-9]$/.test(trimmedText) ? parseInt(trimmedText, 10) : undefined;
+
   // ── Find linked order ────────────────────────────────────────────────────────
-  const linked = await findOrderByChatId(chatId);
+  const linked = await findOrderByChatId(chatId, digitChoice);
   if (!linked) {
-    // Unknown client — prompt to use start link
-    await sendMessage(
-      chatId,
-      "👋 Привяжите заказ через ссылку из письма, чтобы начать общение с командой."
-    );
+    // Could be: disambiguation sent, unknown client, or no orders
+    // If it was a digit for disambiguation, findOrderByChatId already replied.
+    // Otherwise, prompt to link.
+    if (digitChoice === undefined) {
+      await sendMessage(
+        chatId,
+        "👋 Привяжите заказ через ссылку из письма, чтобы начать общение с командой."
+      );
+    }
     return;
   }
+
+  // If user sent a digit and we resolved it, don't store it as a content message
+  if (digitChoice !== undefined) return;
 
   const { orderId, clientId } = linked;
 

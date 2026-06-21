@@ -24,7 +24,7 @@ export async function GET(
 
 const ALLOWED_KEYS = [
   "company_name", "company_description", "phone", "email", "telegram",
-  "address", "working_hours", "domain_name", "services",
+  "whatsapp", "address", "working_hours", "domain_name", "services",
   "seo_title", "seo_description", "branding", "content_edits",
   "developer_note", "contact_link",
 ] as const;
