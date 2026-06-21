@@ -43,6 +43,13 @@ export default async function AdminPage({
     revenue: orders
       .filter((o) => o.status === "completed")
       .reduce((s, o) => s + (o.total_price ?? 0), 0),
+    // Sales funnel by lead_status
+    leadNew: orders.filter((o) => o.lead_status === "new").length,
+    leadContacted: orders.filter((o) => o.lead_status === "contacted").length,
+    leadQualified: orders.filter((o) => o.lead_status === "qualified").length,
+    leadProposalSent: orders.filter((o) => o.lead_status === "proposal_sent").length,
+    leadWon: orders.filter((o) => o.lead_status === "won").length,
+    leadLost: orders.filter((o) => o.lead_status === "lost").length,
   };
 
   return (

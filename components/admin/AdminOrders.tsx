@@ -371,6 +371,12 @@ export default function AdminOrders({
     clients: number;
     tgLinked: number;
     revenue: number;
+    leadNew?: number;
+    leadContacted?: number;
+    leadQualified?: number;
+    leadProposalSent?: number;
+    leadWon?: number;
+    leadLost?: number;
   };
   activeTab: string;
 }) {
@@ -451,6 +457,21 @@ export default function AdminOrders({
             accent="orange"
             icon={<IconRevenue />}
           />
+        </div>
+
+        {/* Sales Funnel */}
+        <div>
+          <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-white/30">
+            Воронка продаж
+          </p>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+            <StatCard label="Новые лиды" value={stats.leadNew ?? 0} accent="blue" />
+            <StatCard label="Связались" value={stats.leadContacted ?? 0} accent="purple" />
+            <StatCard label="Квалифицированы" value={stats.leadQualified ?? 0} accent="cyan" />
+            <StatCard label="КП отправлено" value={stats.leadProposalSent ?? 0} accent="yellow" />
+            <StatCard label="Выиграно" value={stats.leadWon ?? 0} accent="green" />
+            <StatCard label="Потеряно" value={stats.leadLost ?? 0} accent="orange" />
+          </div>
         </div>
 
         {/* Tabs */}
