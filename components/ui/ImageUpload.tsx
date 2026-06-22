@@ -9,32 +9,60 @@ interface CropState {
   h: number;
 }
 
+const ASPECT_PRESETS = [
+  { label: "Свободно", value: 0 },
+  { label: "1:1", value: 1 },
+  { label: "16:9", value: 16 / 9 },
+  { label: "4:3", value: 4 / 3 },
+  { label: "3:2", value: 3 / 2 },
+  { label: "16:5", value: 16 / 5 },
+  { label: "3:4", value: 3 / 4 },
+];
+
 function CropEditor({
   src,
-  aspectRatio,
+  aspectRatio: initialAspect,
   onConfirm,
   onCancel,
+  onChangeFile,
 }: {
   src: string;
   aspectRatio?: number;
   onConfirm: (blob: Blob) => void;
   onCancel: () => void;
+  onChangeFile?: () => void;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const previewCanvasRef = useRef<HTMLCanvasElement>(null);
   const imgRef = useRef<HTMLImageElement | null>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [crop, setCrop] = useState<CropState>({ x: 0.1, y: 0.1, w: 0.8, h: 0.8 });
+  const [crop, setCrop] = useState<CropState>({ x: 0.05, y: 0.05, w: 0.9, h: 0.9 });
+  const [lockedAspect, setLockedAspect] = useState<number>(initialAspect ?? 0);
+  const [imgLoaded, setImgLoaded] = useState(false);
   const dragging = useRef<null | { type: "move" | "tl" | "tr" | "bl" | "br"; startX: number; startY: number; startCrop: CropState }>(null);
 
   useEffect(() => {
     const img = new Image();
-    img.onload = () => {
-      imgRef.current = img;
-      draw();
-    };
+    img.crossOrigin = "anonymous";
+    img.onload = () => { imgRef.current = img; setImgLoaded(true); };
     img.src = src;
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [src]);
+
+  // Set initial crop to match locked aspect
+  useEffect(() => {
+    if (!imgLoaded || !imgRef.current) return;
+    if (lockedAspect > 0) {
+      const img = imgRef.current;
+      const imgAspect = img.naturalWidth / img.naturalHeight;
+      if (lockedAspect > imgAspect) {
+        const h = imgAspect / lockedAspect * 0.9;
+        setCrop({ x: 0.05, y: (1 - h) / 2, w: 0.9, h });
+      } else {
+        const w = lockedAspect / imgAspect * 0.9;
+        setCrop({ x: (1 - w) / 2, y: 0.05, w, h: 0.9 });
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lockedAspect, imgLoaded]);
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -43,49 +71,72 @@ function CropEditor({
     const ctx = canvas.getContext("2d")!;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-    // Overlay
     const { x, y, w, h } = crop;
-    const cx = x * canvas.width;
-    const cy = y * canvas.height;
-    const cw = w * canvas.width;
-    const ch = h * canvas.height;
-    ctx.fillStyle = "rgba(0,0,0,0.5)";
+    const cx = x * canvas.width, cy = y * canvas.height;
+    const cw = w * canvas.width, ch = h * canvas.height;
+    // Dim outside
+    ctx.fillStyle = "rgba(0,0,0,0.55)";
     ctx.fillRect(0, 0, canvas.width, cy);
     ctx.fillRect(0, cy, cx, ch);
     ctx.fillRect(cx + cw, cy, canvas.width - cx - cw, ch);
     ctx.fillRect(0, cy + ch, canvas.width, canvas.height - cy - ch);
-    // Border
+    // Crop border
     ctx.strokeStyle = "#22d3ee";
     ctx.lineWidth = 2;
     ctx.strokeRect(cx, cy, cw, ch);
-    // Handles
-    const hs = 8;
+    // Corner handles (larger, easier to grab)
+    const hs = 10;
     ctx.fillStyle = "#22d3ee";
-    for (const [hx, hy] of [[cx, cy], [cx + cw, cy], [cx, cy + ch], [cx + cw, cy + ch]]) {
+    for (const [hx, hy] of [[cx, cy], [cx + cw, cy], [cx, cy + ch], [cx + cw, cy + ch]] as [number,number][]) {
       ctx.fillRect(hx - hs / 2, hy - hs / 2, hs, hs);
     }
     // Rule of thirds
-    ctx.strokeStyle = "rgba(255,255,255,0.15)";
+    ctx.strokeStyle = "rgba(255,255,255,0.12)";
     ctx.lineWidth = 1;
     for (let i = 1; i < 3; i++) {
       ctx.beginPath(); ctx.moveTo(cx + cw * i / 3, cy); ctx.lineTo(cx + cw * i / 3, cy + ch); ctx.stroke();
       ctx.beginPath(); ctx.moveTo(cx, cy + ch * i / 3); ctx.lineTo(cx + cw, cy + ch * i / 3); ctx.stroke();
     }
+    // Update preview
+    drawPreview();
+  }, [crop]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const drawPreview = useCallback(() => {
+    const pc = previewCanvasRef.current;
+    const img = imgRef.current;
+    if (!pc || !img) return;
+    const ctx = pc.getContext("2d")!;
+    const { x, y, w, h } = crop;
+    ctx.clearRect(0, 0, pc.width, pc.height);
+    ctx.drawImage(img, img.naturalWidth * x, img.naturalHeight * y, img.naturalWidth * w, img.naturalHeight * h, 0, 0, pc.width, pc.height);
   }, [crop]);
 
-  useEffect(() => { draw(); }, [draw]);
+  useEffect(() => { if (imgLoaded) draw(); }, [draw, imgLoaded]);
 
   function getRelPos(e: React.MouseEvent<HTMLCanvasElement>) {
     const canvas = canvasRef.current!;
     const rect = canvas.getBoundingClientRect();
-    return {
-      x: (e.clientX - rect.left) / rect.width,
-      y: (e.clientY - rect.top) / rect.height,
-    };
+    return { x: (e.clientX - rect.left) / rect.width, y: (e.clientY - rect.top) / rect.height };
   }
 
   function hitHandle(px: number, py: number, hx: number, hy: number) {
-    return Math.abs(px - hx) < 0.03 && Math.abs(py - hy) < 0.03;
+    return Math.abs(px - hx) < 0.04 && Math.abs(py - hy) < 0.04;
+  }
+
+  function applyAspect(nx: number, ny: number, nw: number, nh: number): { x: number; y: number; w: number; h: number } {
+    if (!lockedAspect) return { x: nx, y: ny, w: nw, h: nh };
+    const canvas = canvasRef.current!;
+    const cAspect = canvas.width / canvas.height;
+    const pixW = nw * canvas.width;
+    const pixH = nh * canvas.height;
+    const targetAspect = lockedAspect / cAspect;
+    if (pixW / pixH > targetAspect) {
+      const newH = nw / targetAspect;
+      return { x: nx, y: ny, w: nw, h: Math.min(newH, 1 - ny) };
+    } else {
+      const newW = nh * targetAspect;
+      return { x: nx, y: ny, w: Math.min(newW, 1 - nx), h: nh };
+    }
   }
 
   function onMouseDown(e: React.MouseEvent<HTMLCanvasElement>) {
@@ -104,53 +155,30 @@ function CropEditor({
     if (!dragging.current) return;
     const { x: px, y: py } = getRelPos(e);
     const { type, startX, startY, startCrop: sc } = dragging.current;
-    const dx = px - startX;
-    const dy = py - startY;
+    const dx = px - startX, dy = py - startY;
     const MIN = 0.05;
-    let { x, y, w, h } = sc;
+    let x = sc.x, y = sc.y, w = sc.w, h = sc.h;
     if (type === "move") {
       x = Math.max(0, Math.min(1 - w, sc.x + dx));
       y = Math.max(0, Math.min(1 - h, sc.y + dy));
     } else if (type === "tl") {
-      x = Math.min(sc.x + sc.w - MIN, sc.x + dx);
-      y = Math.min(sc.y + sc.h - MIN, sc.y + dy);
-      w = sc.x + sc.w - x;
-      h = sc.y + sc.h - y;
-      x = Math.max(0, x); y = Math.max(0, y);
+      x = Math.max(0, Math.min(sc.x + sc.w - MIN, sc.x + dx));
+      y = Math.max(0, Math.min(sc.y + sc.h - MIN, sc.y + dy));
+      w = sc.x + sc.w - x; h = sc.y + sc.h - y;
     } else if (type === "tr") {
-      y = Math.min(sc.y + sc.h - MIN, sc.y + dy);
+      y = Math.max(0, Math.min(sc.y + sc.h - MIN, sc.y + dy));
       w = Math.max(MIN, Math.min(1 - sc.x, sc.w + dx));
       h = sc.y + sc.h - y;
-      y = Math.max(0, y);
     } else if (type === "bl") {
-      x = Math.min(sc.x + sc.w - MIN, sc.x + dx);
+      x = Math.max(0, Math.min(sc.x + sc.w - MIN, sc.x + dx));
       w = sc.x + sc.w - x;
       h = Math.max(MIN, Math.min(1 - sc.y, sc.h + dy));
-      x = Math.max(0, x);
     } else if (type === "br") {
       w = Math.max(MIN, Math.min(1 - sc.x, sc.w + dx));
       h = Math.max(MIN, Math.min(1 - sc.y, sc.h + dy));
     }
-    if (aspectRatio) {
-      // Lock aspect on corner drags
-      if (type !== "move") {
-        const imgEl = imgRef.current;
-        if (imgEl) {
-          const imgAspect = imgEl.naturalWidth / imgEl.naturalHeight;
-          const canvasEl = canvasRef.current!;
-          const canvasAspect = canvasEl.width / canvasEl.height;
-          const pixW = w * canvasEl.width;
-          const pixH = h * canvasEl.height;
-          const targetAspect = aspectRatio;
-          if (pixW / pixH > targetAspect * canvasAspect / imgAspect) {
-            h = w * canvasEl.width / (targetAspect * canvasEl.height);
-          } else {
-            w = h * targetAspect * canvasEl.height / canvasEl.width;
-          }
-        }
-      }
-    }
-    setCrop({ x, y, w, h });
+    const applied = type !== "move" ? applyAspect(x, y, w, h) : { x, y, w, h };
+    setCrop(applied);
   }
 
   function onMouseUp() { dragging.current = null; }
@@ -160,40 +188,93 @@ function CropEditor({
     if (!img) return;
     const out = document.createElement("canvas");
     const { x, y, w, h } = crop;
-    out.width = Math.round(img.naturalWidth * w);
-    out.height = Math.round(img.naturalHeight * h);
-    const ctx = out.getContext("2d")!;
-    ctx.drawImage(img, img.naturalWidth * x, img.naturalHeight * y, out.width, out.height, 0, 0, out.width, out.height);
+    out.width = Math.max(1, Math.round(img.naturalWidth * w));
+    out.height = Math.max(1, Math.round(img.naturalHeight * h));
+    out.getContext("2d")!.drawImage(img, img.naturalWidth * x, img.naturalHeight * y, out.width, out.height, 0, 0, out.width, out.height);
     out.toBlob((blob) => { if (blob) onConfirm(blob); }, "image/jpeg", 0.92);
   }
 
+  const imgEl = imgRef.current;
+  const cropPx = imgEl ? {
+    w: Math.round(imgEl.naturalWidth * crop.w),
+    h: Math.round(imgEl.naturalHeight * crop.h),
+  } : null;
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-      <div className="flex w-full max-w-xl flex-col gap-3 rounded-2xl border border-white/10 bg-slate-900 p-4 shadow-2xl max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between">
-          <p className="text-sm font-semibold text-white">Кадрирование</p>
-          <button onClick={onCancel} className="rounded-full p-1 text-white/40 hover:text-white/70">✕</button>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm p-3">
+      <div className="flex w-full max-w-3xl flex-col gap-3 rounded-2xl border border-white/10 bg-slate-900 shadow-2xl overflow-hidden max-h-[95vh]">
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 pt-4">
+          <p className="text-sm font-bold text-white">✂ Редактор изображения</p>
+          <div className="flex items-center gap-2">
+            {onChangeFile && (
+              <button onClick={onChangeFile} className="rounded-lg border border-white/15 px-3 py-1 text-xs text-white/50 hover:text-white/80 transition">
+                Выбрать другой файл
+              </button>
+            )}
+            <button onClick={onCancel} className="rounded-full p-1 text-white/40 hover:text-white/70">✕</button>
+          </div>
         </div>
-        <p className="text-xs text-white/40">Перетащите рамку или углы для выбора области</p>
-        <div ref={containerRef} className="relative rounded-xl overflow-hidden bg-black" style={{ maxHeight: "52vh" }}>
-          <canvas
-            ref={canvasRef}
-            width={560}
-            height={320}
-            className="w-full cursor-crosshair"
-            onMouseDown={onMouseDown}
-            onMouseMove={onMouseMove}
-            onMouseUp={onMouseUp}
-            onMouseLeave={onMouseUp}
-          />
+
+        {/* Aspect presets */}
+        <div className="flex flex-wrap gap-1.5 px-4">
+          <span className="text-xs text-white/30 self-center mr-1">Пропорции:</span>
+          {ASPECT_PRESETS.map((p) => (
+            <button
+              key={p.label}
+              onClick={() => setLockedAspect(p.value)}
+              className={`rounded-lg border px-2.5 py-1 text-xs font-semibold transition ${lockedAspect === p.value ? "border-cyan-500/50 bg-cyan-500/15 text-cyan-300" : "border-white/10 text-white/40 hover:text-white/70"}`}
+            >
+              {p.label}
+            </button>
+          ))}
         </div>
-        <div className="flex justify-end gap-2">
-          <button onClick={onCancel} className="rounded-lg border border-white/10 px-4 py-1.5 text-sm text-white/60 hover:bg-white/5">
-            Отмена
-          </button>
-          <button onClick={handleConfirm} className="rounded-lg bg-cyan-500 px-4 py-1.5 text-sm font-semibold text-white hover:bg-cyan-400">
-            Применить
-          </button>
+
+        {/* Main area: canvas + preview */}
+        <div className="flex gap-3 px-4 overflow-y-auto" style={{ maxHeight: "calc(95vh - 200px)" }}>
+          {/* Main canvas */}
+          <div className="flex-1 rounded-xl overflow-hidden bg-black min-h-0">
+            {!imgLoaded && <div className="flex items-center justify-center h-48 text-white/30 text-sm">Загрузка…</div>}
+            <canvas
+              ref={canvasRef}
+              width={600}
+              height={380}
+              className={`w-full cursor-crosshair ${imgLoaded ? "" : "hidden"}`}
+              onMouseDown={onMouseDown}
+              onMouseMove={onMouseMove}
+              onMouseUp={onMouseUp}
+              onMouseLeave={onMouseUp}
+            />
+          </div>
+          {/* Preview panel */}
+          <div className="w-32 shrink-0 flex flex-col gap-2">
+            <p className="text-xs text-white/40">Результат</p>
+            <div className="rounded-lg overflow-hidden bg-black border border-white/10">
+              <canvas ref={previewCanvasRef} width={128} height={96} className="w-full" />
+            </div>
+            {cropPx && (
+              <p className="text-[10px] text-white/30 font-mono">{cropPx.w}×{cropPx.h}px</p>
+            )}
+            <button
+              onClick={() => setCrop({ x: 0.05, y: 0.05, w: 0.9, h: 0.9 })}
+              className="text-xs text-white/30 hover:text-white/60 text-left mt-1"
+            >
+              ↺ Сбросить
+            </button>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="flex justify-between items-center px-4 pb-4">
+          <p className="text-xs text-white/30">Перетащите рамку или потяните за углы</p>
+          <div className="flex gap-2">
+            <button onClick={onCancel} className="rounded-lg border border-white/10 px-4 py-2 text-sm text-white/50 hover:bg-white/5 transition">
+              Отмена
+            </button>
+            <button onClick={handleConfirm} className="rounded-lg bg-cyan-500 px-5 py-2 text-sm font-bold text-white hover:bg-cyan-400 transition">
+              Применить кадрирование
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -301,6 +382,7 @@ export default function ImageUpload({
             aspectRatio={cropAspect}
             onConfirm={handleCropConfirm}
             onCancel={() => { setCropSrc(null); setPendingFile(null); }}
+            onChangeFile={() => { setCropSrc(null); setPendingFile(null); inputRef.current?.click(); }}
           />
         )}
         {label && <p className="text-xs text-white/50">{label}</p>}
@@ -346,6 +428,7 @@ export default function ImageUpload({
           aspectRatio={cropAspect}
           onConfirm={handleCropConfirm}
           onCancel={() => { setCropSrc(null); setPendingFile(null); }}
+          onChangeFile={() => { setCropSrc(null); setPendingFile(null); inputRef.current?.click(); }}
         />
       )}
       {label && <p className="text-xs text-white/50">{label}</p>}

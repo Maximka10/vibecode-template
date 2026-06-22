@@ -516,6 +516,14 @@ export default function DevelopmentTab({ orderId, order }: { orderId: string; or
   const [error, setError] = useState<string | null>(null);
   const [aiDisabled, setAiDisabled] = useState(false);
   const [applyingMaterials, setApplyingMaterials] = useState(false);
+  const [livePreview, setLivePreview] = useState(false);
+
+  // Sync unsaved changes to preview iframe via postMessage
+  useEffect(() => {
+    if (!livePreview || !iframeRef.current?.contentWindow) return;
+    iframeRef.current.contentWindow.postMessage({ type: "VIBECODE_SECTIONS", sections, pd }, "*");
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sections, pd, livePreview]);
 
   useEffect(() => {
     fetch(`/api/orders/${orderId}/project-data`)
@@ -541,6 +549,21 @@ export default function DevelopmentTab({ orderId, order }: { orderId: string; or
         setPd(base);
         if (base.content_edits?.sections?.length) {
           setSections(base.content_edits.sections);
+        } else {
+          // Auto-import sections from the client's template customization
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const templateSections: SiteSection[] = (order.selected_options as any)?.sections ?? [];
+          if (templateSections.length > 0) {
+            // Merge brief data into template sections
+            const merged = templateSections.map((s: SiteSection) => {
+              if (s.type === "hero") return { ...s, content: { ...s.content, title: opts.company_name || s.content.title || "", subtitle: opts.company_description || s.content.subtitle || "" } };
+              if (s.type === "contacts") return { ...s, content: { ...s.content, phone: opts.phone || s.content.phone || "", email: opts.email || s.content.email || "", telegram: opts.telegram || s.content.telegram || "", address: opts.address || s.content.address || "" } };
+              if (s.type === "services" && opts.services?.length) return { ...s, content: { ...s.content, items: opts.services } };
+              if (s.type === "footer") return { ...s, content: { ...s.content, company_name: opts.company_name || s.content.company_name || "" } };
+              return s;
+            });
+            setSections(merged);
+          }
         }
         setLoading(false);
       });
@@ -993,22 +1016,36 @@ export default function DevelopmentTab({ orderId, order }: { orderId: string; or
 
       {/* ── Preview panel ── */}
       <div className="xl:sticky xl:top-20 xl:self-start space-y-3">
-        {/* Device switcher */}
-        <div className="flex items-center gap-1">
-          {([["mobile", "📱", "Mobile"], ["desktop", "🖥", "Desktop"]] as const).map(([d, icon, label]) => (
+        {/* Device switcher + preview controls */}
+        <div className="flex flex-wrap items-center gap-1">
+          {([["mobile", "📱", "390"], ["desktop", "🖥", "Full"]] as const).map(([d, icon, size]) => (
             <button
               key={d}
               onClick={() => setDevice(d)}
-              className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition ${
+              className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition ${
                 device === d ? "border-cyan-500/40 bg-cyan-500/15 text-cyan-300" : "border-white/10 text-white/40 hover:text-white/70"
               }`}
             >
-              {icon} {label}
+              {icon} {size}
             </button>
           ))}
-          <span className="ml-auto text-[10px] text-white/25 font-mono">
-            {device === "mobile" ? "390×844" : "full width"}
-          </span>
+          <button
+            onClick={() => setPreviewKey((k) => k + 1)}
+            className="rounded-lg border border-white/10 px-2.5 py-1.5 text-xs text-white/40 hover:text-white/70 transition"
+            title="Обновить предпросмотр из базы"
+          >
+            ↺
+          </button>
+          <button
+            onClick={() => setLivePreview((p) => !p)}
+            className={`rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition ${livePreview ? "border-green-500/40 bg-green-500/15 text-green-300" : "border-white/10 text-white/40 hover:text-white/70"}`}
+            title="Предпросмотр изменений без сохранения"
+          >
+            {livePreview ? "● Live" : "Live"}
+          </button>
+          {dirty && (
+            <span className="ml-auto text-[10px] text-orange-400/80 font-mono">несохранено</span>
+          )}
         </div>
 
         {/* Preview */}
