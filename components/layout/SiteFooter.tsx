@@ -1,62 +1,82 @@
 import Link from "next/link";
 
-const LINKS = {
-  company: [
-    { label: "О нас", href: "/#about" },
-    { label: "Как это работает", href: "/#process" },
-    { label: "Цены", href: "/#pricing" },
-  ],
-  product: [
-    { label: "Шаблоны", href: "/templates" },
-    { label: "Личный кабинет", href: "/dashboard" },
-    { label: "Оставить заявку", href: "/templates" },
-  ],
-  legal: [
-    { label: "Условия использования", href: "/legal/terms" },
-    { label: "Политика конфиденциальности", href: "/legal/privacy" },
-    { label: "Политика правок", href: "/legal/revisions" },
-  ],
-  support: [
-    { label: "Связаться с нами", href: "/templates" },
-    { label: "Частые вопросы", href: "/#faq" },
-  ],
-};
-
 const COLUMNS = [
-  { title: "Компания", links: LINKS.company },
-  { title: "Продукт", links: LINKS.product },
-  { title: "Документы", links: LINKS.legal },
-  { title: "Поддержка", links: LINKS.support },
+  {
+    title: "Компания",
+    links: [
+      { label: "Как это работает", href: "/#process" },
+      { label: "Цены", href: "/#pricing" },
+      { label: "Отзывы", href: "/#reviews" },
+    ],
+  },
+  {
+    title: "Продукт",
+    links: [
+      { label: "Шаблоны", href: "/templates" },
+      { label: "Личный кабинет", href: "/dashboard" },
+      { label: "Оставить заявку", href: "/templates" },
+    ],
+  },
+  {
+    title: "Документы",
+    links: [
+      { label: "Условия использования", href: "/legal/terms" },
+      { label: "Конфиденциальность", href: "/legal/privacy" },
+      { label: "Политика правок", href: "/legal/revisions" },
+    ],
+  },
+  {
+    title: "Поддержка",
+    links: [
+      { label: "Связаться с нами", href: "/templates" },
+      { label: "Частые вопросы", href: "/#faq" },
+    ],
+  },
 ];
 
 export function SiteFooter() {
   return (
-    <footer className="border-t border-white/8 bg-black/60">
-      <div className="mx-auto max-w-5xl px-4 py-14">
+    <footer className="relative overflow-hidden border-t border-white/8">
+      {/* Subtle glow */}
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute left-1/2 top-0 h-40 w-[600px] -translate-x-1/2 rounded-full bg-cyan-500/4 blur-[60px]" />
+      </div>
+
+      <div className="relative mx-auto max-w-6xl px-4 py-16 sm:py-20">
         {/* Top row */}
-        <div className="flex flex-col gap-10 sm:flex-row sm:gap-8">
+        <div className="flex flex-col gap-12 lg:flex-row lg:gap-16">
           {/* Brand */}
-          <div className="shrink-0 sm:w-52">
-            <p className="text-sm font-black tracking-wide text-white">VIBECODE STUDIO</p>
-            <p className="mt-2 text-xs leading-relaxed text-white/35">
+          <div className="shrink-0 lg:w-56">
+            <Link href="/" className="group inline-block">
+              <p className="text-base font-black tracking-tight text-white">
+                VIBECODE{" "}
+                <span className="bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
+                  STUDIO
+                </span>
+              </p>
+            </Link>
+            <p className="mt-3 text-xs leading-relaxed text-white/30">
               Сайты для малого бизнеса в России.
+              <br />
               Быстро, честно, без предоплаты.
             </p>
+            {/* Accent dot */}
+            <div className="mt-5 h-1 w-12 rounded-full bg-gradient-to-r from-cyan-500 to-blue-500 opacity-60" />
           </div>
 
           {/* Nav columns */}
           <div className="grid flex-1 grid-cols-2 gap-8 sm:grid-cols-4">
             {COLUMNS.map((col) => (
               <div key={col.title}>
-                <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.15em] text-white/35">
+                <p className="mb-4 text-[10px] font-bold uppercase tracking-[0.2em] text-white/30">
                   {col.title}
                 </p>
-                <ul className="space-y-2">
+                <ul className="space-y-2.5">
                   {col.links.map((l) => (
                     <li key={l.label}>
                       <Link
                         href={l.href}
-                        className="text-xs text-white/50 transition hover:text-white"
+                        className="text-xs text-white/45 transition-colors hover:text-white/80"
                       >
                         {l.label}
                       </Link>
@@ -69,15 +89,15 @@ export function SiteFooter() {
         </div>
 
         {/* Divider */}
-        <div className="mt-10 h-px bg-white/8" />
+        <div className="mt-12 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
 
         {/* Bottom row */}
-        <div className="mt-6 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
-          <p className="text-xs text-white/25">
+        <div className="mt-8 flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
+          <p className="text-xs text-white/20">
             © {new Date().getFullYear()} Vibecode Studio. Все права защищены.
           </p>
-          <p className="text-xs text-white/20">
-            Домен, хостинг и SSL оплачиваются отдельно · Правки первые 12 месяцев включены
+          <p className="text-xs text-white/15">
+            Домен, хостинг и SSL — отдельно · Правки 12 месяцев включены
           </p>
         </div>
       </div>
