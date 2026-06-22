@@ -1,4 +1,5 @@
 import Link from "next/link";
+import CookieBanner from "@/components/CookieBanner";
 
 const COLUMNS = [
   {
@@ -101,6 +102,8 @@ export function SiteFooter() {
           </p>
         </div>
       </div>
+
+      <CookieBanner />
     </footer>
   );
 }
