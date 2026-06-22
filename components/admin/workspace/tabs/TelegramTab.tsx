@@ -507,7 +507,7 @@ function NotLinkedPanel({ orderId }: { orderId: string }) {
           {copied ? "✓ Скопировано" : "📋 Скопировать ссылку"}
         </button>
         <a
-          href={link}
+          href={link ?? undefined}
           target="_blank"
           rel="noopener noreferrer"
           className="rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-center text-sm font-semibold text-white/50 transition hover:text-white/80"
