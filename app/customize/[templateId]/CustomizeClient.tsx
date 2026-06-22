@@ -28,6 +28,20 @@ const SECTION_TABS: { id: Tab; label: string }[] = [
   { id: "lead", label: "Заявка" },
 ];
 
+// Russian labels for every section type that can appear in the reorder list
+const SECTION_LABELS: Record<string, string> = {
+  hero: "Главный экран",
+  stats: "Статистика",
+  about: "О нас",
+  gallery: "Галерея",
+  services: "Услуги",
+  "hosting-service": "Хостинг и домен",
+  "templates-gallery": "Примеры работ",
+  calculator: "Калькулятор",
+  footer: "Подвал сайта",
+  reviews: "Отзывы",
+};
+
 function updateSectionContent(
   template: Template,
   sectionType: string,
@@ -105,6 +119,11 @@ export default function CustomizeClient({
   const hero = getSectionContent(template, "hero");
   const about = getSectionContent(template, "about");
   const services = getSectionContent(template, "services");
+
+  // Sequential step navigation across the editor tabs
+  const tabIndex = SECTION_TABS.findIndex((t) => t.id === tab);
+  const goPrev = () => tabIndex > 0 && setTab(SECTION_TABS[tabIndex - 1].id);
+  const goNext = () => tabIndex < SECTION_TABS.length - 1 && setTab(SECTION_TABS[tabIndex + 1].id);
 
   async function handleOrder() {
     setSubmitting(true);
@@ -421,7 +440,7 @@ export default function CustomizeClient({
                     value={s}
                     className="flex items-center justify-between rounded-xl bg-white/10 p-3 cursor-grab active:cursor-grabbing"
                   >
-                    <span className="text-sm">{s.type}</span>
+                    <span className="text-sm">{SECTION_LABELS[s.type] ?? s.type}</span>
                     <span className="text-white/30">⠿</span>
                   </Reorder.Item>
                 ))}
@@ -632,6 +651,27 @@ export default function CustomizeClient({
               )
             )}
 
+          </div>
+
+          {/* Step navigation */}
+          <div className="flex items-center justify-between gap-2 border-t border-white/10 p-3">
+            <button
+              onClick={goPrev}
+              disabled={tabIndex <= 0}
+              className="rounded-lg border border-white/10 px-4 py-2 text-sm text-white/70 transition hover:bg-white/5 disabled:opacity-30 disabled:hover:bg-transparent"
+            >
+              ← Назад
+            </button>
+            <span className="text-xs text-white/40">
+              Шаг {tabIndex + 1} из {SECTION_TABS.length}
+            </span>
+            <button
+              onClick={goNext}
+              disabled={tabIndex >= SECTION_TABS.length - 1}
+              className="rounded-lg border border-white/10 px-4 py-2 text-sm text-white/70 transition hover:bg-white/5 disabled:opacity-30 disabled:hover:bg-transparent"
+            >
+              Далее →
+            </button>
           </div>
         </aside>
 
