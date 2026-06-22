@@ -34,24 +34,36 @@ export async function PATCH(
     }
 
     const body = await req.json() as Record<string, unknown>;
+    console.log("[brief-public] incoming payload:", JSON.stringify(body));
+
     const patch: Record<string, unknown> = { order_id: orderId };
 
     for (const field of ALLOWED_FIELDS) {
       if (field in body) patch[field] = body[field];
     }
 
+    console.log("[brief-public] before project_data upsert, patch:", JSON.stringify(patch));
+
     const { error: upsertErr } = await admin
       .from("project_data")
       .upsert(patch, { onConflict: "order_id" });
 
+    console.log("[brief-public] after project_data upsert — error:", JSON.stringify(upsertErr));
+
     if (upsertErr) {
-      console.error("[brief-public] upsert error:", upsertErr.message);
-      return NextResponse.json({ ok: false, error: "Не удалось сохранить данные" }, { status: 500 });
+      console.error("[brief-public] upsert error:", upsertErr.message, "code:", upsertErr.code, "details:", upsertErr.details, "hint:", upsertErr.hint);
+      return NextResponse.json(
+        { ok: false, error: upsertErr.message, code: upsertErr.code, details: upsertErr.details },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({ ok: true });
-  } catch (e) {
-    console.error("[brief-public] unhandled:", e instanceof Error ? e.message : e);
-    return NextResponse.json({ ok: false, error: "Server error" }, { status: 500 });
+  } catch (error) {
+    console.error("[brief-public]", error);
+    return NextResponse.json(
+      { ok: false, error: String(error), stack: error instanceof Error ? error.stack : null },
+      { status: 500 }
+    );
   }
 }
