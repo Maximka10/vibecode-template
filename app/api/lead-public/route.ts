@@ -5,6 +5,7 @@ import { sendMessage } from "@/lib/telegram/bot";
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json() as Record<string, unknown>;
+    console.log("[lead-public] incoming payload:", JSON.stringify(body));
 
     const name = typeof body.name === "string" ? body.name.trim() : "";
     const phone = typeof body.phone === "string" ? body.phone.trim() : "";
@@ -25,22 +26,27 @@ export async function POST(req: NextRequest) {
 
     const admin = createAdminClient();
 
+    const ordersPayload = {
+      template_name: company || "Новая заявка",
+      template_id: "custom",
+      status: "new",
+      lead_status: "new",
+      brief_json: { name, phone, telegram, whatsapp, company, service, budget, comment },
+    };
+    console.log("[lead-public] before orders insert, payload:", JSON.stringify(ordersPayload));
+
     const { data: order, error: insertError } = await admin
       .from("orders")
-      .insert({
-        template_name: company || "Новая заявка",
-        template_id: "custom",
-        status: "new",
-        lead_status: "new",
-        brief_json: { name, phone, telegram, whatsapp, company, service, budget, comment },
-      })
+      .insert(ordersPayload)
       .select("id")
       .single();
 
+    console.log("[lead-public] after orders insert — data:", JSON.stringify(order), "error:", JSON.stringify(insertError));
+
     if (insertError || !order) {
-      console.error("[lead-public] insert error:", insertError?.message);
+      console.error("[lead-public] insert error:", insertError?.message, insertError?.code, insertError?.details, insertError?.hint);
       return NextResponse.json(
-        { ok: false, error: "Не удалось создать заявку" },
+        { ok: false, error: insertError?.message ?? "Не удалось создать заявку", code: insertError?.code, details: insertError?.details },
         { status: 500 }
       );
     }
@@ -54,9 +60,14 @@ export async function POST(req: NextRequest) {
     if (telegram) projectPatch.telegram = telegram;
     if (whatsapp) projectPatch.whatsapp = whatsapp;
 
+    console.log("[lead-public] before project_data upsert, payload:", JSON.stringify(projectPatch));
+
     const { error: pdError } = await admin
       .from("project_data")
       .upsert(projectPatch, { onConflict: "order_id" });
+
+    console.log("[lead-public] after project_data upsert — error:", JSON.stringify(pdError));
+
     if (pdError) {
       console.warn("[lead-public] project_data upsert failed (non-fatal):", pdError.message);
     }
@@ -85,10 +96,10 @@ export async function POST(req: NextRequest) {
     const botUsername = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME ?? null;
 
     return NextResponse.json({ ok: true, orderId, botUsername });
-  } catch (e) {
-    console.error("[lead-public] unhandled error:", e instanceof Error ? e.message : e);
+  } catch (error) {
+    console.error("[lead-public]", error);
     return NextResponse.json(
-      { ok: false, error: e instanceof Error ? e.message : String(e) },
+      { ok: false, error: String(error), stack: error instanceof Error ? error.stack : null },
       { status: 500 }
     );
   }
