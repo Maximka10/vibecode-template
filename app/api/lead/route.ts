@@ -57,6 +57,7 @@ export async function POST(req: NextRequest) {
       totalPrice,
       primaryColor,
       bgColor,
+      companyData,
     } = body;
 
     // ── Step 1: Resolve user from Bearer token — REQUIRED ─────────────────────

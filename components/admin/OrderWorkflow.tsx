@@ -1,6 +1,7 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 import { Btn } from "@/components/ui/Btn";
 import { Card } from "@/components/ui/Card";
 import { Input, Textarea } from "@/components/ui/Input";
@@ -72,6 +73,11 @@ export default function OrderWorkflow({
   const [deploySaving, setDeploySaving] = useState(false);
   const [adminNotes, setAdminNotes] = useState(initialOrder.admin_notes ?? "");
   const [notesSaving, setNotesSaving] = useState(false);
+  const [messages, setMessages] = useState<Message[]>(initialMessages);
+  const [text, setText] = useState("");
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const [cancelReason, setCancelReason] = useState("");
+  const [cancelLoading, setCancelLoading] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -108,6 +114,25 @@ export default function OrderWorkflow({
     setMessages((prev) => [...prev, optimistic]);
     setText("");
     await supabase.from("messages").insert({ order_id: order.id, sender_id: adminId, text: optimistic.text });
+  }
+
+  async function handleCancel() {
+    if (!cancelReason.trim()) return;
+    setCancelLoading(true);
+    try {
+      const res = await fetch(`/api/orders/${order.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "cancelled", cancel_reason: cancelReason.trim() }),
+      });
+      if (res.ok) {
+        setOrder((prev) => ({ ...prev, status: "cancelled" }));
+        setCancelOpen(false);
+        setCancelReason("");
+      }
+    } finally {
+      setCancelLoading(false);
+    }
   }
 
   async function applyTransition(action: string) {

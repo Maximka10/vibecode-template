@@ -28,11 +28,11 @@ export function Calculator() {
   }, 0);
 
   const handleSubmit = () => {
-    const telegramUsername = "Maxvol2"; // вставь свой username
+    const telegramUsername = "Maxvol2";
     const message = encodeURIComponent(
       `Новая заявка с сайта:\n- ${selected.join("\n- ")}\nИтого: ${total} ₽`
     );
-    const url = `https://t.me/${botUsername}?text=${message}`;
+    const url = `https://t.me/${telegramUsername}?text=${message}`;
     window.open(url, "_blank");
   };
 
