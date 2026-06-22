@@ -28,7 +28,7 @@ export function Calculator() {
   }, 0);
 
   const handleSubmit = () => {
-    const telegramUsername = process.env.NEXT_PUBLIC_TELEGRAM_USERNAME || '';
+    const telegramUsername = "Maxvol2"; // вставь свой username
     const message = encodeURIComponent(
       `Новая заявка с сайта:\n- ${selected.join("\n- ")}\nИтого: ${total} ₽`
     );
