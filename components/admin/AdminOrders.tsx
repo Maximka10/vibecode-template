@@ -1,5 +1,5 @@
 "use client";
-import { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import AdminChat from "@/components/chat/AdminChat";
 import { Btn } from "@/components/ui/Btn";
 import { Card } from "@/components/ui/Card";
@@ -33,15 +33,110 @@ async function patchOrder(id: string, update: Record<string, unknown>) {
   return res.json();
 }
 
-function StatCard({ label, value, sub }: { label: string; value: string | number; sub?: string }) {
+const STATUS_TO_ACTION: Record<string, string> = {
+  in_progress: "START_WORK",
+  waiting_client: "REQUEST_CLIENT_INPUT",
+  completed: "COMPLETE_ORDER",
+  cancelled: "CANCEL_ORDER",
+};
+
+async function applyStatusTransition(orderId: string, targetStatus: string): Promise<{ ok: boolean; status?: string; error?: string }> {
+  const action = STATUS_TO_ACTION[targetStatus];
+  if (!action) return { ok: false, error: `No workflow action for status "${targetStatus}"` };
+  const res = await fetch("/api/orders/transition", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ orderId, action }),
+  });
+  return res.json();
+}
+
+function StatCard({
+  label,
+  value,
+  sub,
+  icon,
+  accent = "cyan",
+}: {
+  label: string;
+  value: string | number;
+  sub?: string;
+  icon?: React.ReactNode;
+  accent?: "cyan" | "blue" | "yellow" | "green" | "purple" | "orange";
+}) {
+  const borderColor: Record<string, string> = {
+    cyan: "border-l-cyan-500/60",
+    blue: "border-l-blue-500/60",
+    yellow: "border-l-yellow-500/60",
+    green: "border-l-green-500/60",
+    purple: "border-l-purple-500/60",
+    orange: "border-l-orange-500/60",
+  };
+  const iconBg: Record<string, string> = {
+    cyan: "bg-cyan-500/10 text-cyan-400",
+    blue: "bg-blue-500/10 text-blue-400",
+    yellow: "bg-yellow-500/10 text-yellow-400",
+    green: "bg-green-500/10 text-green-400",
+    purple: "bg-purple-500/10 text-purple-400",
+    orange: "bg-orange-500/10 text-orange-400",
+  };
   return (
-    <Card variant="solid" padding="sm">
-      <p className="text-2xl font-black">{value}</p>
-      <p className="mt-1 text-xs text-white/50">{label}</p>
-      {sub && <p className="mt-0.5 text-xs text-white/30">{sub}</p>}
-    </Card>
+    <div className={`relative overflow-hidden rounded-xl border border-white/8 border-l-2 ${borderColor[accent]} bg-gradient-to-br from-white/6 to-white/2 px-4 py-3.5`}>
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <p className="text-2xl font-black tracking-tight">{value}</p>
+          <p className="mt-0.5 text-xs text-white/45">{label}</p>
+          {sub && <p className="mt-0.5 text-xs text-white/25">{sub}</p>}
+        </div>
+        {icon && (
+          <div className={`shrink-0 flex h-8 w-8 items-center justify-center rounded-lg ${iconBg[accent]}`}>
+            {icon}
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
+
+// Inline SVG icons for stat cards
+const IconOrders = () => (
+  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect x="2" y="1" width="12" height="14" rx="2" stroke="currentColor" strokeWidth="1.5" fill="none" />
+    <path d="M5 5h6M5 8h6M5 11h4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+  </svg>
+);
+const IconNew = () => (
+  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="8" cy="8" r="6.5" stroke="currentColor" strokeWidth="1.5" fill="none" />
+    <path d="M8 5v6M5 8h6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+  </svg>
+);
+const IconInProgress = () => (
+  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="8" cy="8" r="6.5" stroke="currentColor" strokeWidth="1.5" fill="none" strokeDasharray="3 2" />
+    <path d="M8 4.5v3.5l2.5 2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+const IconCompleted = () => (
+  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="8" cy="8" r="6.5" stroke="currentColor" strokeWidth="1.5" fill="none" />
+    <path d="M5 8l2 2 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+const IconClients = () => (
+  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="6" cy="5" r="2.5" stroke="currentColor" strokeWidth="1.5" fill="none" />
+    <path d="M1.5 13.5c0-2.5 2-4 4.5-4s4.5 1.5 4.5 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    <circle cx="11.5" cy="5" r="2" stroke="currentColor" strokeWidth="1.2" fill="none" />
+    <path d="M13.5 13c.5-.8.5-2-1-3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+  </svg>
+);
+const IconRevenue = () => (
+  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M2 11l3.5-3.5 3 2.5L12 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M10 5h2v2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
 
 function StatusBadge({ status }: { status: string }) {
   const cfg = STATUS_CONFIG[status] ?? { label: status, color: "bg-white/10 text-white/60 border-white/10" };
@@ -63,11 +158,18 @@ function OrderCard({
 }) {
   const [expanded, setExpanded] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [transitionError, setTransitionError] = useState<string | null>(null);
 
-  async function handleStatus(status: string) {
+  async function handleStatus(targetStatus: string) {
+    if (saving) return;
     setSaving(true);
-    await patchOrder(order.id, { status });
-    onStatusChange(order.id, status);
+    setTransitionError(null);
+    const result = await applyStatusTransition(order.id, targetStatus);
+    if (result.ok && result.status) {
+      onStatusChange(order.id, result.status);
+    } else {
+      setTransitionError("Не удалось изменить статус заказа");
+    }
     setSaving(false);
   }
 
@@ -89,9 +191,7 @@ function OrderCard({
             )}
           </div>
           <p className="mt-1 text-sm text-white/50">
-            {order.client_name ?? "Аноним"}
-            {order.client_phone && ` · ${order.client_phone}`}
-            {order.client_telegram && ` · @${order.client_telegram}`}
+            {order.template_name ?? order.template_id ?? "—"}
           </p>
           <p className="mt-0.5 text-xs text-white/30">
             #{order.id.slice(0, 8)} · {new Date(order.created_at).toLocaleString("ru-RU")}
@@ -112,13 +212,7 @@ function OrderCard({
                 <p>{Number(order.total_price).toLocaleString("ru-RU")} ₽</p>
               </div>
             )}
-            {order.selected_services && (
-              <div className="col-span-full">
-                <p className="text-white/40">Услуги</p>
-                <p>{Array.isArray(order.selected_services) ? order.selected_services.join(", ") : JSON.stringify(order.selected_services)}</p>
-              </div>
-            )}
-            {order.notes && (
+{order.notes && (
               <div className="col-span-full">
                 <p className="text-white/40">Комментарий</p>
                 <p className="text-white/80">{order.notes}</p>
@@ -145,7 +239,7 @@ function OrderCard({
           <div>
             <p className="mb-2 text-xs text-white/40">Изменить статус:</p>
             <div className="flex flex-wrap gap-2">
-              {ALL_STATUSES.map((s) => (
+              {ALL_STATUSES.filter((s) => s in STATUS_TO_ACTION || s === order.status).map((s) => (
                 <button
                   key={s}
                   disabled={saving || order.status === s}
@@ -160,6 +254,9 @@ function OrderCard({
                 </button>
               ))}
             </div>
+            {transitionError && (
+              <p className="mt-2 text-xs text-red-400">{transitionError}</p>
+            )}
           </div>
 
           {/* Chat */}
@@ -167,6 +264,94 @@ function OrderCard({
         </div>
       )}
     </Card>
+  );
+}
+
+type WorkspaceData = Record<string, string>;
+
+const WORKSPACE_FIELDS: Array<{ key: string; label: string; section: string; multiline?: boolean }> = [
+  { key: "company_name", label: "Название студии", section: "Компания" },
+  { key: "company_desc", label: "Описание", section: "Компания", multiline: true },
+  { key: "contact_email", label: "Email", section: "Контакты" },
+  { key: "contact_phone", label: "Телефон", section: "Контакты" },
+  { key: "contact_tg", label: "Telegram", section: "Контакты" },
+  { key: "services", label: "Услуги (через запятую)", section: "Услуги", multiline: true },
+  { key: "branding_color", label: "Акцентный цвет (hex)", section: "Брендинг" },
+  { key: "branding_logo", label: "URL логотипа", section: "Брендинг" },
+  { key: "domain", label: "Домен студии", section: "Домен" },
+  { key: "content_about", label: "О студии (текст для сайта)", section: "Контент", multiline: true },
+];
+
+function WorkspaceTab() {
+  const [data, setData] = useState<WorkspaceData>({});
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/workspace")
+      .then((r) => r.json())
+      .then(({ data: d }) => { setData(d ?? {}); setLoading(false); });
+  }, []);
+
+  async function handleSave() {
+    setSaving(true);
+    setSaved(false);
+    await fetch("/api/workspace", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+    setSaving(false);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 3000);
+  }
+
+  if (loading) return <p className="py-10 text-center text-sm text-white/30">Загрузка…</p>;
+
+  const sections = [...new Set(WORKSPACE_FIELDS.map((f) => f.section))];
+
+  return (
+    <div className="space-y-6">
+      {sections.map((section) => (
+        <Card key={section} variant="solid" padding="md">
+          <h3 className="mb-4 text-xs font-semibold uppercase tracking-widest text-white/40">{section}</h3>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {WORKSPACE_FIELDS.filter((f) => f.section === section).map((f) => (
+              <div key={f.key} className={f.multiline ? "sm:col-span-2" : ""}>
+                <label className="mb-1 block text-xs text-white/50">{f.label}</label>
+                {f.multiline ? (
+                  <textarea
+                    rows={3}
+                    value={data[f.key] ?? ""}
+                    onChange={(e) => setData((prev) => ({ ...prev, [f.key]: e.target.value }))}
+                    className="w-full resize-none rounded-xl border border-white/10 bg-white/6 px-3 py-2 text-sm text-white placeholder-white/25 outline-none transition focus:border-cyan-500/40"
+                  />
+                ) : (
+                  <input
+                    type="text"
+                    value={data[f.key] ?? ""}
+                    onChange={(e) => setData((prev) => ({ ...prev, [f.key]: e.target.value }))}
+                    className="w-full rounded-xl border border-white/10 bg-white/6 px-3 py-2 text-sm text-white placeholder-white/25 outline-none transition focus:border-cyan-500/40"
+                  />
+                )}
+              </div>
+            ))}
+          </div>
+        </Card>
+      ))}
+
+      <div className="flex items-center gap-3">
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className="rounded-xl bg-cyan-500/20 px-5 py-2.5 text-sm font-semibold text-cyan-300 transition hover:bg-cyan-500/30 disabled:opacity-40"
+        >
+          {saving ? "Сохранение…" : "Сохранить"}
+        </button>
+        {saved && <span className="text-sm text-green-400/70">Сохранено ✓</span>}
+      </div>
+    </div>
   );
 }
 
@@ -184,9 +369,17 @@ export default function AdminOrders({
     total: number;
     new: number;
     inProgress: number;
+    waitingClient: number;
     completed: number;
     clients: number;
+    tgLinked: number;
     revenue: number;
+    leadNew?: number;
+    leadContacted?: number;
+    leadQualified?: number;
+    leadProposalSent?: number;
+    leadWon?: number;
+    leadLost?: number;
   };
   activeTab: string;
 }) {
@@ -207,9 +400,6 @@ export default function AdminOrders({
       const q = search.toLowerCase();
       result = result.filter(
         (o) =>
-          o.client_name?.toLowerCase().includes(q) ||
-          o.client_phone?.includes(q) ||
-          o.client_telegram?.toLowerCase().includes(q) ||
           o.template_name?.toLowerCase().includes(q) ||
           o.id.includes(q)
       );
@@ -226,22 +416,65 @@ export default function AdminOrders({
   const tabs = [
     { id: "orders", label: `Заказы (${orders.length})` },
     { id: "clients", label: `Клиенты (${clientProfiles.length})` },
+    { id: "workspace", label: "Workspace" },
   ];
+
+  const tgLinked = orders.filter((o) => o.telegram_client_id).length;
 
   return (
     <main className="min-h-screen bg-slate-950 text-white">
       <div className="mx-auto max-w-5xl px-4 py-6 space-y-6">
+        {/* Quick nav */}
+        <div className="flex flex-wrap gap-2">
+          <a
+            href="/admin/crm"
+            className="flex items-center gap-2 rounded-xl border border-cyan-500/30 bg-cyan-500/10 px-4 py-2 text-sm font-semibold text-cyan-400 transition hover:bg-cyan-500/20"
+          >
+            💬 Telegram CRM
+            {tgLinked > 0 && (
+              <span className="rounded-full bg-cyan-500 px-1.5 py-0.5 text-[10px] font-bold text-white">
+                {tgLinked}
+              </span>
+            )}
+          </a>
+          <a
+            href="/admin/diagnostics"
+            className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white/50 transition hover:text-white/80"
+          >
+            Диагностика
+          </a>
+        </div>
+
         {/* Stats */}
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-          <StatCard label="Всего" value={stats.total} />
-          <StatCard label="Новых" value={stats.new} />
-          <StatCard label="В работе" value={stats.inProgress} />
-          <StatCard label="Готово" value={stats.completed} />
-          <StatCard label="Клиентов" value={stats.clients} />
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-8">
+          <StatCard label="Всего заказов" value={stats.total} accent="cyan" icon={<IconOrders />} />
+          <StatCard label="Новых" value={stats.new} accent="blue" icon={<IconNew />} />
+          <StatCard label="В работе" value={stats.inProgress} accent="yellow" icon={<IconInProgress />} />
+          <StatCard label="Ожидает клиента" value={stats.waitingClient} accent="orange" />
+          <StatCard label="Готово" value={stats.completed} accent="green" icon={<IconCompleted />} />
+          <StatCard label="Клиентов" value={stats.clients} accent="purple" icon={<IconClients />} />
+          <StatCard label="Telegram CRM" value={stats.tgLinked} sub="привязано заказов" accent="cyan" />
           <StatCard
             label="Выручка"
             value={stats.revenue ? `${stats.revenue.toLocaleString("ru-RU")} ₽` : "—"}
+            accent="orange"
+            icon={<IconRevenue />}
           />
+        </div>
+
+        {/* Sales Funnel */}
+        <div>
+          <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-white/30">
+            Воронка продаж
+          </p>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+            <StatCard label="Новые лиды" value={stats.leadNew ?? 0} accent="blue" />
+            <StatCard label="Связались" value={stats.leadContacted ?? 0} accent="purple" />
+            <StatCard label="Квалифицированы" value={stats.leadQualified ?? 0} accent="cyan" />
+            <StatCard label="КП отправлено" value={stats.leadProposalSent ?? 0} accent="yellow" />
+            <StatCard label="Выиграно" value={stats.leadWon ?? 0} accent="green" />
+            <StatCard label="Потеряно" value={stats.leadLost ?? 0} accent="orange" />
+          </div>
         </div>
 
         {/* Tabs */}
@@ -318,6 +551,8 @@ export default function AdminOrders({
             )}
           </>
         )}
+
+        {tab === "workspace" && <WorkspaceTab />}
 
         {tab === "clients" && (
           <>

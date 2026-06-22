@@ -8,7 +8,9 @@ const VALID_ACTIONS = new Set<OrderAction>([
   "MARK_CONTACTED",
   "START_WORK",
   "REQUEST_CLIENT_INPUT",
+  "RESUME_WORK",
   "COMPLETE_ORDER",
+  "REOPEN_ORDER",
   "CANCEL_ORDER",
 ]);
 

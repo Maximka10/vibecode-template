@@ -3,7 +3,7 @@ import { getUserWithRole } from "@/lib/auth/getUserWithRole";
 import { createAdminClient } from "@/lib/supabase/admin";
 import OrderWorkspace from "@/components/admin/OrderWorkspace";
 
-export default async function OrderWorkflowPage({
+export default async function OrderWorkspacePage({
   params,
 }: {
   params: Promise<{ id: string }>;
@@ -18,13 +18,14 @@ export default async function OrderWorkflowPage({
 
   const admin = createAdminClient();
 
-  const [orderRes, messagesRes] = await Promise.all([
+  const [orderRes, messagesRes, pdRes] = await Promise.all([
     admin.from("orders").select("*").eq("id", id).single(),
     admin
       .from("messages")
       .select("*")
       .eq("order_id", id)
       .order("created_at", { ascending: true }),
+    admin.from("project_data").select("*").eq("order_id", id).maybeSingle(),
   ]);
 
   if (orderRes.error || !orderRes.data) notFound();
@@ -34,6 +35,7 @@ export default async function OrderWorkflowPage({
       order={orderRes.data}
       initialMessages={messagesRes.data ?? []}
       adminId={user.id}
+      projectData={pdRes.data ?? null}
     />
   );
 }

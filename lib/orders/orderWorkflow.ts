@@ -16,6 +16,7 @@
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { acquireLock, releaseLock, guardTransition } from "./orderGuard";
+import { sendClientStatusNotification } from "@/lib/telegram/bot";
 
 // ── Re-export types so consumers import from one place ───────────────────────
 
@@ -24,7 +25,9 @@ export type OrderAction =
   | "MARK_CONTACTED"
   | "START_WORK"
   | "REQUEST_CLIENT_INPUT"
+  | "RESUME_WORK"
   | "COMPLETE_ORDER"
+  | "REOPEN_ORDER"
   | "CANCEL_ORDER";
 
 export type OrderStatus =
@@ -74,15 +77,14 @@ async function sendTelegramNotification(
     MARK_CONTACTED: "📞 Связались с клиентом",
     START_WORK: "🔨 Работа начата",
     REQUEST_CLIENT_INPUT: "⏳ Ожидаем ответа клиента",
+    RESUME_WORK: "🔄 Работа возобновлена",
     COMPLETE_ORDER: "🎉 Заказ завершён",
+    REOPEN_ORDER: "🔁 Заказ возвращён в работу",
     CANCEL_ORDER: "❌ Заказ отменён",
   };
 
   const lines = [
     `${ACTION_LABELS[action]} #${orderId.slice(0, 8)}`,
-    ``,
-    `👤 ${order.client_name ?? "—"}`,
-    order.client_phone ? `📞 ${order.client_phone}` : null,
     `📐 Шаблон: *${order.template_name ?? order.template_id ?? "—"}*`,
     `📊 Статус: *${newStatus}*`,
     order.total_price
@@ -142,7 +144,7 @@ export async function transitionOrder(input: TransitionInput): Promise<Transitio
     const { data: order, error: fetchError } = await admin
       .from("orders")
       .select(
-        "id, status, user_id, client_name, client_phone, template_id, template_name, total_price"
+        "id, status, user_id, template_id, template_name, total_price, telegram_chat_id, project_url"
       )
       .eq("id", orderId)
       .single();
@@ -200,6 +202,17 @@ export async function transitionOrder(input: TransitionInput): Promise<Transitio
     sendTelegramNotification(order, action, rule.to).catch((err) => {
       console.error("[orderWorkflow] Telegram threw unexpectedly:", err);
     });
+
+    // Send client notification if their Telegram is linked
+    if (order.telegram_chat_id) {
+      sendClientStatusNotification(
+        order.telegram_chat_id as number,
+        rule.to,
+        order.project_url as string | null
+      ).catch((err) => {
+        console.error("[orderWorkflow] Client Telegram notification failed:", err);
+      });
+    }
 
     return { ok: true, orderId, status: rule.to, previousStatus };
   } finally {

@@ -1,6 +1,6 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
-import { createClient } from "@/lib/supabase/client";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Btn } from "@/components/ui/Btn";
 import { Card } from "@/components/ui/Card";
 import { Input, Textarea } from "@/components/ui/Input";
@@ -63,9 +63,8 @@ export default function OrderWorkflow({
   initialMessages: Message[];
   adminId: string;
 }) {
+  const router = useRouter();
   const [order, setOrder] = useState<Order>(initialOrder);
-  const [messages, setMessages] = useState<Message[]>(initialMessages);
-  const [text, setText] = useState("");
   const [statusSaving, setStatusSaving] = useState(false);
   const [activeTab, setActiveTab] = useState<WorkspaceTab>("overview");
   const [deployUrl, setDeployUrl] = useState(initialOrder.project_url ?? "");
@@ -532,6 +531,38 @@ export default function OrderWorkflow({
         )}
 
       </div>
+
+      {/* Cancel dialog */}
+      {cancelOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-2xl border border-white/10 bg-slate-900 p-6 shadow-2xl">
+            <h3 className="mb-1 text-base font-bold">Отменить заказ</h3>
+            <p className="mb-4 text-sm text-white/50">Укажите причину отмены — она будет сохранена в карточке заказа.</p>
+            <textarea
+              value={cancelReason}
+              onChange={(e) => setCancelReason(e.target.value)}
+              placeholder="Причина отмены…"
+              rows={3}
+              className="w-full resize-none rounded-xl border border-white/10 bg-white/6 px-3 py-2 text-sm text-white placeholder-white/25 outline-none transition focus:border-red-500/40 focus:ring-1 focus:ring-red-500/15"
+            />
+            <div className="mt-4 flex gap-2 justify-end">
+              <button
+                onClick={() => { setCancelOpen(false); setCancelReason(""); }}
+                className="rounded-xl border border-white/10 px-4 py-2 text-sm text-white/60 transition hover:border-white/20 hover:text-white"
+              >
+                Назад
+              </button>
+              <button
+                disabled={!cancelReason.trim() || cancelLoading}
+                onClick={handleCancel}
+                className="rounded-xl bg-red-500/20 px-4 py-2 text-sm font-semibold text-red-300 transition hover:bg-red-500/30 disabled:opacity-40"
+              >
+                {cancelLoading ? "Отмена…" : "Подтвердить отмену"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
