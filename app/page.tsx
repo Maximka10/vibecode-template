@@ -2,6 +2,37 @@ import Link from "next/link";
 import { Navbar } from "@/components/layout/Navbar";
 import { SiteFooter } from "@/components/layout/SiteFooter";
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://vibecode.studio";
+
+const JSON_LD = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": `${SITE_URL}/#organization`,
+      name: "VIBECODE STUDIO",
+      url: SITE_URL,
+      description: "Разработка сайтов под ключ для малого бизнеса в России за 3 дня.",
+      areaServed: "RU",
+    },
+    {
+      "@type": "Service",
+      "@id": `${SITE_URL}/#service`,
+      name: "Разработка сайта под ключ",
+      provider: { "@id": `${SITE_URL}/#organization` },
+      areaServed: "RU",
+      description:
+        "Готовый сайт на отраслевом шаблоне за 3 дня: наполнение, адаптив, форма заявки. Оплата после приёмки.",
+      offers: {
+        "@type": "Offer",
+        price: "13900",
+        priceCurrency: "RUB",
+        availability: "https://schema.org/InStock",
+      },
+    },
+  ],
+};
+
 const FEATURES = [
   {
     icon: "⚡",
@@ -110,6 +141,10 @@ const ICON_BG: Record<string, string> = {
 export default function HomePage() {
   return (
     <main className="min-h-screen bg-[#030712] text-white overflow-x-hidden">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }}
+      />
       <Navbar />
 
       {/* ── Hero ────────────────────────────────────────────────────────────── */}
