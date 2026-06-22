@@ -132,7 +132,7 @@ function OrderCard({
               Открыть заказ →
             </Btn>
             <Btn href={`/customize/${order.template_id}`} variant="outline" size="sm">
-              Открыть шаблон →
+              Конструктор →
             </Btn>
             {order.project_url && (
               <Btn href={order.project_url} variant="secondary" size="sm" external>

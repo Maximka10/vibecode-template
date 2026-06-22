@@ -21,6 +21,7 @@ import { acquireLock, releaseLock, guardTransition } from "./orderGuard";
 
 export type OrderAction =
   | "CONFIRM_PAYMENT"
+  | "MARK_CONTACTED"
   | "START_WORK"
   | "REQUEST_CLIENT_INPUT"
   | "COMPLETE_ORDER"
@@ -70,6 +71,7 @@ async function sendTelegramNotification(
 
   const ACTION_LABELS: Record<OrderAction, string> = {
     CONFIRM_PAYMENT: "✅ Клиент подтвердил заказ",
+    MARK_CONTACTED: "📞 Связались с клиентом",
     START_WORK: "🔨 Работа начата",
     REQUEST_CLIENT_INPUT: "⏳ Ожидаем ответа клиента",
     COMPLETE_ORDER: "🎉 Заказ завершён",

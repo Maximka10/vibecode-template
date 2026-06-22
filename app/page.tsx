@@ -112,7 +112,7 @@ export default function HomePage() {
     <main className="min-h-screen bg-[#030712] text-white overflow-x-hidden">
       <Navbar />
 
-      {/* ── Hero ─────────────────────────────────────────────────────────── */}
+      {/* ── Hero ────────────────────────────────────────────────────────────── */}
       <section className="relative overflow-hidden">
         {/* Rich layered glow */}
         <div className="pointer-events-none absolute inset-0">
@@ -356,7 +356,7 @@ export default function HomePage() {
               href="/templates"
               className="shrink-0 rounded-full border border-cyan-500/30 bg-cyan-500/10 px-6 py-3 text-sm font-semibold text-cyan-400 transition hover:bg-cyan-500/20 hover:shadow-lg hover:shadow-cyan-500/15"
             >
-              Смотреть все →
+              Все шаблоны →
             </Link>
           </div>
 
@@ -379,6 +379,7 @@ export default function HomePage() {
                   <p className="text-xs font-bold text-white">{name}</p>
                   <p className="text-[10px] text-white/45">{hint}</p>
                 </div>
+                <div className="absolute inset-0 rounded-2xl opacity-0 ring-1 ring-inset ring-cyan-500/30 transition-opacity group-hover:opacity-100" />
               </Link>
             ))}
           </div>
@@ -434,7 +435,7 @@ export default function HomePage() {
             {[
               {
                 q: "Правда ли, что сайт будет готов за 3 дня?",
-                a: "Да. После подтверждения заявки и получения материалов (тексты, фото) мы запускаем сайт в течение 3 рабочих дней. Большинство проектов готово быстрее.",
+                a: "Да. После подтверждения заявки и получения материалов мы запускаем сайт в течение 3 рабочих дней. Большинство проектов готово быстрее.",
               },
               {
                 q: "Что если мне нужны правки после запуска?",
@@ -450,7 +451,7 @@ export default function HomePage() {
               },
               {
                 q: "Когда нужно платить?",
-                a: "Только после того, как вы увидите готовый сайт на вашем домене и одобрите его. Никакой предоплаты.",
+                a: "Только после того, как увидите готовый сайт на своём домене и одобрите его. Никакой предоплаты.",
               },
               {
                 q: "Можно ли загружать свои фото в шаблон?",
@@ -469,7 +470,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── Bottom CTA ───────────────────────────────────────────────────── */}
+      {/* ── Bottom CTA ──────────────────────────────────────────────────────── */}
       <section className="relative overflow-hidden border-t border-white/5">
         <div className="pointer-events-none absolute inset-0">
           <div className="absolute left-1/2 top-0 h-[500px] w-[1000px] -translate-x-1/2 rounded-full bg-gradient-to-b from-cyan-500/15 via-blue-600/10 to-transparent blur-[120px]" />
@@ -496,7 +497,8 @@ export default function HomePage() {
               href="/templates"
               className="group relative inline-flex items-center gap-2.5 rounded-full bg-gradient-to-r from-cyan-500 to-blue-600 px-10 py-5 text-base font-bold text-white shadow-2xl shadow-cyan-500/30 transition hover:shadow-cyan-500/50 hover:scale-[1.04]"
             >
-              Выбрать шаблон →
+              Выбрать шаблон
+              <span className="transition-transform group-hover:translate-x-1">→</span>
             </Link>
             <Link
               href="/auth/login"
