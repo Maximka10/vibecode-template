@@ -1,3 +1,4 @@
+import "@/lib/startup/validateEnv";
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendMessage } from "@/lib/telegram/bot";
@@ -74,6 +75,9 @@ export async function POST(req: NextRequest) {
 
     // Send admin Telegram notification (fire-and-forget)
     const chatId = process.env.TELEGRAM_CHAT_ID;
+    if (!chatId) {
+      console.warn("[lead-public] TELEGRAM_CHAT_ID missing — admin notification skipped");
+    }
     if (chatId) {
       const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "";
       const lines = [

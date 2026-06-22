@@ -188,6 +188,22 @@ export default async function DiagnosticsPage() {
             <CheckRow label="TELEGRAM_CHAT_ID (уведомления)" result={env.telegramChat} warn />
           </section>
 
+          {/* Sales / Lead form */}
+          <section className="rounded-2xl border border-white/8 bg-white/4 p-5">
+            <div className="mb-4 flex items-center gap-2">
+              <StatusDot ok={env.telegramChat.ok && env.telegramBotUsername.ok && env.siteUrl.ok} warn />
+              <h2 className="text-sm font-semibold">Sales-1 — Публичная форма заявок</h2>
+            </div>
+            <CheckRow label="TELEGRAM_CHAT_ID (уведомления о заявках)" result={env.telegramChat} warn />
+            <CheckRow label="NEXT_PUBLIC_TELEGRAM_BOT_USERNAME (ссылка в форме)" result={env.telegramBotUsername} warn />
+            <CheckRow label="NEXT_PUBLIC_SITE_URL (ссылки в уведомлениях)" result={env.siteUrl} warn />
+            {(!env.telegramChat.ok || !env.telegramBotUsername.ok || !env.siteUrl.ok) && (
+              <p className="mt-3 text-xs text-yellow-300/70">
+                Без этих переменных уведомления в Telegram о новых заявках не будут отправляться. Заявки всё равно сохраняются в базе данных.
+              </p>
+            )}
+          </section>
+
           {/* Workflow */}
           <section className="rounded-2xl border border-white/8 bg-white/4 p-5">
             <div className="mb-4 flex items-center gap-2">
