@@ -127,11 +127,6 @@ export default function CustomizeClient({
   const about = getSectionContent(template, "about");
   const services = getSectionContent(template, "services");
 
-  // Sequential step navigation across the editor tabs
-  const tabIndex = SECTION_TABS.findIndex((t) => t.id === tab);
-  const goPrev = () => tabIndex > 0 && setTab(SECTION_TABS[tabIndex - 1].id);
-  const goNext = () => tabIndex < SECTION_TABS.length - 1 && setTab(SECTION_TABS[tabIndex + 1].id);
-
   async function handleOrder() {
     setSubmitting(true);
     setOrderError(null);
