@@ -45,7 +45,32 @@ export async function POST(
       return NextResponse.json({ ok: false, error: "Не удалось загрузить файл" }, { status: 500 });
     }
 
-    return NextResponse.json({ ok: true, path: storagePath });
+    // Persist file metadata into project_data.content_edits.file_metadata
+    const { data: pd } = await admin
+      .from("project_data")
+      .select("content_edits")
+      .eq("order_id", orderId)
+      .maybeSingle();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const contentEdits: Record<string, any> = (pd?.content_edits as Record<string, any>) ?? {};
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const fileMetadata: Record<string, any> = contentEdits.file_metadata ?? {};
+    fileMetadata[storagePath] = {
+      name: file.name,
+      path: storagePath,
+      source: "client_brief",
+      type: "photos",
+      uploaded_at: new Date().toISOString(),
+    };
+    contentEdits.file_metadata = fileMetadata;
+    const { error: pdErr } = await admin
+      .from("project_data")
+      .upsert({ order_id: orderId, content_edits: contentEdits }, { onConflict: "order_id" });
+    if (pdErr) {
+      console.warn("[brief-public/upload] metadata persist failed (non-fatal):", pdErr.message);
+    }
+
+    return NextResponse.json({ ok: true, path: storagePath, name: file.name });
   } catch (e) {
     console.error("[brief-public/upload] unhandled:", e instanceof Error ? e.message : e);
     return NextResponse.json({ ok: false, error: "Server error" }, { status: 500 });

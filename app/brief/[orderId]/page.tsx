@@ -44,10 +44,16 @@ export default function BriefPage({ params }: { params: Promise<{ orderId: strin
   const [uploadError, setUploadError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Load existing project data
+  // Load existing uploaded files on mount
   useEffect(() => {
-    // We fetch via the public brief API (no auth)
-    // On first load there may be nothing — just show empty form
+    fetch(`/api/brief-public/${orderId}/files`)
+      .then((r) => r.json())
+      .then((json: { ok: boolean; files?: { name: string; path: string }[] }) => {
+        if (json.ok && json.files) {
+          setUploadedFiles(json.files);
+        }
+      })
+      .catch(() => {});
   }, [orderId]);
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) {
