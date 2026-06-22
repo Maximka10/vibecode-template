@@ -144,7 +144,7 @@ export async function transitionOrder(input: TransitionInput): Promise<Transitio
     const { data: order, error: fetchError } = await admin
       .from("orders")
       .select(
-        "id, status, user_id, template_id, template_name, total_price, telegram_client_id, project_url, telegram_clients(chat_id)"
+        "id, status, user_id, template_id, template_name, total_price, project_url"
       )
       .eq("id", orderId)
       .single();
@@ -154,8 +154,23 @@ export async function transitionOrder(input: TransitionInput): Promise<Transitio
       return { ok: false, error: "Order not found", code: "NOT_FOUND" };
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const telegramChatId: number | null = (order as any).telegram_clients?.chat_id ?? null;
+    // Telegram link is best-effort — it must NEVER block a status change.
+    // Looked up separately so a missing column/relationship can't fail the transition.
+    let telegramChatId: number | null = null;
+    try {
+      const { data: link } = await admin
+        .from("orders")
+        .select("telegram_client_id, telegram_clients(chat_id)")
+        .eq("id", orderId)
+        .single();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      telegramChatId = (link as any)?.telegram_clients?.chat_id ?? null;
+    } catch (err) {
+      console.warn(
+        "[orderWorkflow] Telegram link lookup skipped:",
+        err instanceof Error ? err.message : err
+      );
+    }
 
     const previousStatus = order.status as OrderStatus;
     console.log(`[orderWorkflow] current status=${previousStatus} target=${action}`);

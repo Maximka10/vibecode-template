@@ -13,6 +13,18 @@ function isUrl(v: string) {
   return v.startsWith("http://") || v.startsWith("https://") || v.startsWith("/");
 }
 
+// Coerce a list item (string or object) to a display string so React never
+// receives a raw object as a child.
+function itemText(v: unknown): string {
+  if (v == null) return "";
+  if (typeof v === "string" || typeof v === "number") return String(v);
+  if (typeof v === "object") {
+    const o = v as Record<string, unknown>;
+    return String(o.name ?? o.title ?? o.label ?? o.text ?? o.value ?? "");
+  }
+  return String(v);
+}
+
 function Hero({ section, template }: Props) {
   const c = section.content;
   const heroImage = c.heroImage as string | undefined;
@@ -147,7 +159,7 @@ function Gallery({ section, template }: Props) {
 }
 
 function Services({ section, template }: Props) {
-  const items = (section.content.items as string[]) ?? [];
+  const items = ((section.content.items as unknown[]) ?? []).map(itemText).filter(Boolean);
   if (items.length === 0) return null;
   return (
     <Wrap template={template}>
@@ -155,10 +167,10 @@ function Services({ section, template }: Props) {
         {String(section.content.title ?? "Услуги")}
       </h2>
       <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {items.map((x) => (
-          <div key={x} className={`${getCardClass(template.style)} p-5 flex items-start gap-3`}>
+        {items.map((x, i) => (
+          <div key={`${x}-${i}`} className={`${getCardClass(template.style)} p-5 flex items-start gap-3`}>
             <span className="mt-0.5 text-[var(--primary)] font-bold">✓</span>
-            <span>{x}</span>
+            <span className="whitespace-pre-line">{x}</span>
           </div>
         ))}
       </div>
@@ -192,7 +204,7 @@ function Reviews({ section, template }: Props) {
       <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
         {items.map((x, i) => (
           <blockquote key={i} className={`${getCardClass(template.style)} p-5`}>
-            <p className="text-[var(--text-secondary)]">"{x}"</p>
+            <p className="text-[var(--text-secondary)] whitespace-pre-line">"{itemText(x)}"</p>
             <div className="mt-3 flex gap-1">
               {[1,2,3,4,5].map((s) => (
                 <span key={s} className="text-[var(--primary)] text-sm">★</span>

@@ -13,6 +13,18 @@ const ICONS = ["✦", "◈", "◆", "⬡", "◉", "⬟"];
 
 function s(v: unknown): string { return v != null ? String(v) : ""; }
 
+// Coerce any list item (string or object like {name,title,text,label}) to a
+// display string so React never receives an object as a child (→ 500 error).
+function itemText(v: unknown): string {
+  if (v == null) return "";
+  if (typeof v === "string" || typeof v === "number") return String(v);
+  if (typeof v === "object") {
+    const o = v as Record<string, unknown>;
+    return s(o.name ?? o.title ?? o.label ?? o.text ?? o.value ?? "");
+  }
+  return String(v);
+}
+
 function resolveCtaHref(contactLink?: string): string {
   if (!contactLink) return "#contacts";
   if (contactLink.startsWith("tel:") || contactLink.startsWith("http") || contactLink.startsWith("https://")) return contactLink;
@@ -46,10 +58,10 @@ function SectionHero({ content, primary, secondary, contactLink }: { content: Re
       )}
       <div className="relative mx-auto max-w-4xl">
         {!!content.title && (
-          <h1 className="text-3xl font-black leading-tight sm:text-4xl lg:text-5xl break-words">{s(content.title)}</h1>
+          <h1 className="text-3xl font-black leading-tight sm:text-4xl lg:text-5xl break-words whitespace-pre-line">{s(content.title)}</h1>
         )}
         {!!content.subtitle && (
-          <p className="mt-4 max-w-2xl text-sm leading-relaxed opacity-85 sm:text-base">{s(content.subtitle)}</p>
+          <p className="mt-4 max-w-2xl text-sm leading-relaxed opacity-85 sm:text-base whitespace-pre-line">{s(content.subtitle)}</p>
         )}
         {!!content.cta_text && (
           <div className="mt-8">
@@ -85,7 +97,7 @@ function SectionAbout({ content, primary }: { content: Record<string, unknown>; 
 }
 
 function SectionServices({ content, primary }: { content: Record<string, unknown>; primary: string }) {
-  const items = (content.items as string[]) ?? [];
+  const items = ((content.items as unknown[]) ?? []).map(itemText).filter(Boolean);
   return (
     <div className="px-4 py-12 bg-slate-50 border-b border-slate-100 sm:px-8 sm:py-14">
       <div className="mb-3 h-1 w-10 rounded-full" style={{ backgroundColor: primary }} />
@@ -99,7 +111,7 @@ function SectionServices({ content, primary }: { content: Record<string, unknown
             >
               {ICONS[i % ICONS.length]}
             </div>
-            <p className="text-sm font-bold text-slate-800 leading-snug sm:text-base">{item}</p>
+            <p className="text-sm font-bold text-slate-800 leading-snug sm:text-base whitespace-pre-line">{item}</p>
           </div>
         ))}
       </div>
@@ -170,7 +182,7 @@ function SectionReviews({ content, primary }: { content: Record<string, unknown>
                 </svg>
               ))}
             </div>
-            <p className="mt-3 text-sm leading-relaxed text-slate-600">«{r.text}»</p>
+            <p className="mt-3 text-sm leading-relaxed text-slate-600 whitespace-pre-line">«{r.text}»</p>
             <p className="mt-4 text-xs font-bold text-slate-700">— {r.author}</p>
           </div>
         ))}
@@ -192,7 +204,7 @@ function SectionFAQ({ content, primary }: { content: Record<string, unknown>; pr
               <p className="font-bold text-slate-800 text-sm">{f.question}</p>
               <span className="text-xl font-black shrink-0" style={{ color: primary }}>+</span>
             </div>
-            <div className="border-t border-slate-100 px-5 py-4 text-sm text-slate-600">{f.answer}</div>
+            <div className="border-t border-slate-100 px-5 py-4 text-sm text-slate-600 whitespace-pre-line">{f.answer}</div>
           </div>
         ))}
       </div>
@@ -251,8 +263,8 @@ function SectionCTA({ content, primary, secondary, contactLink }: { content: Rec
       className="px-8 py-20 text-center text-white"
       style={{ background: `linear-gradient(135deg, ${primary}, ${secondary})` }}
     >
-      {!!content.title && <h2 className="text-3xl font-black">{s(content.title)}</h2>}
-      {!!content.subtitle && <p className="mt-3 text-base opacity-80">{s(content.subtitle)}</p>}
+      {!!content.title && <h2 className="text-3xl font-black whitespace-pre-line">{s(content.title)}</h2>}
+      {!!content.subtitle && <p className="mt-3 text-base opacity-80 whitespace-pre-line">{s(content.subtitle)}</p>}
       {!!content.cta_text && (
         <a
           href={href}
