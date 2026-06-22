@@ -295,8 +295,9 @@ export default function CustomizeClient({
             {/* ── Hero ── */}
             {tab === "hero" && (
               <>
-                <Input
+                <Textarea
                   label="Заголовок"
+                  rows={2}
                   value={String(hero.headline ?? "")}
                   onChange={(e) => setTemplate(updateSectionContent(template, "hero", "headline", e.target.value))}
                 />

@@ -216,7 +216,7 @@ function SectionEditor({
     case "hero":
       return (
         <div className="space-y-3">
-          <Field label="Заголовок"><input className={FIELD_CLS} value={String(c.title ?? "")} onChange={(e) => set("title", e.target.value)} placeholder="Название / слоган" /></Field>
+          <Field label="Заголовок" hint="Enter — перенос строки"><textarea className={`${FIELD_CLS} resize-none`} rows={2} value={String(c.title ?? "")} onChange={(e) => set("title", e.target.value)} placeholder="Название / слоган" /></Field>
           <Field label="Подзаголовок"><textarea className={`${FIELD_CLS} resize-none`} rows={2} value={String(c.subtitle ?? "")} onChange={(e) => set("subtitle", e.target.value)} placeholder="Краткое описание" /></Field>
           <Field label="Текст кнопки CTA"><input className={FIELD_CLS} value={String(c.cta_text ?? "")} onChange={(e) => set("cta_text", e.target.value)} placeholder="Оставить заявку" /></Field>
           <Field label="Фоновое изображение" hint="Накладывается на градиент с прозрачностью">
@@ -516,14 +516,6 @@ export default function DevelopmentTab({ orderId, order }: { orderId: string; or
   const [error, setError] = useState<string | null>(null);
   const [aiDisabled, setAiDisabled] = useState(false);
   const [applyingMaterials, setApplyingMaterials] = useState(false);
-  const [livePreview, setLivePreview] = useState(false);
-
-  // Sync unsaved changes to preview iframe via postMessage
-  useEffect(() => {
-    if (!livePreview || !iframeRef.current?.contentWindow) return;
-    iframeRef.current.contentWindow.postMessage({ type: "VIBECODE_SECTIONS", sections, pd }, "*");
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sections, pd, livePreview]);
 
   useEffect(() => {
     fetch(`/api/orders/${orderId}/project-data`)
@@ -583,10 +575,10 @@ export default function DevelopmentTab({ orderId, order }: { orderId: string; or
     return () => window.removeEventListener("beforeunload", handler);
   }, [dirty]);
 
-  // Autosave after 3 seconds of inactivity when dirty
+  // Autosave after 2 seconds of inactivity when dirty — preview reloads on save
   useEffect(() => {
     if (!dirty || saving) return;
-    const t = setTimeout(() => { handleSave(); }, 3000);
+    const t = setTimeout(() => { handleSave(); }, 2000);
     return () => clearTimeout(t);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dirty, pd, sections]);
@@ -1034,17 +1026,12 @@ export default function DevelopmentTab({ orderId, order }: { orderId: string; or
             className="rounded-lg border border-white/10 px-2.5 py-1.5 text-xs text-white/40 hover:text-white/70 transition"
             title="Обновить предпросмотр из базы"
           >
-            ↺
+            ↺ Обновить
           </button>
-          <button
-            onClick={() => setLivePreview((p) => !p)}
-            className={`rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition ${livePreview ? "border-green-500/40 bg-green-500/15 text-green-300" : "border-white/10 text-white/40 hover:text-white/70"}`}
-            title="Предпросмотр изменений без сохранения"
-          >
-            {livePreview ? "● Live" : "Live"}
-          </button>
-          {dirty && (
-            <span className="ml-auto text-[10px] text-orange-400/80 font-mono">несохранено</span>
+          {dirty ? (
+            <span className="ml-auto text-[10px] text-orange-400/80 font-mono">● несохранено</span>
+          ) : (
+            <span className="ml-auto text-[10px] text-green-400/70 font-mono">✓ сохранено</span>
           )}
         </div>
 
@@ -1085,9 +1072,9 @@ export default function DevelopmentTab({ orderId, order }: { orderId: string; or
           </div>
         )}
 
-        {dirty && (
-          <p className="text-center text-[10px] text-white/25">Предпросмотр обновится после сохранения</p>
-        )}
+        <p className="text-center text-[10px] text-white/25">
+          {dirty ? "Автосохранение через 2 сек — затем предпросмотр обновится" : "Предпросмотр актуален"}
+        </p>
       </div>
     </div>
   );
