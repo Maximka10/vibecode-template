@@ -4,7 +4,6 @@ import { Btn } from "@/components/ui/Btn";
 import { Card } from "@/components/ui/Card";
 import { BuildData } from "@/lib/build/buildOrderSite";
 import { SiteSection } from "@/types/sections";
-import SitePreview from "@/components/admin/workspace/SitePreview";
 
 type SiteBuild = {
   id: string;
@@ -168,16 +167,41 @@ export default function PreviewTab({ orderId }: { orderId: string }) {
             </div>
           </Card>
 
-          {/* Full-page preview */}
-          <div className="relative">
-            <div className={`transition-all duration-300 ${device === "mobile" ? "max-w-[390px] mx-auto" : ""}`}>
-              <SitePreview
-                data={build.build_data}
-                sections={sections.length > 0 ? sections : undefined}
-                device={device}
+          {/* Full-page preview via iframe — real viewport width triggers CSS breakpoints */}
+          {device === "mobile" ? (
+            <div className="flex justify-center py-4">
+              <div
+                className="overflow-hidden rounded-[40px] border-[6px] border-slate-700 shadow-2xl bg-slate-800"
+                style={{ width: 402, flexShrink: 0 }}
+              >
+                {/* speaker slot */}
+                <div className="flex justify-center py-2 bg-slate-800">
+                  <div className="h-1.5 w-16 rounded-full bg-slate-600" />
+                </div>
+                <iframe
+                  key="mobile"
+                  src={`/preview-frame/${orderId}`}
+                  width={390}
+                  height={844}
+                  style={{ display: "block", border: "none", background: "white" }}
+                  title="Mobile preview"
+                />
+                {/* home bar */}
+                <div className="flex justify-center py-2 bg-slate-800">
+                  <div className="h-1.5 w-24 rounded-full bg-slate-600" />
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="overflow-hidden rounded-2xl border border-white/10 shadow-2xl">
+              <iframe
+                key="desktop"
+                src={`/preview-frame/${orderId}`}
+                style={{ display: "block", border: "none", width: "100%", height: 700, background: "white" }}
+                title="Desktop preview"
               />
             </div>
-          </div>
+          )}
 
           <div className="flex gap-2">
             <Btn
