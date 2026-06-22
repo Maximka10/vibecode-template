@@ -3,3 +3,4 @@ node_modules/
 .turbo/
 npm-debug.log*
 .claude/
+tsconfig.tsbuildinfo

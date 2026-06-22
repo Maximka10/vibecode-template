@@ -1,9 +1,9 @@
-import { createClient } from '@supabase/supabase-js'
-import { config } from '@/lib/config'
+import { createClient } from "@supabase/supabase-js";
 
 export function createAdminClient() {
-  if (!config.supabase.isConfigured || !config.supabase.serviceRoleKey) return null
-  return createClient(config.supabase.url, config.supabase.serviceRoleKey, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  })
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  );
 }

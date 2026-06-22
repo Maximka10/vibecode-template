@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Container } from "@/components/layout/Container";
 import { calculatorContent } from "@/content/calculator";
-import { Button } from "@/components/ui/Button";
+import { Btn } from "@/components/ui/Btn";
 import { motion } from "framer-motion";
 
 const fadeUp = {
@@ -69,7 +69,7 @@ export function Calculator() {
           <div className="mt-8 text-xl font-bold">Итого: {total.toLocaleString()} ₽</div>
 
           <div className="mt-6">
-            <Button onClick={handleSubmit}>Оставить заявку</Button>
+            <Btn onClick={handleSubmit}>Оставить заявку</Btn>
           </div>
         </motion.div>
       </Container>
