@@ -15,43 +15,43 @@ function isUrl(v: string) {
 
 function Hero({ section, template }: Props) {
   const c = section.content;
-  const centered = c.layout === "centered" || template.style.heroTextAlign === "center";
   const heroImage = c.heroImage as string | undefined;
+  const hasImage = !!heroImage && isUrl(heroImage);
+  // Без картинки — всегда центрируем, чтобы текст не висел в пустой колонке.
+  const centered = c.layout === "centered" || template.style.heroTextAlign === "center" || !hasImage;
+  const badge = String(c.badge ?? "");
 
   return (
     <Wrap template={template}>
-      <div className={`grid gap-8 ${centered ? "text-center place-items-center" : "md:grid-cols-2 items-center"}`}>
-        <div>
-          <p className="mb-4 inline-flex rounded-full border border-[var(--bg-border)] px-4 py-2 text-sm text-[var(--text-secondary)]">
-            {String(c.badge ?? "")}
-          </p>
-          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black tracking-tight">
+      <div className={`grid gap-8 lg:gap-12 ${centered ? "text-center place-items-center" : "md:grid-cols-2 md:items-center"}`}>
+        <div className={centered ? "mx-auto max-w-2xl" : ""}>
+          {badge && (
+            <p className="mb-4 inline-flex rounded-full border border-[var(--bg-border)] px-4 py-2 text-sm text-[var(--text-secondary)]">
+              {badge}
+            </p>
+          )}
+          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black tracking-tight leading-[1.08] whitespace-pre-line">
             {String(c.headline ?? "")}
           </h1>
-          <p className="mt-5 max-w-2xl text-base sm:text-lg text-[var(--text-secondary)]">
+          <p className={`mt-5 text-base sm:text-lg text-[var(--text-secondary)] whitespace-pre-line ${centered ? "mx-auto max-w-2xl" : "max-w-xl"}`}>
             {String(c.subheadline ?? "")}
           </p>
-          <div className="mt-7 flex flex-col xs:flex-row gap-3">
-            <a className="rounded-full bg-[var(--primary)] px-5 sm:px-7 py-3 text-sm sm:text-[15px] font-bold text-black" href="#lead">
+          <div className={`mt-7 flex flex-col xs:flex-row gap-3 ${centered ? "justify-center" : ""}`}>
+            <a className="rounded-full bg-[var(--primary)] px-5 sm:px-7 py-3 text-sm sm:text-[15px] font-bold text-black text-center" href="#lead">
               {String(c.cta ?? "Заказать")}
             </a>
-            <a className="rounded-full border border-[var(--bg-border)] px-5 sm:px-7 py-3 text-sm sm:text-[15px]" href="#services">
+            <a className="rounded-full border border-[var(--bg-border)] px-5 sm:px-7 py-3 text-sm sm:text-[15px] text-center" href="#services">
               {String(c.secondaryCta ?? "Подробнее")}
             </a>
           </div>
         </div>
-        {!centered && (
-          <div className={`${getCardClass(template.style)} min-h-64 w-full overflow-hidden`}>
-            {heroImage && isUrl(heroImage) ? (
-              <img
-                src={heroImage}
-                alt=""
-                className="h-full w-full object-cover min-h-64"
-                style={{ minHeight: "16rem" }}
-              />
-            ) : (
-              <div className="h-64 w-full bg-gradient-to-br from-[var(--gradient-from)] to-[var(--gradient-to)] opacity-80" />
-            )}
+        {hasImage && (
+          <div className={`${getCardClass(template.style)} w-full overflow-hidden`}>
+            <img
+              src={heroImage}
+              alt=""
+              className="aspect-[4/3] md:aspect-[3/4] lg:aspect-[4/3] h-full w-full object-cover"
+            />
           </div>
         )}
       </div>
@@ -61,6 +61,7 @@ function Hero({ section, template }: Props) {
 
 function Stats({ section, template }: Props) {
   const items = (section.content.items as Record<string, unknown>[]) ?? [];
+  if (items.length === 0) return null;
   return (
     <Wrap template={template}>
       <div className={template.style.statsLayout === "inline" ? "flex flex-wrap gap-4" : "grid grid-cols-2 sm:grid-cols-4 gap-4"}>
@@ -81,17 +82,21 @@ function Stats({ section, template }: Props) {
 
 function About({ section, template }: Props) {
   const coverImage = section.content.coverImage as string | undefined;
+  const title = String(section.content.title ?? "");
+  const text = String(section.content.text ?? "");
+  const hasCover = !!coverImage && isUrl(coverImage);
+  if (!title && !text && !hasCover) return null;
   return (
     <Wrap template={template}>
       <div className={`${getCardClass(template.style)} overflow-hidden`}>
-        {coverImage && isUrl(coverImage) && (
-          <div className="w-full h-48 overflow-hidden">
+        {hasCover && (
+          <div className="w-full aspect-[16/9] overflow-hidden">
             <img src={coverImage} alt="" className="w-full h-full object-cover" />
           </div>
         )}
         <div className="p-6 sm:p-8">
-          <h2 className={getHeadingClass(template.style)}>{String(section.content.title ?? "")}</h2>
-          <p className="mt-4 text-[var(--text-secondary)]">{String(section.content.text ?? "")}</p>
+          {title && <h2 className={getHeadingClass(template.style)}>{title}</h2>}
+          {text && <p className="mt-4 text-[var(--text-secondary)] whitespace-pre-line">{text}</p>}
         </div>
       </div>
     </Wrap>
@@ -102,6 +107,7 @@ function Gallery({ section, template }: Props) {
   const items = (section.content.images as string[]) ?? [];
   const film = template.style.galleryStyle === "film";
   const masonry = template.style.galleryStyle === "masonry";
+  if (items.length === 0) return null;
 
   return (
     <Wrap template={template}>
@@ -142,6 +148,7 @@ function Gallery({ section, template }: Props) {
 
 function Services({ section, template }: Props) {
   const items = (section.content.items as string[]) ?? [];
+  if (items.length === 0) return null;
   return (
     <Wrap template={template}>
       <h2 id="services" className={getHeadingClass(template.style)}>
@@ -176,6 +183,7 @@ function Simple({ section, template }: Props) {
 
 function Reviews({ section, template }: Props) {
   const items = (section.content.items as string[]) ?? [];
+  if (items.length === 0) return null;
   return (
     <Wrap template={template}>
       <h2 className={getHeadingClass(template.style)}>
