@@ -72,6 +72,9 @@ export default function CustomizeClient({
   const [template, setTemplate] = useState(initialTemplate);
   const [device, setDevice] = useState<Device>("desktop");
   const [tab, setTab] = useState<Tab>("hero");
+  const tabIndex = SECTION_TABS.findIndex((t) => t.id === tab);
+  const goPrev = () => { if (tabIndex > 0) setTab(SECTION_TABS[tabIndex - 1].id); };
+  const goNext = () => { if (tabIndex < SECTION_TABS.length - 1) setTab(SECTION_TABS[tabIndex + 1].id); };
   const [viewPane, setViewPane] = useState<"editor" | "preview">("editor");
   const [submitting, setSubmitting] = useState(false);
   const [orderError, setOrderError] = useState<string | null>(null);
@@ -223,7 +226,7 @@ export default function CustomizeClient({
   }
 
   return (
-    <main className="min-h-screen bg-slate-950 text-white">
+    <main className="min-h-screen bg-slate-950 text-white flex flex-col">
       {/* Topbar */}
       <div className="border-b border-white/10 p-3 flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-3">
@@ -271,7 +274,7 @@ export default function CustomizeClient({
         </button>
       </div>
 
-      <div className="grid md:grid-cols-[320px_1fr] min-h-[calc(100vh-88px)]">
+      <div className="flex-1 grid md:grid-cols-[320px_1fr] lg:grid-cols-[340px_1fr] min-h-0">
         {/* Editor */}
         <aside className={`${viewPane === "preview" ? "hidden md:block" : ""} border-r border-white/10 flex flex-col`}>
           {/* Tab nav */}
@@ -665,21 +668,19 @@ export default function CustomizeClient({
           </div>
 
           {/* Step navigation */}
-          <div className="flex items-center justify-between gap-2 border-t border-white/10 p-3">
+          <div className="shrink-0 border-t border-white/10 p-3 flex items-center justify-between gap-2">
             <button
               onClick={goPrev}
-              disabled={tabIndex <= 0}
-              className="rounded-lg border border-white/10 px-4 py-2 text-sm text-white/70 transition hover:bg-white/5 disabled:opacity-30 disabled:hover:bg-transparent"
+              disabled={tabIndex === 0}
+              className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-white/70 transition hover:bg-white/10 hover:text-white disabled:opacity-25 disabled:cursor-not-allowed"
             >
               ← Назад
             </button>
-            <span className="text-xs text-white/40">
-              Шаг {tabIndex + 1} из {SECTION_TABS.length}
-            </span>
+            <span className="text-xs text-white/30">{tabIndex + 1} / {SECTION_TABS.length}</span>
             <button
               onClick={goNext}
-              disabled={tabIndex >= SECTION_TABS.length - 1}
-              className="rounded-lg border border-white/10 px-4 py-2 text-sm text-white/70 transition hover:bg-white/5 disabled:opacity-30 disabled:hover:bg-transparent"
+              disabled={tabIndex === SECTION_TABS.length - 1}
+              className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-500 px-4 py-2 text-sm font-bold text-white shadow-md shadow-cyan-500/20 transition hover:shadow-cyan-500/30 disabled:opacity-25 disabled:cursor-not-allowed"
             >
               Далее →
             </button>
@@ -687,18 +688,18 @@ export default function CustomizeClient({
         </aside>
 
         {/* Preview */}
-        <section className={`${viewPane === "editor" ? "hidden md:flex" : "flex"} items-start justify-center bg-black/40 p-4`}>
+        <section className={`${viewPane === "editor" ? "hidden md:flex" : "flex"} items-start justify-center bg-black/40 p-4 overflow-auto`}>
           <div
             className={
               device === "mobile"
-                ? "rounded-[2.5rem] border-8 border-zinc-800 p-2 w-[410px]"
-                : "w-full"
+                ? "rounded-[2.5rem] border-8 border-zinc-800 p-2 w-[410px] shrink-0"
+                : "w-full max-w-[1400px]"
             }
           >
             <iframe
               ref={iframe}
               src={`/preview/${template.id}`}
-              className="h-[80vh] bg-white rounded-lg"
+              className="h-[calc(100vh-140px)] min-h-[500px] bg-white rounded-lg"
               style={{ width: device === "mobile" ? 393 : "100%" }}
             />
           </div>

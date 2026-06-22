@@ -1,27 +1,7 @@
 import { buildSharedSections } from "@/content/sectionPresets";
+import type { Template } from "@/types/template";
 
-// Inline types for the content-layer template model (used by sectionPresets only)
-type TemplateService = {
-  title: string;
-  description: string;
-};
-
-type TemplateContent = {
-  heroTitle: string;
-  heroSubtitle: string;
-  services: TemplateService[];
-};
-
-type ContentTemplate = {
-  sections: ReturnType<typeof buildSharedSections>;
-  id: string;
-  name: string;
-  description: string;
-  previewImage: string;
-  content: TemplateContent;
-};
-
-const templateSeed: Array<Omit<ContentTemplate, "sections">> = [
+const templateSeed: Array<Omit<Template, "sections">> = [
   {
     id: "coffee-shop",
     name: "Кофейня",
@@ -71,7 +51,7 @@ const templateSeed: Array<Omit<ContentTemplate, "sections">> = [
  * Templates behave like data models: structure + section payload.
  * This allows CMS, AI generation, drag-and-drop editors, and live previews.
  */
-export const templates: ContentTemplate[] = templateSeed.map((template) => ({
+export const templates: Template[] = templateSeed.map((template) => ({
   ...template,
   sections: buildSharedSections(templateSeed),
 }));

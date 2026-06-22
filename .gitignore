@@ -2,5 +2,5 @@ node_modules/
 .next/
 .turbo/
 npm-debug.log*
-.claude/
 tsconfig.tsbuildinfo
+.claude/
