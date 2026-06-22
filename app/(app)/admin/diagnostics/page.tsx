@@ -29,6 +29,14 @@ export default async function DiagnosticsPage() {
     ordersError: ordersRes.error?.message ?? null,
     messagesError: messagesRes.error?.message ?? null,
     recentOrders: ordersRes.data ?? [],
+    // Env checks must run server-side — non-NEXT_PUBLIC_ vars aren't visible in client components
+    env: {
+      nodeEnv: process.env.NODE_ENV ?? "—",
+      supabaseUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
+      serviceRoleKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+      telegramBotToken: !!process.env.TELEGRAM_BOT_TOKEN,
+      telegramChatId: !!process.env.TELEGRAM_CHAT_ID,
+    },
   };
 
   return <DiagnosticsClient stats={stats} />;

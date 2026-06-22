@@ -19,6 +19,13 @@ type Stats = {
   ordersError: string | null;
   messagesError: string | null;
   recentOrders: { id: string; status: string; created_at: string; template_id: string | null; client_name: string | null }[];
+  env: {
+    nodeEnv: string;
+    supabaseUrl: boolean;
+    serviceRoleKey: boolean;
+    telegramBotToken: boolean;
+    telegramChatId: boolean;
+  };
 };
 
 function StatusDot({ ok }: { ok: boolean }) {
@@ -150,16 +157,16 @@ export default function DiagnosticsClient({ stats }: { stats: Stats }) {
         <section>
           <h2 className="mb-3 text-xs font-semibold uppercase tracking-widest text-white/40">Окружение</h2>
           <div className="rounded-2xl border border-white/8 bg-white/3 p-4 space-y-2 text-xs font-mono">
-            {[
-              ["NODE_ENV", process.env.NODE_ENV],
-              ["NEXT_PUBLIC_SUPABASE_URL", process.env.NEXT_PUBLIC_SUPABASE_URL ? "✓ задан" : "✗ не задан"],
-              ["SUPABASE_SERVICE_ROLE_KEY", process.env.SUPABASE_SERVICE_ROLE_KEY ? "✓ задан" : "✗ не задан"],
-              ["TELEGRAM_BOT_TOKEN", process.env.TELEGRAM_BOT_TOKEN ? "✓ задан" : "✗ не задан"],
-              ["TELEGRAM_CHAT_ID", process.env.TELEGRAM_CHAT_ID ? "✓ задан" : "✗ не задан"],
-            ].map(([key, val]) => (
+            {([
+              ["NODE_ENV", stats.env.nodeEnv],
+              ["NEXT_PUBLIC_SUPABASE_URL", stats.env.supabaseUrl ? "✓ задан" : "✗ не задан"],
+              ["SUPABASE_SERVICE_ROLE_KEY", stats.env.serviceRoleKey ? "✓ задан" : "✗ не задан"],
+              ["TELEGRAM_BOT_TOKEN", stats.env.telegramBotToken ? "✓ задан" : "✗ не задан"],
+              ["TELEGRAM_CHAT_ID", stats.env.telegramChatId ? "✓ задан" : "✗ не задан"],
+            ] as [string, string][]).map(([key, val]) => (
               <div key={key} className="flex justify-between gap-4">
                 <span className="text-white/40">{key}</span>
-                <span className={val?.startsWith("✓") ? "text-green-400" : val?.startsWith("✗") ? "text-red-400" : "text-white/60"}>{val}</span>
+                <span className={val.startsWith("✓") ? "text-green-400" : val.startsWith("✗") ? "text-red-400" : "text-white/60"}>{val}</span>
               </div>
             ))}
           </div>
