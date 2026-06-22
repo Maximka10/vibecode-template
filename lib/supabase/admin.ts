@@ -1,2 +1,29 @@
-type Query={select:(s?:string)=>Query;eq:(c:string,v:string)=>Query;single:()=>Promise<{data:any,error:null}>;insert:(v:any)=>Promise<{data:any,error:null}>;order:(c:string)=>Query};
-export function createAdminClient(){const q:Query={select(){return q},eq(){return q},single:async()=>({data:null,error:null}),insert:async()=>({data:null,error:null}),order(){return q}}; return {auth:{getUser:async(_token:string)=>({data:{user:null as {id:string}|null},error:null})},from:(_t:string)=>q}}
+type DbError = { message: string } | null;
+type DbResult = { data: any; error: DbError };
+
+function makeQuery(): any {
+  const result: DbResult = { data: null, error: null };
+  const p = Promise.resolve(result);
+  const q: any = {
+    select(_s?: string) { return makeQuery(); },
+    eq(_c: string, _v: string) { return makeQuery(); },
+    single: async (): Promise<DbResult> => result,
+    insert(_v: any) { return makeQuery(); },
+    update(_v: any) { return makeQuery(); },
+    order(_c: string, _opts?: { ascending?: boolean }) { return makeQuery(); },
+    then: p.then.bind(p),
+    catch: p.catch.bind(p),
+    finally: p.finally.bind(p),
+  };
+  return q;
+}
+
+export function createAdminClient() {
+  return {
+    auth: {
+      getUser: async (_token?: string): Promise<{ data: { user: { id: string } | null }; error: null }> =>
+        ({ data: { user: null }, error: null }),
+    },
+    from: (_table: string) => makeQuery(),
+  };
+}
