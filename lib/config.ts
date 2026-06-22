@@ -11,6 +11,7 @@ export const config = {
     botToken: process.env.TELEGRAM_BOT_TOKEN ?? '',
     chatId: process.env.TELEGRAM_CHAT_ID ?? '',
     username: process.env.NEXT_PUBLIC_TELEGRAM_USERNAME ?? '',
+    botUsername: process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME ?? process.env.NEXT_PUBLIC_TELEGRAM_USERNAME ?? '',
     get isConfigured() {
       return !!(process.env.TELEGRAM_BOT_TOKEN && process.env.TELEGRAM_CHAT_ID)
     },
