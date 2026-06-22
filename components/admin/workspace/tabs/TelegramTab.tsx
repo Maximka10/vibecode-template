@@ -463,13 +463,28 @@ function MessageBubble({
 
 function NotLinkedPanel({ orderId }: { orderId: string }) {
   const [copied, setCopied] = useState(false);
-  const botUsername = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME ?? "vibecode_bot";
-  const link = `https://t.me/${botUsername}?start=${orderId}`;
+  const botUsername = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME;
+  const link = botUsername ? `https://t.me/${botUsername}?start=${orderId}` : null;
 
   function copy() {
+    if (!link) return;
     navigator.clipboard
       .writeText(link)
       .then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); });
+  }
+
+  if (!botUsername) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-center">
+        <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-full border border-yellow-500/20 bg-yellow-500/10 text-3xl">
+          ⚠️
+        </div>
+        <h3 className="text-lg font-bold">Бот не настроен</h3>
+        <p className="mt-2 max-w-xs text-sm text-white/40">
+          Установите переменную окружения <code className="bg-white/10 px-1 rounded text-yellow-300">NEXT_PUBLIC_TELEGRAM_BOT_USERNAME</code> (username бота без @) и задеплойте заново.
+        </p>
+      </div>
+    );
   }
 
   return (
