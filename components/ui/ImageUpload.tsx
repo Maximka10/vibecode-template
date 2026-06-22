@@ -168,18 +168,18 @@ function CropEditor({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
-      <div className="flex w-full max-w-2xl flex-col gap-3 rounded-2xl border border-white/10 bg-slate-900 p-4 shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+      <div className="flex w-full max-w-xl flex-col gap-3 rounded-2xl border border-white/10 bg-slate-900 p-4 shadow-2xl max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between">
-          <p className="text-sm font-semibold text-white">Кадрирование изображения</p>
+          <p className="text-sm font-semibold text-white">Кадрирование</p>
           <button onClick={onCancel} className="rounded-full p-1 text-white/40 hover:text-white/70">✕</button>
         </div>
         <p className="text-xs text-white/40">Перетащите рамку или углы для выбора области</p>
-        <div ref={containerRef} className="relative rounded-xl overflow-hidden bg-black">
+        <div ref={containerRef} className="relative rounded-xl overflow-hidden bg-black" style={{ maxHeight: "52vh" }}>
           <canvas
             ref={canvasRef}
-            width={640}
-            height={400}
+            width={560}
+            height={320}
             className="w-full cursor-crosshair"
             onMouseDown={onMouseDown}
             onMouseMove={onMouseMove}

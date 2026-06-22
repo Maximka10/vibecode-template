@@ -28,7 +28,7 @@ type ProjectData = {
   seo_title?: string;
   seo_description?: string;
   font?: string;
-  branding?: { primary_color?: string; secondary_color?: string };
+  branding?: { primary_color?: string; secondary_color?: string; bg_base?: string; bg_surface?: string };
   content_edits?: {
     hero?: { title?: string; subtitle?: string; cta?: string };
     about?: { title?: string; text?: string };
@@ -398,11 +398,26 @@ function SectionEditor({
     case "contacts":
       return (
         <div className="grid gap-3 sm:grid-cols-2">
-          {(["phone", "email", "telegram", "address", "working_hours"] as const).map((k) => (
-            <Field key={k} label={k === "phone" ? "Телефон" : k === "email" ? "Email" : k === "telegram" ? "Telegram" : k === "address" ? "Адрес" : "Режим работы"}>
-              <input className={FIELD_CLS} value={String(c[k] ?? "")} onChange={(e) => set(k, e.target.value)} />
+          <Field label="Телефон"><input className={FIELD_CLS} value={String(c.phone ?? "")} onChange={(e) => set("phone", e.target.value)} /></Field>
+          <Field label="Email"><input className={FIELD_CLS} value={String(c.email ?? "")} onChange={(e) => set("email", e.target.value)} /></Field>
+          <Field label="Telegram"><input className={FIELD_CLS} value={String(c.telegram ?? "")} onChange={(e) => set("telegram", e.target.value)} /></Field>
+          <Field label="Адрес">
+            <input className={FIELD_CLS} value={String(c.address ?? "")} onChange={(e) => {
+              const addr = e.target.value;
+              set("address", addr);
+              if (addr.trim()) set("maps_link", `https://yandex.ru/maps/?text=${encodeURIComponent(addr)}`);
+            }} />
+            {c.address && (
+              <a href={`https://yandex.ru/maps/?text=${encodeURIComponent(String(c.address))}`} target="_blank" rel="noopener noreferrer" className="mt-1 text-xs text-cyan-400/60 hover:text-cyan-400 underline">
+                Открыть на карте ↗
+              </a>
+            )}
+          </Field>
+          <div className="col-span-full">
+            <Field label="Режим работы">
+              <WorkingHoursEditor value={String(c.working_hours ?? "")} onChange={(v) => set("working_hours", v)} />
             </Field>
-          ))}
+          </div>
         </div>
       );
     case "map":
@@ -480,7 +495,8 @@ function sectionComplete(s: SiteSection): boolean {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export default function DevelopmentTab({ orderId }: { orderId: string; order: Record<string, any> }) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export default function DevelopmentTab({ orderId, order }: { orderId: string; order: Record<string, any> }) {
   const [pd, setPd] = useState<ProjectData>({});
   const [sections, setSections] = useState<SiteSection[]>([]);
   const [loading, setLoading] = useState(true);
@@ -505,14 +521,30 @@ export default function DevelopmentTab({ orderId }: { orderId: string; order: Re
     fetch(`/api/orders/${orderId}/project-data`)
       .then((r) => r.json())
       .then(({ data: d }) => {
-        if (d) {
-          setPd(d);
-          if (d.content_edits?.sections?.length) {
-            setSections(d.content_edits.sections);
-          }
+        const base = d ?? {};
+        // Pre-fill branding from order if not set
+        if (!base.branding?.primary_color) {
+          const primaryColor = order.primary_color ?? order.selected_options?.theme?.primary ?? "#6366f1";
+          const bgBase = order.bg_color ?? order.selected_options?.theme?.bgBase ?? "#0f172a";
+          base.branding = { ...base.branding, primary_color: primaryColor, bg_base: bgBase };
+        }
+        // Pre-fill contact fields from selected_options if empty
+        const opts = order.selected_options ?? {};
+        if (!base.company_name && opts.company_name) base.company_name = opts.company_name;
+        if (!base.company_description && opts.company_description) base.company_description = opts.company_description;
+        if (!base.phone && opts.phone) base.phone = opts.phone;
+        if (!base.email && opts.email) base.email = opts.email;
+        if (!base.telegram && opts.telegram) base.telegram = opts.telegram;
+        if (!base.address && opts.address) base.address = opts.address;
+        if (!base.working_hours && opts.working_hours) base.working_hours = opts.working_hours;
+        if (!base.domain_name && opts.domain_name) base.domain_name = opts.domain_name;
+        setPd(base);
+        if (base.content_edits?.sections?.length) {
+          setSections(base.content_edits.sections);
         }
         setLoading(false);
       });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orderId]);
 
   useEffect(() => {
@@ -662,6 +694,25 @@ export default function DevelopmentTab({ orderId }: { orderId: string; order: Re
     }
   }
 
+  // ── Fill from brief ───────────────────────────────────────────────────────
+  function handleFillFromBrief() {
+    setSections((prev) => {
+      const next = [...prev];
+      function upsert(type: SectionType, content: SectionContent) {
+        const idx = next.findIndex((s) => s.type === type);
+        if (idx >= 0) next[idx] = { ...next[idx], content: { ...next[idx].content, ...content } };
+        else next.push({ id: genId(), type, enabled: true, content });
+      }
+      upsert("hero", { title: pd.company_name ?? "", subtitle: pd.company_description ?? "", cta_text: next.find((s) => s.type === "hero")?.content?.cta_text ?? "Оставить заявку" });
+      if (pd.services?.length) upsert("services", { title: "Наши услуги", items: pd.services });
+      upsert("contacts", { title: "Контакты", phone: pd.phone ?? "", email: pd.email ?? "", telegram: pd.telegram ?? "", address: pd.address ?? "", working_hours: pd.working_hours ?? "" });
+      if (pd.address) upsert("map", { title: "Как нас найти", address: pd.address, embed_url: `https://yandex.ru/map-widget/v1/?text=${encodeURIComponent(pd.address)}&z=15&lang=ru_RU` });
+      upsert("footer", { company_name: pd.company_name ?? "", links: next.find((s) => s.type === "footer")?.content?.links ?? [] });
+      return next;
+    });
+    setDirty(true);
+  }
+
   // ── Save as template ──────────────────────────────────────────────────────
   async function handleSaveTemplate() {
     if (!templateName.trim() || sections.length === 0) return;
@@ -692,6 +743,9 @@ export default function DevelopmentTab({ orderId }: { orderId: string; order: Re
               {generating ? "Генерация…" : "✨ Сгенерировать контент"}
             </Btn>
           )}
+          <Btn onClick={handleFillFromBrief} variant="outline" size="sm">
+            📋 Заполнить из брифа
+          </Btn>
           <Btn onClick={handleApplyMaterials} disabled={applyingMaterials} loading={applyingMaterials} variant="ghost" size="sm">
             {applyingMaterials ? "Применение…" : "🖼 Применить материалы"}
           </Btn>
@@ -786,6 +840,18 @@ export default function DevelopmentTab({ orderId }: { orderId: string; order: Re
               <div className="flex items-center gap-2">
                 <input type="color" className="h-9 w-12 cursor-pointer rounded-lg border border-white/10 bg-transparent p-0.5" value={pd.branding?.secondary_color ?? "#8b5cf6"} onChange={(e) => { setPd((p) => ({ ...p, branding: { ...p.branding, secondary_color: e.target.value } })); setDirty(true); }} />
                 <input className={`${FIELD_CLS} flex-1`} value={pd.branding?.secondary_color ?? "#8b5cf6"} onChange={(e) => { setPd((p) => ({ ...p, branding: { ...p.branding, secondary_color: e.target.value } })); setDirty(true); }} />
+              </div>
+            </Field>
+            <Field label="Фон страницы (bgBase)">
+              <div className="flex items-center gap-2">
+                <input type="color" className="h-9 w-12 cursor-pointer rounded-lg border border-white/10 bg-transparent p-0.5" value={pd.branding?.bg_base ?? "#0f172a"} onChange={(e) => { setPd((p) => ({ ...p, branding: { ...p.branding, bg_base: e.target.value } })); setDirty(true); }} />
+                <input className={`${FIELD_CLS} flex-1`} value={pd.branding?.bg_base ?? "#0f172a"} onChange={(e) => { setPd((p) => ({ ...p, branding: { ...p.branding, bg_base: e.target.value } })); setDirty(true); }} />
+              </div>
+            </Field>
+            <Field label="Фон карточек (bgSurface)">
+              <div className="flex items-center gap-2">
+                <input type="color" className="h-9 w-12 cursor-pointer rounded-lg border border-white/10 bg-transparent p-0.5" value={pd.branding?.bg_surface ?? "#1e293b"} onChange={(e) => { setPd((p) => ({ ...p, branding: { ...p.branding, bg_surface: e.target.value } })); setDirty(true); }} />
+                <input className={`${FIELD_CLS} flex-1`} value={pd.branding?.bg_surface ?? "#1e293b"} onChange={(e) => { setPd((p) => ({ ...p, branding: { ...p.branding, bg_surface: e.target.value } })); setDirty(true); }} />
               </div>
             </Field>
             <Field label="Шрифт">

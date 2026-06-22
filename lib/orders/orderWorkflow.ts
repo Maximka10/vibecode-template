@@ -144,7 +144,7 @@ export async function transitionOrder(input: TransitionInput): Promise<Transitio
     const { data: order, error: fetchError } = await admin
       .from("orders")
       .select(
-        "id, status, user_id, template_id, template_name, total_price, telegram_chat_id, project_url"
+        "id, status, user_id, template_id, template_name, total_price, telegram_client_id, project_url, telegram_clients(chat_id)"
       )
       .eq("id", orderId)
       .single();
@@ -153,6 +153,9 @@ export async function transitionOrder(input: TransitionInput): Promise<Transitio
       console.error(`[orderWorkflow] Order not found: orderId=${orderId}`, fetchError?.message);
       return { ok: false, error: "Order not found", code: "NOT_FOUND" };
     }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const telegramChatId: number | null = (order as any).telegram_clients?.chat_id ?? null;
 
     const previousStatus = order.status as OrderStatus;
     console.log(`[orderWorkflow] current status=${previousStatus} target=${action}`);
@@ -204,9 +207,9 @@ export async function transitionOrder(input: TransitionInput): Promise<Transitio
     });
 
     // Send client notification if their Telegram is linked
-    if (order.telegram_chat_id) {
+    if (telegramChatId) {
       sendClientStatusNotification(
-        order.telegram_chat_id as number,
+        telegramChatId,
         rule.to,
         order.project_url as string | null
       ).catch((err) => {
