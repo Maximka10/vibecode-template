@@ -1,0 +1,5 @@
+import type { Metadata, Viewport } from "next";
+import "./globals.css";
+export const metadata: Metadata = {metadataBase:new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "https://vibecode.studio"), title:{default:"VIBECODE STUDIO — premium-сайты за 3 дня",template:"%s | VIBECODE STUDIO"}, description:"Premium-сайты для малого бизнеса в России от 9 900 ₽: кофейни, рестораны, салоны красоты, автомойки и клининг. Домен и хостинг под ключ.", keywords:["сайт для кофейни","сайт для ресторана","сайт для салона красоты","сайт для автомойки","сайт для клининга","сайт за 3 дня"], openGraph:{title:"VIBECODE STUDIO",description:"Готовый сайт за 3 дня от 9 900 ₽",type:"website",locale:"ru_RU"}, twitter:{card:"summary_large_image",title:"VIBECODE STUDIO",description:"Premium-сайты малому бизнесу под ключ"}};
+export const viewport: Viewport = {themeColor:"#030712", colorScheme:"dark"};
+export default function RootLayout({children}:{children:React.ReactNode}){return <html lang="ru" className="h-full antialiased"><body className="min-h-full">{children}</body></html>}

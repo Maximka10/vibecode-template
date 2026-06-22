@@ -1,0 +1,8 @@
+@import "tailwindcss";
+@config "../tailwind.config.ts";
+@source "../app/**/*.{ts,tsx,js,jsx,mdx}";
+@source "../components/**/*.{ts,tsx,js,jsx,mdx}";
+@source "../sections/**/*.{ts,tsx,js,jsx,mdx}";
+@source "../lib/**/*.{ts,tsx,js,jsx,mdx}";
+@source "../features/**/*.{ts,tsx,js,jsx,mdx}";
+:root{--background:#030712;--foreground:#fff} html{overflow-x:hidden}*,*::before,*::after{box-sizing:border-box;max-width:100%}body{margin:0;background:#030712;color:#fff;font-family:Arial,Helvetica,sans-serif}.xs\:flex-row{@media (min-width:475px){flex-direction:row}}
