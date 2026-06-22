@@ -1,9 +1,7 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Card } from "@/components/ui/Card";
 import { Btn } from "@/components/ui/Btn";
-import SitePreview from "@/components/admin/workspace/SitePreview";
-import { BuildData } from "@/lib/build/buildOrderSite";
 import { formatWorkingHours } from "@/lib/utils/workingHours";
 import {
   SiteSection,
@@ -41,9 +39,6 @@ type ProjectData = {
 const FONTS = ["Inter", "Manrope", "Montserrat", "Roboto", "Open Sans"] as const;
 
 type Device = "desktop" | "mobile";
-
-const DEVICE_ICONS: Record<Device, string> = { desktop: "🖥", mobile: "📱" };
-const DEVICE_LABELS: Record<Device, string> = { desktop: "Desktop", mobile: "Mobile" };
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -484,7 +479,8 @@ function sectionComplete(s: SiteSection): boolean {
 // ── Main Component ────────────────────────────────────────────────────────────
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export default function DevelopmentTab({ orderId, order }: { orderId: string; order: Record<string, any> }) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export default function DevelopmentTab({ orderId }: { orderId: string; order: Record<string, any> }) {
   const [pd, setPd] = useState<ProjectData>({});
   const [sections, setSections] = useState<SiteSection[]>([]);
   const [loading, setLoading] = useState(true);
@@ -494,7 +490,9 @@ export default function DevelopmentTab({ orderId, order }: { orderId: string; or
   const [generating, setGenerating] = useState(false);
   const [aiAvailable, setAiAvailable] = useState(false);
   const [savingTemplate, setSavingTemplate] = useState(false);
-  const [device, setDevice] = useState<Device>("desktop");
+  const [device, setDevice] = useState<Device>("mobile");
+  const [previewKey, setPreviewKey] = useState(0);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
   const [templateName, setTemplateName] = useState("");
@@ -537,31 +535,6 @@ export default function DevelopmentTab({ orderId, order }: { orderId: string; or
     return () => clearTimeout(t);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dirty, pd, sections]);
-
-  // ── Build live preview data ───────────────────────────────────────────────
-  const previewData = useMemo((): BuildData => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const opts = order?.selected_options as Record<string, any> | null | undefined;
-    const templatePrimary = opts?.theme?.primary ?? "#6366f1";
-    const templateSecondary = opts?.theme?.gradientFrom ?? "#8b5cf6";
-    const snapshot = order?.project_snapshot ?? {};
-    return {
-      meta: {
-        template_id: snapshot.template_id ?? order?.template_id ?? "",
-        template_name: snapshot.template_name ?? order?.template_name ?? "",
-        version: 0,
-        built_at: new Date().toISOString(),
-        order_id: order?.id ?? "",
-      },
-      company: { name: pd.company_name || order?.template_name || "Компания", description: pd.company_description || "", address: pd.address || "", working_hours: pd.working_hours || "" },
-      contacts: { phone: pd.phone || "", email: pd.email || "", telegram: pd.telegram || "" },
-      services: pd.services ?? [],
-      branding: { primary_color: pd.branding?.primary_color ?? templatePrimary, secondary_color: pd.branding?.secondary_color ?? templateSecondary },
-      font: pd.font || undefined,
-      seo: { title: pd.seo_title || pd.company_name || "", description: pd.seo_description || "" },
-      content: { domain_name: pd.domain_name || "", contact_link: pd.contact_link || undefined },
-    };
-  }, [pd, order]);
 
   // ── Section operations ────────────────────────────────────────────────────
   const UNIQUE_TYPES: SectionType[] = ["hero", "footer", "contacts", "map"];
@@ -616,7 +589,7 @@ export default function DevelopmentTab({ orderId, order }: { orderId: string; or
       body: JSON.stringify(patch),
     });
     const result = await res.json();
-    if (result.ok) { setPd(result.data); setSaved(true); setDirty(false); setTimeout(() => setSaved(false), 3000); }
+    if (result.ok) { setPd(result.data); setSaved(true); setDirty(false); setPreviewKey((k) => k + 1); setTimeout(() => setSaved(false), 3000); }
     else setError(result.error ?? "Ошибка сохранения");
     setSaving(false);
   }
@@ -955,8 +928,8 @@ export default function DevelopmentTab({ orderId, order }: { orderId: string; or
       {/* ── Preview panel ── */}
       <div className="xl:sticky xl:top-20 xl:self-start space-y-3">
         {/* Device switcher */}
-        <div className="flex gap-1">
-          {(["desktop", "mobile"] as Device[]).map((d) => (
+        <div className="flex items-center gap-1">
+          {([["mobile", "📱", "Mobile"], ["desktop", "🖥", "Desktop"]] as const).map(([d, icon, label]) => (
             <button
               key={d}
               onClick={() => setDevice(d)}
@@ -964,18 +937,54 @@ export default function DevelopmentTab({ orderId, order }: { orderId: string; or
                 device === d ? "border-cyan-500/40 bg-cyan-500/15 text-cyan-300" : "border-white/10 text-white/40 hover:text-white/70"
               }`}
             >
-              {DEVICE_ICONS[d]} {DEVICE_LABELS[d]}
+              {icon} {label}
             </button>
           ))}
+          <span className="ml-auto text-[10px] text-white/25 font-mono">
+            {device === "mobile" ? "390×844" : "full width"}
+          </span>
         </div>
 
         {/* Preview */}
-        <div
-          className="overflow-auto rounded-2xl"
-          style={{ maxHeight: "calc(100vh - 180px)" }}
-        >
-          <SitePreview data={previewData} sections={sections.length > 0 ? sections : undefined} device={device} />
-        </div>
+        {device === "mobile" ? (
+          <div className="flex justify-center py-2" style={{ maxHeight: "calc(100vh - 160px)", overflowY: "auto" }}>
+            <div className="flex flex-col items-center gap-0 shrink-0">
+              <div
+                className="overflow-hidden rounded-[36px] border-[5px] border-slate-700 shadow-2xl bg-slate-800"
+                style={{ width: 390 + 10 }}
+              >
+                <div className="flex justify-center py-1.5 bg-slate-800">
+                  <div className="h-1.5 w-14 rounded-full bg-slate-600" />
+                </div>
+                <iframe
+                  ref={iframeRef}
+                  key={`mobile-${previewKey}`}
+                  src={`/preview-frame/${orderId}`}
+                  width={390}
+                  height={844}
+                  style={{ display: "block", border: "none", background: "white" }}
+                  title="Mobile preview"
+                />
+                <div className="flex justify-center py-1.5 bg-slate-800">
+                  <div className="h-1.5 w-20 rounded-full bg-slate-600" />
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="overflow-hidden rounded-2xl border border-white/10 shadow-xl">
+            <iframe
+              key={`desktop-${previewKey}`}
+              src={`/preview-frame/${orderId}`}
+              style={{ display: "block", border: "none", width: "100%", height: 700, background: "white" }}
+              title="Desktop preview"
+            />
+          </div>
+        )}
+
+        {dirty && (
+          <p className="text-center text-[10px] text-white/25">Предпросмотр обновится после сохранения</p>
+        )}
       </div>
     </div>
   );
