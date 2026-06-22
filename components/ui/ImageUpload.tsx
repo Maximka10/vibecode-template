@@ -29,8 +29,8 @@ export default function ImageUpload({
       setError("Только изображения (JPG, PNG, WebP, GIF)");
       return;
     }
-    if (file.size > 5 * 1024 * 1024) {
-      setError("Максимальный размер: 5 МБ");
+    if (file.size > 25 * 1024 * 1024) {
+      setError("Максимальный размер: 25 МБ");
       return;
     }
     setUploading(true);
@@ -152,7 +152,8 @@ export default function ImageUpload({
               <p className="mt-2 text-xs font-medium text-white/50">
                 {dragging ? "Отпустите файл" : "Нажмите или перетащите"}
               </p>
-              <p className="mt-0.5 text-xs text-white/25">JPG, PNG, WebP · до 5 МБ</p>
+              <p className="mt-0.5 text-xs text-white/25">JPG, PNG, WebP · до 25 МБ</p>
+              <p className="mt-1 text-[10px] text-amber-400/60">* Добавление изображений оплачивается отдельно</p>
             </>
           )}
         </div>

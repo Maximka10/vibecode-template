@@ -28,6 +28,20 @@ const SECTION_TABS: { id: Tab; label: string }[] = [
   { id: "lead", label: "Заявка" },
 ];
 
+// Russian labels for every section type that can appear in the reorder list
+const SECTION_LABELS: Record<string, string> = {
+  hero: "Главный экран",
+  stats: "Статистика",
+  about: "О нас",
+  gallery: "Галерея",
+  services: "Услуги",
+  "hosting-service": "Хостинг и домен",
+  "templates-gallery": "Примеры работ",
+  calculator: "Калькулятор",
+  footer: "Подвал сайта",
+  reviews: "Отзывы",
+};
+
 function updateSectionContent(
   template: Template,
   sectionType: string,
@@ -58,6 +72,9 @@ export default function CustomizeClient({
   const [template, setTemplate] = useState(initialTemplate);
   const [device, setDevice] = useState<Device>("desktop");
   const [tab, setTab] = useState<Tab>("hero");
+  const tabIndex = SECTION_TABS.findIndex((t) => t.id === tab);
+  const goPrev = () => { if (tabIndex > 0) setTab(SECTION_TABS[tabIndex - 1].id); };
+  const goNext = () => { if (tabIndex < SECTION_TABS.length - 1) setTab(SECTION_TABS[tabIndex + 1].id); };
   const [viewPane, setViewPane] = useState<"editor" | "preview">("editor");
   const [submitting, setSubmitting] = useState(false);
   const [orderError, setOrderError] = useState<string | null>(null);
@@ -109,6 +126,11 @@ export default function CustomizeClient({
   const hero = getSectionContent(template, "hero");
   const about = getSectionContent(template, "about");
   const services = getSectionContent(template, "services");
+
+  // Sequential step navigation across the editor tabs
+  const tabIndex = SECTION_TABS.findIndex((t) => t.id === tab);
+  const goPrev = () => tabIndex > 0 && setTab(SECTION_TABS[tabIndex - 1].id);
+  const goNext = () => tabIndex < SECTION_TABS.length - 1 && setTab(SECTION_TABS[tabIndex + 1].id);
 
   async function handleOrder() {
     setSubmitting(true);
@@ -207,7 +229,7 @@ export default function CustomizeClient({
   }
 
   return (
-    <main className="min-h-screen bg-slate-950 text-white">
+    <main className="min-h-screen bg-slate-950 text-white flex flex-col">
       {/* Topbar */}
       <div className="border-b border-white/10 p-3 flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-3">
@@ -255,7 +277,7 @@ export default function CustomizeClient({
         </button>
       </div>
 
-      <div className="grid md:grid-cols-[320px_1fr] min-h-[calc(100vh-88px)]">
+      <div className="flex-1 grid md:grid-cols-[320px_1fr] lg:grid-cols-[340px_1fr] min-h-0">
         {/* Editor */}
         <aside className={`${viewPane === "preview" ? "hidden md:block" : ""} border-r border-white/10 flex flex-col`}>
           {/* Tab nav */}
@@ -299,13 +321,16 @@ export default function CustomizeClient({
                   value={String(hero.badge ?? "")}
                   onChange={(e) => setTemplate(updateSectionContent(template, "hero", "badge", e.target.value))}
                 />
-                <ImageUpload
-                  label="Фото для главного экрана (необязательно)"
-                  value={hero.heroImage as string | undefined}
-                  onChange={(url) => setTemplate(updateSectionContent(template, "hero", "heroImage", url ?? ""))}
-                  storagePath={`${template.id}/hero`}
-                  aspectClass="aspect-video"
-                />
+                <div>
+                  <ImageUpload
+                    label="Фото для главного экрана (необязательно)"
+                    value={hero.heroImage as string | undefined}
+                    onChange={(url) => setTemplate(updateSectionContent(template, "hero", "heroImage", url ?? ""))}
+                    storagePath={`${template.id}/hero`}
+                    aspectClass="aspect-video"
+                  />
+                  <p className="mt-1 text-xs text-white/35">≈ +1 500 ₽ при наличии фото</p>
+                </div>
               </>
             )}
 
@@ -323,13 +348,16 @@ export default function CustomizeClient({
                   value={String(about.text ?? "")}
                   onChange={(e) => setTemplate(updateSectionContent(template, "about", "text", e.target.value))}
                 />
-                <ImageUpload
-                  label="Обложка раздела «О нас» (необязательно)"
-                  value={about.coverImage as string | undefined}
-                  onChange={(url) => setTemplate(updateSectionContent(template, "about", "coverImage", url ?? ""))}
-                  storagePath={`${template.id}/about`}
-                  aspectClass="aspect-[16/5]"
-                />
+                <div>
+                  <ImageUpload
+                    label="Обложка раздела «О нас» (необязательно)"
+                    value={about.coverImage as string | undefined}
+                    onChange={(url) => setTemplate(updateSectionContent(template, "about", "coverImage", url ?? ""))}
+                    storagePath={`${template.id}/about`}
+                    aspectClass="aspect-[16/5]"
+                  />
+                  <p className="mt-1 text-xs text-white/35">≈ +500 ₽ при наличии фото</p>
+                </div>
               </>
             )}
 
@@ -373,9 +401,11 @@ export default function CustomizeClient({
                     {images.map((img, idx) => (
                       <div key={idx} className="flex items-center gap-2 rounded-xl bg-white/5 p-2">
                         {isImageUrl(img) ? (
-                          <img src={img} alt="" className="h-12 w-20 rounded-lg object-cover shrink-0" />
+                          <div className="h-16 w-24 shrink-0 overflow-hidden rounded-lg bg-white/10">
+                            <img src={img} alt="" className="h-full w-full object-cover" />
+                          </div>
                         ) : (
-                          <div className="h-12 w-20 rounded-lg bg-white/10 flex items-center justify-center shrink-0">
+                          <div className="h-16 w-24 rounded-lg bg-white/10 flex items-center justify-center shrink-0">
                             <span className="text-xs text-white/40">🖼</span>
                           </div>
                         )}
@@ -393,16 +423,19 @@ export default function CustomizeClient({
                       </div>
                     ))}
                   </div>
-                  <ImageUpload
-                    label="Добавить фото в галерею"
-                    value={null}
-                    onChange={(url) => {
-                      if (!url) return;
-                      setTemplate(updateSectionContent(template, "gallery", "images", [...images, url]));
-                    }}
-                    storagePath={`${template.id}/gallery`}
-                    aspectClass="aspect-[3/1]"
-                  />
+                  <div>
+                    <ImageUpload
+                      label="Добавить фото в галерею"
+                      value={null}
+                      onChange={(url) => {
+                        if (!url) return;
+                        setTemplate(updateSectionContent(template, "gallery", "images", [...images, url]));
+                      }}
+                      storagePath={`${template.id}/gallery`}
+                      aspectClass="aspect-[3/1]"
+                    />
+                    <p className="mt-1 text-xs text-white/35">≈ +500 ₽ за фото (макс. +2 500 ₽)</p>
+                  </div>
                   {images.length === 0 && (
                     <p className="text-xs text-white/30 text-center py-4">Галерея пуста. Загрузите первое фото выше.</p>
                   )}
@@ -424,7 +457,7 @@ export default function CustomizeClient({
                     value={s}
                     className="flex items-center justify-between rounded-xl bg-white/10 p-3 cursor-grab active:cursor-grabbing"
                   >
-                    <span className="text-sm">{s.type}</span>
+                    <span className="text-sm">{SECTION_LABELS[s.type] ?? s.type}</span>
                     <span className="text-white/30">⠿</span>
                   </Reorder.Item>
                 ))}
@@ -671,21 +704,40 @@ export default function CustomizeClient({
             )}
 
           </div>
+
+          {/* Step navigation */}
+          <div className="shrink-0 border-t border-white/10 p-3 flex items-center justify-between gap-2">
+            <button
+              onClick={goPrev}
+              disabled={tabIndex === 0}
+              className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-white/70 transition hover:bg-white/10 hover:text-white disabled:opacity-25 disabled:cursor-not-allowed"
+            >
+              ← Назад
+            </button>
+            <span className="text-xs text-white/30">{tabIndex + 1} / {SECTION_TABS.length}</span>
+            <button
+              onClick={goNext}
+              disabled={tabIndex === SECTION_TABS.length - 1}
+              className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-500 px-4 py-2 text-sm font-bold text-white shadow-md shadow-cyan-500/20 transition hover:shadow-cyan-500/30 disabled:opacity-25 disabled:cursor-not-allowed"
+            >
+              Далее →
+            </button>
+          </div>
         </aside>
 
         {/* Preview */}
-        <section className={`${viewPane === "editor" ? "hidden md:flex" : "flex"} items-start justify-center bg-black/40 p-4`}>
+        <section className={`${viewPane === "editor" ? "hidden md:flex" : "flex"} items-start justify-center bg-black/40 p-4 overflow-auto`}>
           <div
             className={
               device === "mobile"
-                ? "rounded-[2.5rem] border-8 border-zinc-800 p-2 w-[410px]"
-                : "w-full"
+                ? "rounded-[2.5rem] border-8 border-zinc-800 p-2 w-[410px] shrink-0"
+                : "w-full max-w-[1400px]"
             }
           >
             <iframe
               ref={iframe}
               src={`/preview/${template.id}`}
-              className="h-[80vh] bg-white rounded-lg"
+              className="h-[calc(100vh-140px)] min-h-[500px] bg-white rounded-lg"
               style={{ width: device === "mobile" ? 393 : "100%" }}
             />
           </div>

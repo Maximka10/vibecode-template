@@ -27,6 +27,11 @@ export const TRANSITION_RULES: Record<OrderAction, TransitionRule> = {
     from: ["new"],
     to: "contacted",
   },
+  MARK_CONTACTED: {
+    role: "admin",
+    from: ["new"],
+    to: "contacted",
+  },
   START_WORK: {
     role: "admin",
     from: ["new", "contacted"],

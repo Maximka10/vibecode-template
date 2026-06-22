@@ -34,7 +34,7 @@ const ADMIN_SECTIONS: { title: string; items: NavItem[] }[] = [
   {
     title: "Система",
     items: [
-      { href: "/admin/diagnostics", label: "Диагностика", icon: "⊙" },
+      { href: "/admin/diagnostics", label: "Диагностика", icon: "⚡" },
     ],
   },
 ];

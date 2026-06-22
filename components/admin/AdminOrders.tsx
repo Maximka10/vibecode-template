@@ -222,8 +222,11 @@ function OrderCard({
 
           {/* Project links */}
           <div className="flex flex-wrap gap-2">
+            <Btn href={`/admin/orders/${order.id}`} variant="primary" size="sm">
+              Открыть заказ →
+            </Btn>
             <Btn href={`/customize/${order.template_id}`} variant="outline" size="sm">
-              Открыть шаблон →
+              Конструктор →
             </Btn>
             {order.project_url && (
               <Btn href={order.project_url} variant="secondary" size="sm" external>

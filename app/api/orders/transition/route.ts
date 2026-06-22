@@ -5,6 +5,7 @@ import { transitionOrder, type OrderAction, type ActorRole } from "@/lib/orders/
 
 const VALID_ACTIONS = new Set<OrderAction>([
   "CONFIRM_PAYMENT",
+  "MARK_CONTACTED",
   "START_WORK",
   "REQUEST_CLIENT_INPUT",
   "RESUME_WORK",

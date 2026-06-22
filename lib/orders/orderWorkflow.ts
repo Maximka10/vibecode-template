@@ -22,6 +22,7 @@ import { sendClientStatusNotification } from "@/lib/telegram/bot";
 
 export type OrderAction =
   | "CONFIRM_PAYMENT"
+  | "MARK_CONTACTED"
   | "START_WORK"
   | "REQUEST_CLIENT_INPUT"
   | "RESUME_WORK"
@@ -73,6 +74,7 @@ async function sendTelegramNotification(
 
   const ACTION_LABELS: Record<OrderAction, string> = {
     CONFIRM_PAYMENT: "✅ Клиент подтвердил заказ",
+    MARK_CONTACTED: "📞 Связались с клиентом",
     START_WORK: "🔨 Работа начата",
     REQUEST_CLIENT_INPUT: "⏳ Ожидаем ответа клиента",
     RESUME_WORK: "🔄 Работа возобновлена",

@@ -32,7 +32,7 @@ export function Calculator() {
     const message = encodeURIComponent(
       `Новая заявка с сайта:\n- ${selected.join("\n- ")}\nИтого: ${total} ₽`
     );
-    const url = `https://t.me/${telegramUsername}?text=${message}`;
+    const url = `https://t.me/${botUsername}?text=${message}`;
     window.open(url, "_blank");
   };
 

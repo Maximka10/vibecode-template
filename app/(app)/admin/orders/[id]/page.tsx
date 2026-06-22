@@ -1,7 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { getUserWithRole } from "@/lib/auth/getUserWithRole";
 import { createAdminClient } from "@/lib/supabase/admin";
-import OrderWorkspace from "@/components/admin/workspace/OrderWorkspace";
+import OrderWorkspace from "@/components/admin/OrderWorkspace";
 
 export default async function OrderWorkspacePage({
   params,

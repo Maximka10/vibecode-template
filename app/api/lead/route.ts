@@ -42,7 +42,22 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { templateId, templateName, selectedOptions, totalPrice, primaryColor, bgColor, notes, companyData } = body;
+    const {
+      templateId,
+      templateName,
+      clientName,
+      clientPhone,
+      clientTelegram,
+      selectedServices,
+      client_email,
+      notes,
+      business_type,
+      budget,
+      selectedOptions,
+      totalPrice,
+      primaryColor,
+      bgColor,
+    } = body;
 
     // ── Step 1: Resolve user from Bearer token — REQUIRED ─────────────────────
     const authHeader = req.headers.get("Authorization");
