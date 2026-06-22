@@ -16,7 +16,24 @@ type SiteBuild = {
   created_at: string;
 };
 
-type DeviceMode = "desktop" | "mobile";
+type DevicePreset = {
+  id: string;
+  label: string;
+  icon: string;
+  width: number;
+  height: number;
+  mobile: boolean;
+};
+
+const DEVICES: DevicePreset[] = [
+  { id: "desktop",   label: "Desktop",          icon: "🖥",  width: 1280, height: 800,  mobile: false },
+  { id: "iphonese",  label: "iPhone SE",         icon: "📱",  width: 375,  height: 667,  mobile: true  },
+  { id: "iphone14",  label: "iPhone 14",         icon: "📱",  width: 390,  height: 844,  mobile: true  },
+  { id: "iphone14pm",label: "iPhone 14 Pro Max", icon: "📱",  width: 430,  height: 932,  mobile: true  },
+  { id: "ipad",      label: "iPad",              icon: "⬛",  width: 768,  height: 1024, mobile: true  },
+];
+
+const DEFAULT_DEVICE = "iphone14";
 
 export default function PreviewTab({ orderId }: { orderId: string }) {
   const [build, setBuild] = useState<SiteBuild | null>(null);
@@ -24,7 +41,9 @@ export default function PreviewTab({ orderId }: { orderId: string }) {
   const [loading, setLoading] = useState(true);
   const [building, setBuilding] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [device, setDevice] = useState<DeviceMode>("desktop");
+  const [deviceId, setDeviceId] = useState<string>(DEFAULT_DEVICE);
+
+  const device = DEVICES.find((d) => d.id === deviceId) ?? DEVICES[2];
 
   async function loadBuild() {
     setLoading(true);
@@ -65,9 +84,7 @@ export default function PreviewTab({ orderId }: { orderId: string }) {
     }
   }
 
-  const previewUrl = build
-    ? `/api/orders/${orderId}/build`
-    : undefined;
+  const previewUrl = build ? `/api/orders/${orderId}/build` : undefined;
 
   return (
     <div className="space-y-5">
@@ -82,20 +99,6 @@ export default function PreviewTab({ orderId }: { orderId: string }) {
           )}
         </div>
         <div className="flex flex-wrap gap-2">
-          {/* Device toggle */}
-          <div className="flex rounded-xl border border-white/10 overflow-hidden">
-            {(["desktop", "mobile"] as DeviceMode[]).map((d) => (
-              <button
-                key={d}
-                onClick={() => setDevice(d)}
-                className={`px-3 py-1.5 text-xs font-semibold transition ${
-                  device === d ? "bg-white/10 text-white" : "text-white/40 hover:text-white/60"
-                }`}
-              >
-                {d === "desktop" ? "🖥 Desktop" : "📱 Mobile"}
-              </button>
-            ))}
-          </div>
           {build && (
             <Btn variant="ghost" size="sm" onClick={loadBuild}>
               ↺ Обновить
@@ -105,6 +108,27 @@ export default function PreviewTab({ orderId }: { orderId: string }) {
             {building ? "Сборка…" : "Собрать сайт"}
           </Btn>
         </div>
+      </div>
+
+      {/* Device selector */}
+      <div className="flex flex-wrap items-center gap-2">
+        {DEVICES.map((d) => (
+          <button
+            key={d.id}
+            onClick={() => setDeviceId(d.id)}
+            className={`flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-semibold transition ${
+              deviceId === d.id
+                ? "border-cyan-500/40 bg-cyan-500/10 text-cyan-300"
+                : "border-white/10 text-white/40 hover:text-white/70 hover:border-white/20"
+            }`}
+          >
+            <span>{d.icon}</span>
+            <span>{d.label}</span>
+            <span className={`font-mono text-[10px] ${deviceId === d.id ? "text-cyan-400/70" : "text-white/25"}`}>
+              {d.width}×{d.height}
+            </span>
+          </button>
+        ))}
       </div>
 
       {error && (
@@ -167,39 +191,46 @@ export default function PreviewTab({ orderId }: { orderId: string }) {
             </div>
           </Card>
 
-          {/* Full-page preview via iframe — real viewport width triggers CSS breakpoints */}
-          {device === "mobile" ? (
+          {/* Preview iframe */}
+          {device.mobile ? (
             <div className="flex justify-center py-4">
-              <div
-                className="overflow-hidden rounded-[40px] border-[6px] border-slate-700 shadow-2xl bg-slate-800"
-                style={{ width: 402, flexShrink: 0 }}
-              >
-                {/* speaker slot */}
-                <div className="flex justify-center py-2 bg-slate-800">
-                  <div className="h-1.5 w-16 rounded-full bg-slate-600" />
-                </div>
-                <iframe
-                  key="mobile"
-                  src={`/preview-frame/${orderId}`}
-                  width={390}
-                  height={844}
-                  style={{ display: "block", border: "none", background: "white" }}
-                  title="Mobile preview"
-                />
-                {/* home bar */}
-                <div className="flex justify-center py-2 bg-slate-800">
-                  <div className="h-1.5 w-24 rounded-full bg-slate-600" />
+              {/* Viewport label */}
+              <div className="flex flex-col items-center gap-3">
+                <span className="text-xs text-white/30 font-mono">{device.width} × {device.height}px · {device.label}</span>
+                <div
+                  className="overflow-hidden rounded-[40px] border-[6px] border-slate-700 shadow-2xl bg-slate-800"
+                  style={{ width: device.width + 12, flexShrink: 0 }}
+                >
+                  {/* speaker slot */}
+                  <div className="flex justify-center py-2 bg-slate-800">
+                    <div className="h-1.5 w-16 rounded-full bg-slate-600" />
+                  </div>
+                  <iframe
+                    key={device.id}
+                    src={`/preview-frame/${orderId}`}
+                    width={device.width}
+                    height={device.height}
+                    style={{ display: "block", border: "none", background: "white" }}
+                    title={`${device.label} preview`}
+                  />
+                  {/* home bar */}
+                  <div className="flex justify-center py-2 bg-slate-800">
+                    <div className="h-1.5 w-24 rounded-full bg-slate-600" />
+                  </div>
                 </div>
               </div>
             </div>
           ) : (
-            <div className="overflow-hidden rounded-2xl border border-white/10 shadow-2xl">
-              <iframe
-                key="desktop"
-                src={`/preview-frame/${orderId}`}
-                style={{ display: "block", border: "none", width: "100%", height: 700, background: "white" }}
-                title="Desktop preview"
-              />
+            <div className="space-y-1">
+              <span className="text-xs text-white/30 font-mono">Desktop · full width</span>
+              <div className="overflow-hidden rounded-2xl border border-white/10 shadow-2xl">
+                <iframe
+                  key="desktop"
+                  src={`/preview-frame/${orderId}`}
+                  style={{ display: "block", border: "none", width: "100%", height: 700, background: "white" }}
+                  title="Desktop preview"
+                />
+              </div>
             </div>
           )}
 
