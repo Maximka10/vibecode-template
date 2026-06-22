@@ -328,6 +328,8 @@ export default function CustomizeClient({
                     onChange={(url) => setTemplate(updateSectionContent(template, "hero", "heroImage", url ?? ""))}
                     storagePath={`${template.id}/hero`}
                     aspectClass="aspect-video"
+                    enableCrop
+                    cropAspect={16 / 9}
                   />
                   <p className="mt-1 text-xs text-white/35">≈ +1 500 ₽ при наличии фото</p>
                 </div>
@@ -355,6 +357,8 @@ export default function CustomizeClient({
                     onChange={(url) => setTemplate(updateSectionContent(template, "about", "coverImage", url ?? ""))}
                     storagePath={`${template.id}/about`}
                     aspectClass="aspect-[16/5]"
+                    enableCrop
+                    cropAspect={16 / 5}
                   />
                   <p className="mt-1 text-xs text-white/35">≈ +500 ₽ при наличии фото</p>
                 </div>
@@ -433,6 +437,7 @@ export default function CustomizeClient({
                       }}
                       storagePath={`${template.id}/gallery`}
                       aspectClass="aspect-[3/1]"
+                      enableCrop
                     />
                     <p className="mt-1 text-xs text-white/35">≈ +500 ₽ за фото (макс. +2 500 ₽)</p>
                   </div>
