@@ -436,7 +436,7 @@ export default function OverviewTab({ order: initialOrder, projectData }: { orde
               <p>Клиент не привязан к Telegram</p>
               {process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME && (
                 <a
-                  href={`https://t.me/${process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME}?start=order_${order.id}`}
+                  href={`https://t.me/${process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME}?start=${order.id}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-block rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white/50 hover:text-white/70"

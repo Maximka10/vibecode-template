@@ -80,6 +80,7 @@ export default function CustomizeClient({
   const [orderError, setOrderError] = useState<string | null>(null);
   const [orderStep, setOrderStep] = useState<OrderStep>("form");
   const [wasAuthenticated, setWasAuthenticated] = useState(false);
+  const [createdOrderId, setCreatedOrderId] = useState<string | null>(null);
 
   const [leadForm, setLeadForm] = useState({ notes: "" });
   const [companyForm, setCompanyForm] = useState({
@@ -198,10 +199,10 @@ export default function CustomizeClient({
         }
       }
 
+      if (orderId) setCreatedOrderId(orderId);
       setOrderStep("done");
       try { localStorage.removeItem(`draft-${template.id}`); } catch { /* ignore */ }
-      if (token) setTimeout(() => (location.href = "/dashboard"), 2500);
-      else setTimeout(() => (location.href = "/"), 4000);
+      // No auto-redirect — let the client link Telegram first via the button below.
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Неизвестная ошибка";
       console.error("[handleOrder] fetch threw:", msg);
@@ -518,10 +519,35 @@ export default function CustomizeClient({
                   <p className="text-3xl">✅</p>
                   <p className="mt-3 text-lg font-bold">Заявка принята!</p>
                   <p className="mt-2 text-sm leading-relaxed text-white/60">
-                    {wasAuthenticated
-                      ? "Менеджер свяжется с вами в течение часа. Переходим в личный кабинет…"
-                      : "Менеджер свяжется с вами по указанному email в течение часа."}
+                    Подключите Telegram — туда будут приходить статусы заказа и сообщения от менеджера.
                   </p>
+
+                  {process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME && createdOrderId ? (
+                    <a
+                      href={`https://t.me/${process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME}?start=${createdOrderId}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-5 inline-flex items-center justify-center gap-2 rounded-xl bg-[#229ED9] px-6 py-3 text-sm font-bold text-white shadow-lg transition hover:bg-[#1d8dc4]"
+                    >
+                      <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor"><path d="M9.78 18.65l.28-4.23 7.68-6.92c.34-.31-.07-.46-.52-.19L7.74 13.3 3.64 12c-.88-.25-.89-.86.2-1.3l15.97-6.16c.73-.33 1.43.18 1.15 1.3l-2.72 12.81c-.19.91-.74 1.13-1.5.71l-4.07-3.01-1.97 1.91c-.22.21-.4.39-.81.39z"/></svg>
+                      Подключить Telegram
+                    </a>
+                  ) : (
+                    <p className="mt-4 text-xs text-white/40">
+                      Менеджер свяжется с вами в течение часа.
+                    </p>
+                  )}
+
+                  <p className="mt-4 text-xs text-white/35">
+                    После нажатия откроется бот — нажмите <b className="text-white/60">Start</b>, и заказ
+                    автоматически привяжется к вашему Telegram.
+                  </p>
+
+                  <div className="mt-5 flex justify-center gap-3 text-xs">
+                    <a href={wasAuthenticated ? "/dashboard" : "/"} className="rounded-lg border border-white/15 px-4 py-2 text-white/60 transition hover:bg-white/5 hover:text-white">
+                      {wasAuthenticated ? "В личный кабинет" : "На главную"}
+                    </a>
+                  </div>
                 </div>
               ) : orderStep === "company" ? (
                 /* Company info */
