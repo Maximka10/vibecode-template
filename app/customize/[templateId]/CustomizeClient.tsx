@@ -315,13 +315,16 @@ export default function CustomizeClient({
                   value={String(hero.badge ?? "")}
                   onChange={(e) => setTemplate(updateSectionContent(template, "hero", "badge", e.target.value))}
                 />
-                <ImageUpload
-                  label="Фото для главного экрана (необязательно)"
-                  value={hero.heroImage as string | undefined}
-                  onChange={(url) => setTemplate(updateSectionContent(template, "hero", "heroImage", url ?? ""))}
-                  storagePath={`${template.id}/hero`}
-                  aspectClass="aspect-video"
-                />
+                <div>
+                  <ImageUpload
+                    label="Фото для главного экрана (необязательно)"
+                    value={hero.heroImage as string | undefined}
+                    onChange={(url) => setTemplate(updateSectionContent(template, "hero", "heroImage", url ?? ""))}
+                    storagePath={`${template.id}/hero`}
+                    aspectClass="aspect-video"
+                  />
+                  <p className="mt-1 text-xs text-white/35">≈ +1 500 ₽ при наличии фото</p>
+                </div>
               </>
             )}
 
@@ -339,13 +342,16 @@ export default function CustomizeClient({
                   value={String(about.text ?? "")}
                   onChange={(e) => setTemplate(updateSectionContent(template, "about", "text", e.target.value))}
                 />
-                <ImageUpload
-                  label="Обложка раздела «О нас» (необязательно)"
-                  value={about.coverImage as string | undefined}
-                  onChange={(url) => setTemplate(updateSectionContent(template, "about", "coverImage", url ?? ""))}
-                  storagePath={`${template.id}/about`}
-                  aspectClass="aspect-[16/5]"
-                />
+                <div>
+                  <ImageUpload
+                    label="Обложка раздела «О нас» (необязательно)"
+                    value={about.coverImage as string | undefined}
+                    onChange={(url) => setTemplate(updateSectionContent(template, "about", "coverImage", url ?? ""))}
+                    storagePath={`${template.id}/about`}
+                    aspectClass="aspect-[16/5]"
+                  />
+                  <p className="mt-1 text-xs text-white/35">≈ +500 ₽ при наличии фото</p>
+                </div>
               </>
             )}
 
@@ -389,9 +395,11 @@ export default function CustomizeClient({
                     {images.map((img, idx) => (
                       <div key={idx} className="flex items-center gap-2 rounded-xl bg-white/5 p-2">
                         {isImageUrl(img) ? (
-                          <img src={img} alt="" className="h-12 w-20 rounded-lg object-cover shrink-0" />
+                          <div className="h-16 w-24 shrink-0 overflow-hidden rounded-lg bg-white/10">
+                            <img src={img} alt="" className="h-full w-full object-cover" />
+                          </div>
                         ) : (
-                          <div className="h-12 w-20 rounded-lg bg-white/10 flex items-center justify-center shrink-0">
+                          <div className="h-16 w-24 rounded-lg bg-white/10 flex items-center justify-center shrink-0">
                             <span className="text-xs text-white/40">🖼</span>
                           </div>
                         )}
@@ -409,16 +417,19 @@ export default function CustomizeClient({
                       </div>
                     ))}
                   </div>
-                  <ImageUpload
-                    label="Добавить фото в галерею"
-                    value={null}
-                    onChange={(url) => {
-                      if (!url) return;
-                      setTemplate(updateSectionContent(template, "gallery", "images", [...images, url]));
-                    }}
-                    storagePath={`${template.id}/gallery`}
-                    aspectClass="aspect-[3/1]"
-                  />
+                  <div>
+                    <ImageUpload
+                      label="Добавить фото в галерею"
+                      value={null}
+                      onChange={(url) => {
+                        if (!url) return;
+                        setTemplate(updateSectionContent(template, "gallery", "images", [...images, url]));
+                      }}
+                      storagePath={`${template.id}/gallery`}
+                      aspectClass="aspect-[3/1]"
+                    />
+                    <p className="mt-1 text-xs text-white/35">≈ +500 ₽ за фото (макс. +2 500 ₽)</p>
+                  </div>
                   {images.length === 0 && (
                     <p className="text-xs text-white/30 text-center py-4">Галерея пуста. Загрузите первое фото выше.</p>
                   )}
