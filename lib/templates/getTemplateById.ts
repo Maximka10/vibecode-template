@@ -1,1 +1,0 @@
-export { getTemplateById } from "./index";
