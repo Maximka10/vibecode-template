@@ -17,10 +17,11 @@ export default async function AdminOrdersPage({
   const admin = createAdminClient();
   const { tab = "orders" } = await searchParams;
 
-  const [ordersRes, profilesRes, messagesRes] = await Promise.all([
+  const [ordersRes, profilesRes, messagesRes, tgLinkedRes] = await Promise.all([
     admin.from("orders").select("*").order("created_at", { ascending: false }),
     admin.from("profiles").select("*").order("created_at", { ascending: false }),
     admin.from("messages").select("order_id").eq("is_read", false),
+    admin.from("orders").select("id", { count: "exact", head: true }).not("telegram_client_id", "is", null),
   ]);
 
   const orders = ordersRes.data ?? [];
@@ -36,11 +37,19 @@ export default async function AdminOrdersPage({
     total: orders.length,
     new: orders.filter((o) => o.status === "new").length,
     inProgress: orders.filter((o) => o.status === "in_progress").length,
+    waitingClient: orders.filter((o) => o.status === "waiting_client").length,
     completed: orders.filter((o) => o.status === "completed").length,
     clients: profiles.filter((p) => p.role === "client").length,
+    tgLinked: tgLinkedRes.count ?? 0,
     revenue: orders
       .filter((o) => o.status === "completed")
       .reduce((s, o) => s + (o.total_price ?? 0), 0),
+    leadNew: orders.filter((o) => o.lead_status === "new").length,
+    leadContacted: orders.filter((o) => o.lead_status === "contacted").length,
+    leadQualified: orders.filter((o) => o.lead_status === "qualified").length,
+    leadProposalSent: orders.filter((o) => o.lead_status === "proposal_sent").length,
+    leadWon: orders.filter((o) => o.lead_status === "won").length,
+    leadLost: orders.filter((o) => o.lead_status === "lost").length,
   };
 
   return (
