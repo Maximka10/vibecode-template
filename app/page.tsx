@@ -1,6 +1,28 @@
 import Link from "next/link";
 import { Navbar } from "@/components/layout/Navbar";
 import { SiteFooter } from "@/components/layout/SiteFooter";
+import { PricingTiers } from "@/components/PricingTiers";
+import { Reveal } from "@/components/Reveal";
+
+const TRUST_BADGES = [
+  { icon: "₽", text: "0 ₽ предоплата" },
+  { icon: "🔒", text: "SSL и защита данных" },
+  { icon: "📄", text: "Работаем по договору" },
+  { icon: "⚡", text: "Запуск за 3 дня" },
+];
+
+function TrustBadges({ className = "" }: { className?: string }) {
+  return (
+    <div className={`flex flex-wrap items-center justify-center gap-x-5 gap-y-2 ${className}`}>
+      {TRUST_BADGES.map((b) => (
+        <span key={b.text} className="inline-flex items-center gap-1.5 text-xs text-white/45">
+          <span className="text-cyan-400">{b.icon}</span>
+          {b.text}
+        </span>
+      ))}
+    </div>
+  );
+}
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://vibecode.studio";
 
@@ -159,7 +181,7 @@ export default function HomePage() {
           <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: "linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)", backgroundSize: "80px 80px" }} />
         </div>
 
-        <div className="relative mx-auto max-w-6xl px-4 pb-32 pt-24 text-center">
+        <div className="relative mx-auto max-w-6xl px-4 pb-24 pt-24 text-center sm:pb-32">
           <div className="inline-flex items-center gap-2 rounded-full border border-cyan-500/40 bg-cyan-500/10 px-5 py-2 text-sm font-medium text-cyan-300 shadow-lg shadow-cyan-500/20 backdrop-blur">
             <span className="h-2 w-2 animate-pulse rounded-full bg-cyan-400 shadow-sm shadow-cyan-400" />
             Запускаем сайты для малого бизнеса в России
@@ -198,6 +220,8 @@ export default function HomePage() {
             </Link>
           </div>
 
+          <TrustBadges className="mt-8" />
+
           {/* Trust bar */}
           <div className="mt-16 grid grid-cols-2 gap-4 sm:grid-cols-4">
             {TRUST.map((t) => (
@@ -234,13 +258,13 @@ export default function HomePage() {
           <div className="absolute left-0 bottom-0 h-64 w-64 rounded-full bg-purple-600/8 blur-[80px]" />
         </div>
         <div className="relative mx-auto max-w-6xl px-4">
-          <div className="mb-16 text-center">
+          <Reveal className="mb-16 text-center">
             <p className="text-xs font-bold uppercase tracking-[0.25em] text-cyan-400">Процесс работы</p>
             <h2 className="mt-4 text-4xl font-black sm:text-5xl">Как мы работаем</h2>
             <p className="mx-auto mt-4 max-w-lg text-white/50 text-lg">
               От заявки до готового сайта — 5 шагов. Вы тратите максимум 20 минут.
             </p>
-          </div>
+          </Reveal>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
             {STEPS.map((s, i) => (
               <div
@@ -268,13 +292,13 @@ export default function HomePage() {
           <div className="absolute right-1/4 bottom-0 h-64 w-64 rounded-full bg-cyan-500/6 blur-[80px]" />
         </div>
         <div className="relative mx-auto max-w-6xl px-4">
-          <div className="mb-16 text-center">
+          <Reveal className="mb-16 text-center">
             <p className="text-xs font-bold uppercase tracking-[0.25em] text-cyan-400">Что включено</p>
             <h2 className="mt-4 text-4xl font-black sm:text-5xl">Всё необходимое для запуска</h2>
             <p className="mx-auto mt-4 max-w-lg text-white/50 text-lg">
               Цена фиксированная. Ниже — что входит и что оплачивается отдельно.
             </p>
-          </div>
+          </Reveal>
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {FEATURES.map((f) => (
               <div
@@ -372,6 +396,9 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* ── Pricing tiers ─────────────────────────────────────────────────── */}
+      <PricingTiers />
+
       {/* ── Templates strip ───────────────────────────────────────────────── */}
       <section className="relative overflow-hidden border-t border-white/5 py-28">
         <div className="pointer-events-none absolute inset-0">
@@ -427,11 +454,11 @@ export default function HomePage() {
           <div className="absolute left-1/2 top-1/2 h-96 w-[800px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-blue-600/6 blur-[100px]" />
         </div>
         <div className="relative mx-auto max-w-6xl px-4">
-          <div className="mb-14 text-center">
+          <Reveal className="mb-14 text-center">
             <p className="text-xs font-bold uppercase tracking-[0.25em] text-cyan-400">Отзывы</p>
             <h2 className="mt-4 text-4xl font-black sm:text-5xl">Клиенты о нас</h2>
             <p className="mx-auto mt-4 max-w-lg text-white/50">Реальные истории малого бизнеса</p>
-          </div>
+          </Reveal>
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
             {REVIEWS.map((r) => (
               <blockquote
@@ -462,10 +489,10 @@ export default function HomePage() {
       {/* ── FAQ ──────────────────────────────────────────────────────────── */}
       <section className="border-t border-white/5 py-24">
         <div className="mx-auto max-w-3xl px-4">
-          <div className="mb-14 text-center">
+          <Reveal className="mb-14 text-center">
             <p className="text-xs font-bold uppercase tracking-[0.25em] text-cyan-400">FAQ</p>
             <h2 className="mt-4 text-4xl font-black sm:text-5xl">Частые вопросы</h2>
-          </div>
+          </Reveal>
           <div className="space-y-3">
             {[
               {
@@ -542,6 +569,8 @@ export default function HomePage() {
               Войти в кабинет
             </Link>
           </div>
+
+          <TrustBadges className="mt-10" />
         </div>
       </section>
 
