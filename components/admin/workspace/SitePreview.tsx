@@ -432,9 +432,18 @@ export default function SitePreview({
   sections?: SiteSection[];
   device?: PreviewDevice;
 }) {
-  const primary = data.branding.primary_color || "#6366f1";
-  const secondary = data.branding.secondary_color || "#8b5cf6";
-  const contactLink = data.content.contact_link;
+  // Defensive: a stored site_builds.build_data snapshot may predate the current
+  // BuildData shape, so any of these nested objects can be missing. Never let
+  // the preview throw (→ "A server error occurred") because of an old build.
+  const branding = data.branding ?? ({} as BuildData["branding"]);
+  const content = data.content ?? ({} as BuildData["content"]);
+  const company = data.company ?? ({} as BuildData["company"]);
+  const contacts = data.contacts ?? ({} as BuildData["contacts"]);
+  const meta = data.meta ?? ({} as BuildData["meta"]);
+  const services = data.services ?? [];
+  const primary = branding.primary_color || "#6366f1";
+  const secondary = branding.secondary_color || "#8b5cf6";
+  const contactLink = content.contact_link;
   const fontFamily = data.font ? (FONT_FAMILIES[data.font] ?? data.font) : undefined;
 
   return (
@@ -454,7 +463,7 @@ export default function SitePreview({
             <div className="h-3 w-3 rounded-full bg-green-400" />
           </div>
           <div className="flex-1 rounded-md border border-slate-200 bg-white px-3 py-1 text-xs text-slate-400">
-            {data.content.domain_name ? `https://${data.content.domain_name}` : `preview — ${data.meta.template_name}`}
+            {content.domain_name ? `https://${content.domain_name}` : `preview — ${meta.template_name ?? ""}`}
           </div>
           {device !== "desktop" && (
             <span className="text-xs text-slate-400">375px</span>
@@ -469,19 +478,19 @@ export default function SitePreview({
               /* Fallback when no sections configured yet */
               <>
                 <SectionHero
-                  content={{ title: data.company.name || "Название компании", subtitle: data.company.description, cta_text: data.content.hero_cta }}
+                  content={{ title: company.name || "Название компании", subtitle: company.description, cta_text: content.hero_cta }}
                   primary={primary} secondary={secondary} contactLink={contactLink}
                 />
-                {data.services.length > 0 && (
-                  <SectionServices content={{ title: "Наши услуги", items: data.services }} primary={primary} />
+                {services.length > 0 && (
+                  <SectionServices content={{ title: "Наши услуги", items: services }} primary={primary} />
                 )}
-                {(data.contacts.phone || data.contacts.email || data.contacts.telegram || data.company.address) && (
+                {(contacts.phone || contacts.email || contacts.telegram || company.address) && (
                   <SectionContacts
-                    content={{ title: "Контакты", phone: data.contacts.phone, email: data.contacts.email, telegram: data.contacts.telegram, address: data.company.address, working_hours: data.company.working_hours }}
+                    content={{ title: "Контакты", phone: contacts.phone, email: contacts.email, telegram: contacts.telegram, address: company.address, working_hours: company.working_hours }}
                     primary={primary}
                   />
                 )}
-                <SectionFooter content={{ company_name: data.company.name }} primary={primary} />
+                <SectionFooter content={{ company_name: company.name }} primary={primary} />
               </>
             )
           }

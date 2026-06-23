@@ -141,16 +141,21 @@ export async function transitionOrder(input: TransitionInput): Promise<Transitio
   try {
     // ── 2. Fetch current order ───────────────────────────────────────────────
     const admin = createAdminClient();
+    // select("*") — not an explicit column list. An explicit list makes
+    // PostgREST error the whole query (→ "order not found") if any one column
+    // is absent from the deployed schema, even though the row exists. The
+    // workspace page reads the same row with select("*"), so match that.
     const { data: order, error: fetchError } = await admin
       .from("orders")
-      .select(
-        "id, status, user_id, template_id, template_name, total_price, project_url"
-      )
+      .select("*")
       .eq("id", orderId)
       .single();
 
     if (fetchError || !order) {
-      console.error(`[orderWorkflow] Order not found: orderId=${orderId}`, fetchError?.message);
+      console.error(
+        `[orderWorkflow] Order fetch failed: orderId=${orderId}`,
+        fetchError?.message ?? "no row returned"
+      );
       return { ok: false, error: "Order not found", code: "NOT_FOUND" };
     }
 

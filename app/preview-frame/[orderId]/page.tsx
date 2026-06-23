@@ -17,22 +17,17 @@ export default async function PreviewFramePage({
   const { orderId } = await params;
   const admin = createAdminClient();
 
-  const [orderRes, pdRes, buildRes] = await Promise.all([
+  const [orderRes, pdRes] = await Promise.all([
     admin.from("orders").select("*").eq("id", orderId).maybeSingle(),
     admin.from("project_data").select("*").eq("order_id", orderId).maybeSingle(),
-    admin
-      .from("site_builds")
-      .select("*")
-      .eq("order_id", orderId)
-      .order("version", { ascending: false })
-      .limit(1)
-      .maybeSingle(),
   ]);
 
   if (!orderRes.data) redirect("/admin/orders");
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const buildData = (buildRes.data?.build_data as any) ?? buildOrderSite(orderRes.data, pdRes.data, 0);
+  // Always build fresh from the current order + project_data. A stored
+  // site_builds snapshot can have an older shape and make SitePreview throw,
+  // and a live preview should reflect the latest edits anyway.
+  const buildData = buildOrderSite(orderRes.data, pdRes.data, 0);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sections: SiteSection[] = (pdRes.data?.content_edits as any)?.sections ?? [];
 
