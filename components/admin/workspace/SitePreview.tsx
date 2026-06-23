@@ -121,11 +121,25 @@ function SectionServices({ content, primary }: { content: Record<string, unknown
 
 function SectionGallery({ content }: { content: Record<string, unknown> }) {
   type GalleryImg = { url: string; title?: string; description?: string; main?: boolean };
-  const rawImages = (content.images as (string | GalleryImg)[]) ?? [];
-  const images: GalleryImg[] = rawImages.map((i) => typeof i === "string" ? { url: i } : i);
+  // Normalize: items may be plain URL strings or objects ({url}/{src}/{image}),
+  // possibly mixed. Coerce each to a GalleryImg with a guaranteed string url and
+  // drop anything without a usable url so the grid never renders broken <img>s.
+  const rawImages = (content.images as unknown[]) ?? [];
+  const images: GalleryImg[] = rawImages
+    .map((i): GalleryImg => {
+      if (typeof i === "string") return { url: i };
+      if (i && typeof i === "object") {
+        const o = i as Record<string, unknown>;
+        const u = o.url ?? o.src ?? o.image ?? o.value;
+        return { ...(o as GalleryImg), url: typeof u === "string" ? u : "" };
+      }
+      return { url: "" };
+    })
+    .filter((i) => !!i.url);
   const displayMode = (content.display_mode as string) ?? "contain";
   const imgClass = displayMode === "cover" ? "object-cover" : "object-contain bg-slate-50";
   const mainImg = images.find((i) => i.main) ?? images[0];
+  const restImages = images.filter((i) => i !== mainImg);
   return (
     <div className="px-4 py-12 bg-white border-b border-slate-100 sm:px-8 sm:py-14">
       {!!content.title && <h2 className="mb-6 text-xl font-black text-slate-900 sm:mb-7 sm:text-2xl">{s(content.title)}</h2>}
@@ -140,9 +154,9 @@ function SectionGallery({ content }: { content: Record<string, unknown> }) {
               onError={(e) => { (e.target as HTMLImageElement).src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='128'%3E%3Crect width='200' height='128' rx='16' fill='%23f1f5f9'/%3E%3Ctext x='50%25' y='55%25' dominant-baseline='middle' text-anchor='middle' font-size='32' fill='%23cbd5e1'%3E🖼%3C/text%3E%3C/svg%3E"; }}
             />
           )}
-          {images.length > 1 && (
+          {restImages.length > 0 && (
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
-              {images.filter((_, i) => !(images[0] === mainImg ? i === 0 : images.indexOf(mainImg) === i)).slice(0, 8).map((img, i) => (
+              {restImages.slice(0, 8).map((img, i) => (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   key={i}

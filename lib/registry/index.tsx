@@ -25,6 +25,19 @@ function itemText(v: unknown): string {
   return String(v);
 }
 
+// Coerce a gallery item (string URL, or object like {url}/{src}/{image}) to a
+// plain string so the renderer never calls string methods on an object — which
+// would throw and break the whole preview. Returns "" for unusable entries.
+function imageUrl(v: unknown): string {
+  if (typeof v === "string") return v;
+  if (v && typeof v === "object") {
+    const o = v as Record<string, unknown>;
+    const u = o.url ?? o.src ?? o.image ?? o.value;
+    return typeof u === "string" ? u : "";
+  }
+  return "";
+}
+
 function Hero({ section, template }: Props) {
   const c = section.content;
   const heroImage = c.heroImage as string | undefined;
@@ -116,7 +129,7 @@ function About({ section, template }: Props) {
 }
 
 function Gallery({ section, template }: Props) {
-  const items = (section.content.images as string[]) ?? [];
+  const items = ((section.content.images as unknown[]) ?? []).map(imageUrl).filter(Boolean);
   const film = template.style.galleryStyle === "film";
   const masonry = template.style.galleryStyle === "masonry";
   if (items.length === 0) return null;
@@ -185,7 +198,7 @@ function Simple({ section, template }: Props) {
         <h2 className={getHeadingClass(template.style)}>
           {String(section.content.title ?? section.type)}
         </h2>
-        <p className="mt-3 text-[var(--text-secondary)]">
+        <p className="mt-3 text-[var(--text-secondary)] whitespace-pre-line">
           {String(section.content.text ?? "Оставьте заявку — подготовим сайт под ваш бизнес.")}
         </p>
       </div>

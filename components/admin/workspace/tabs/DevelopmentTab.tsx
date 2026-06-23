@@ -390,8 +390,8 @@ function SectionEditor({
     case "cta":
       return (
         <div className="space-y-3">
-          <Field label="Заголовок"><input className={FIELD_CLS} value={String(c.title ?? "")} onChange={(e) => set("title", e.target.value)} /></Field>
-          <Field label="Подзаголовок"><input className={FIELD_CLS} value={String(c.subtitle ?? "")} onChange={(e) => set("subtitle", e.target.value)} /></Field>
+          <Field label="Заголовок"><textarea className={`${FIELD_CLS} resize-none`} rows={2} value={String(c.title ?? "")} onChange={(e) => set("title", e.target.value)} /></Field>
+          <Field label="Подзаголовок"><textarea className={`${FIELD_CLS} resize-none`} rows={2} value={String(c.subtitle ?? "")} onChange={(e) => set("subtitle", e.target.value)} /></Field>
           <Field label="Текст кнопки"><input className={FIELD_CLS} value={String(c.cta_text ?? "")} onChange={(e) => set("cta_text", e.target.value)} /></Field>
         </div>
       );

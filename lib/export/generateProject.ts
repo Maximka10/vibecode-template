@@ -230,12 +230,12 @@ export default function Hero({ section }: { section: SiteSection }) {
         </div>
 
         {title && (
-          <h1 className="text-3xl font-black leading-[1.1] tracking-tight sm:text-5xl lg:text-7xl">
+          <h1 className="text-3xl font-black leading-[1.1] tracking-tight sm:text-5xl lg:text-7xl whitespace-pre-line">
             {title}
           </h1>
         )}
         {subtitle && (
-          <p className="mx-auto mt-6 max-w-2xl text-base leading-relaxed opacity-85 sm:text-xl">
+          <p className="mx-auto mt-6 max-w-2xl text-base leading-relaxed opacity-85 sm:text-xl whitespace-pre-line">
             {subtitle}
           </p>
         )}
@@ -323,7 +323,7 @@ export default function Services({ section }: { section: SiteSection }) {
               >
                 {ICONS[i % ICONS.length]}
               </div>
-              <p className="font-bold text-slate-800 leading-snug">{item}</p>
+              <p className="font-bold text-slate-800 leading-snug whitespace-pre-line">{item}</p>
               <div
                 className="absolute bottom-0 left-0 h-1 w-0 transition-all duration-300 group-hover:w-full"
                 style={{ backgroundColor: "var(--secondary)" }}
@@ -346,9 +346,20 @@ import Image from "next/image";
 type GalleryImg = { url: string; title?: string; description?: string; main?: boolean };
 
 export default function Gallery({ section }: { section: SiteSection }) {
-  const { title, images: rawImages } = section.content as { title?: string; images?: (string | GalleryImg)[] };
+  const { title, images: rawImages } = section.content as { title?: string; images?: unknown[] };
   if (!rawImages?.length) return null;
-  const images: GalleryImg[] = rawImages.map((i) => typeof i === "string" ? { url: i } : i);
+  const images: GalleryImg[] = rawImages
+    .map((i): GalleryImg => {
+      if (typeof i === "string") return { url: i };
+      if (i && typeof i === "object") {
+        const o = i as Record<string, unknown>;
+        const u = o.url ?? o.src ?? o.image ?? o.value;
+        return { ...(o as GalleryImg), url: typeof u === "string" ? u : "" };
+      }
+      return { url: "" };
+    })
+    .filter((i) => !!i.url);
+  if (!images.length) return null;
   const mainImg = images.find((i) => i.main) ?? images[0];
   const rest = images.filter((i) => i !== mainImg);
   return (
@@ -406,7 +417,7 @@ export default function Reviews({ section }: { section: SiteSection }) {
                   </svg>
                 ))}
               </div>
-              <p className="mt-4 leading-relaxed text-slate-600">«{r.text}»</p>
+              <p className="mt-4 leading-relaxed text-slate-600 whitespace-pre-line">«{r.text}»</p>
               <p className="mt-5 text-sm font-bold text-slate-700">— {r.author}</p>
             </div>
           ))}
@@ -450,7 +461,7 @@ export default function FAQ({ section }: { section: SiteSection }) {
                 </span>
               </button>
               {open === i && (
-                <div className="border-t border-slate-100 px-6 py-5 text-slate-600 leading-relaxed">
+                <div className="border-t border-slate-100 px-6 py-5 text-slate-600 leading-relaxed whitespace-pre-line">
                   {f.answer}
                 </div>
               )}
@@ -538,8 +549,8 @@ export default function CTA({ section }: { section: SiteSection }) {
         <div className="absolute bottom-0 right-1/4 h-60 w-60 rounded-full bg-black/15 blur-3xl" />
       </div>
       <div className="relative mx-auto max-w-2xl">
-        {title && <h2 className="text-2xl font-black sm:text-3xl lg:text-4xl">{title}</h2>}
-        {subtitle && <p className="mt-4 text-base opacity-85 sm:text-lg">{subtitle}</p>}
+        {title && <h2 className="text-2xl font-black sm:text-3xl lg:text-4xl whitespace-pre-line">{title}</h2>}
+        {subtitle && <p className="mt-4 text-base opacity-85 sm:text-lg whitespace-pre-line">{subtitle}</p>}
         {cta_text && (
           <a
             href={${ctaHref}}
