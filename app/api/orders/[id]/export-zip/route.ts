@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getUserWithRole } from "@/lib/auth/getUserWithRole";
 import { generateProject, SiteJson } from "@/lib/export/generateProject";
+import { resolveDesignTheme } from "@/lib/export/designThemes";
 import JSZip from "jszip";
 import { SiteSection } from "@/types/sections";
 
@@ -53,6 +54,7 @@ export async function POST(
       secondary: pd.branding?.secondary_color ?? "#8b5cf6",
     },
     font: pd.font ?? undefined,
+    design: resolveDesignTheme(contentEdits.design_theme, order.template_id),
     contact_link: pd.contact_link ?? undefined,
     company: {
       name: pd.company_name ?? order.template_name ?? "Компания",

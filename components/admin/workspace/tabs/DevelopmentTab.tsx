@@ -10,6 +10,7 @@ import {
   SECTION_TYPE_LABELS,
   ALL_SECTION_TYPES,
 } from "@/types/sections";
+import { DESIGN_THEMES } from "@/lib/export/designThemes";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -33,6 +34,7 @@ type ProjectData = {
     hero?: { title?: string; subtitle?: string; cta?: string };
     about?: { title?: string; text?: string };
     sections?: SiteSection[];
+    design_theme?: string;
   };
 };
 
@@ -517,6 +519,7 @@ export default function DevelopmentTab({ orderId, order }: { orderId: string; or
   const [aiAvailable, setAiAvailable] = useState(false);
   const [savingTemplate, setSavingTemplate] = useState(false);
   const [device, setDevice] = useState<Device>("mobile");
+  const [designTheme, setDesignTheme] = useState<string>("");
   const [previewKey, setPreviewKey] = useState(0);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -549,6 +552,7 @@ export default function DevelopmentTab({ orderId, order }: { orderId: string; or
         if (!base.working_hours && opts.working_hours) base.working_hours = opts.working_hours;
         if (!base.domain_name && opts.domain_name) base.domain_name = opts.domain_name;
         setPd(base);
+        setDesignTheme(base.content_edits?.design_theme ?? "");
         if (base.content_edits?.sections?.length) {
           setSections(base.content_edits.sections);
         } else {
@@ -591,7 +595,7 @@ export default function DevelopmentTab({ orderId, order }: { orderId: string; or
     const t = setTimeout(() => { handleSave(); }, 2000);
     return () => clearTimeout(t);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dirty, pd, sections]);
+  }, [dirty, pd, sections, designTheme]);
 
   // ── Section operations ────────────────────────────────────────────────────
   const UNIQUE_TYPES: SectionType[] = ["hero", "footer", "contacts", "map"];
@@ -639,7 +643,7 @@ export default function DevelopmentTab({ orderId, order }: { orderId: string; or
     setSaving(true);
     setSaved(false);
     setError(null);
-    const patch = { ...pd, content_edits: { ...(pd.content_edits ?? {}), sections } };
+    const patch = { ...pd, content_edits: { ...(pd.content_edits ?? {}), sections, design_theme: designTheme || undefined } };
     const res = await fetch(`/api/orders/${orderId}/project-data`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -882,6 +886,12 @@ export default function DevelopmentTab({ orderId, order }: { orderId: string; or
             <Field label="Шрифт">
               <select className={FIELD_CLS} value={pd.font ?? "Inter"} onChange={(e) => { setPd((p) => ({ ...p, font: e.target.value })); setDirty(true); }}>
                 {FONTS.map((f) => <option key={f} value={f}>{f}</option>)}
+              </select>
+            </Field>
+            <Field label="Дизайн-тема" hint="Шрифты, layout hero, фон, свечение. «Авто» — своя для каждого шаблона">
+              <select className={FIELD_CLS} value={designTheme} onChange={(e) => { setDesignTheme(e.target.value); setDirty(true); }}>
+                <option value="">Авто (по шаблону)</option>
+                {DESIGN_THEMES.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
               </select>
             </Field>
             <Field label="Домен сайта">

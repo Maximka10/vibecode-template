@@ -1,9 +1,11 @@
 import { SiteSection, SectionType } from "@/types/sections";
+import { DesignTheme, DESIGN_THEMES, fontStack, googleFontsHref } from "@/lib/export/designThemes";
 
 export type SiteJson = {
   meta: { title: string; description: string; domain: string };
   branding: { primary: string; secondary: string; accent?: string };
   font?: string;
+  design?: DesignTheme;
   contact_link?: string;
   company: { name: string; description: string; address: string; working_hours: string };
   contacts: { phone: string; email: string; telegram: string; whatsapp?: string | undefined };
@@ -192,12 +194,13 @@ function resolveContactLink(contactLink: string, contacts: SiteJson["contacts"])
 
 const COMPONENT_TEMPLATES: Record<SectionType, (s: SiteSection, site: SiteJson) => string> = {
   hero: (s, site) => {
-    const phone = (s.content as { phone?: string }).phone ?? "";
-    const phoneStr = JSON.stringify(phone);
+    const phoneStr = JSON.stringify((s.content as { phone?: string }).phone ?? "");
     const ctaHref = JSON.stringify(resolveContactLink(site.contact_link ?? "", site.contacts));
-    const heroImage = (s.content as { heroImage?: string }).heroImage ?? "";
-    const heroImageStr = JSON.stringify(heroImage);
-    return `import { SiteSection } from "@/types";
+    const heroImageStr = JSON.stringify((s.content as { heroImage?: string }).heroImage ?? "");
+    const variant = site.design?.heroVariant ?? "spotlight";
+    const split = variant === "split" || variant === "editorial";
+
+    const head = `import { SiteSection } from "@/types";
 
 export default function Hero({ section }: { section: SiteSection }) {
   const { title, subtitle, cta_text, phone, heroImage } = section.content as {
@@ -205,67 +208,101 @@ export default function Hero({ section }: { section: SiteSection }) {
   };
   const tel = phone || ${phoneStr};
   const bg = heroImage || ${heroImageStr};
-  return (
+  return (`;
+
+    const centered = `
     <section
-      className="relative flex min-h-[90svh] flex-col items-center justify-center px-4 py-24 text-center text-white sm:px-6 sm:py-32 lg:px-8"
-      style={{ background: \`linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%)\` }}
+      className="relative flex min-h-[88svh] flex-col items-center justify-center overflow-hidden px-4 py-24 text-center text-white sm:px-6 sm:py-32 lg:px-8"
+      style={{ background: "linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%)" }}
     >
       {bg && (
         <img src={bg} alt="" className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-20" />
       )}
-      {/* Decorative blobs */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute -top-1/4 left-1/4 h-[600px] w-[600px] rounded-full bg-white/5 blur-3xl" />
-        <div className="absolute -bottom-1/4 right-1/4 h-[400px] w-[400px] rounded-full bg-black/10 blur-3xl" />
+        <div className="absolute -top-1/4 left-1/4 h-[600px] w-[600px] rounded-full bg-white/10 blur-3xl" style={{ animation: "floaty 16s ease-in-out infinite" }} />
+        <div className="absolute -bottom-1/4 right-1/4 h-[460px] w-[460px] rounded-full bg-black/10 blur-3xl" style={{ animation: "floaty 20s ease-in-out infinite reverse" }} />
       </div>
-
       <div className="relative mx-auto max-w-4xl">
-        {/* Trust badges */}
         <div className="mb-8 flex flex-wrap items-center justify-center gap-3 opacity-90">
-          {["✓ Быстро", "✓ Качественно", "✓ Гарантия"].map((b) => (
+          {["★ 5.0 рейтинг", "✓ Гарантия", "🚀 Быстро"].map((b) => (
             <span key={b} className="rounded-full border border-white/30 bg-white/10 px-4 py-1.5 text-sm font-semibold backdrop-blur-sm">
               {b}
             </span>
           ))}
         </div>
-
         {title && (
           <h1 className="text-3xl font-black leading-[1.1] tracking-tight sm:text-5xl lg:text-7xl whitespace-pre-line">
             {title}
           </h1>
         )}
         {subtitle && (
-          <p className="mx-auto mt-6 max-w-2xl text-base leading-relaxed opacity-85 sm:text-xl whitespace-pre-line">
+          <p className="mx-auto mt-6 max-w-2xl text-base leading-relaxed opacity-90 sm:text-xl whitespace-pre-line">
             {subtitle}
           </p>
         )}
         <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
           {cta_text && (
-            <a
-              href={${ctaHref}}
-              className="w-full rounded-full bg-white py-4 px-8 text-lg font-bold shadow-lg transition hover:-translate-y-0.5 hover:shadow-xl active:scale-95 sm:w-auto"
-              style={{ color: "var(--primary)" }}
-            >
+            <a href={${ctaHref}} className="btn-glow w-full rounded-full bg-white py-4 px-8 text-lg font-bold sm:w-auto" style={{ color: "var(--primary)" }}>
               {cta_text}
             </a>
           )}
           {tel && (
-            <a
-              href={\`tel:\${tel}\`}
-              className="w-full rounded-full border-2 border-white/60 py-4 px-8 text-base font-bold text-white transition hover:bg-white/10 sm:w-auto"
-            >
+            <a href={\`tel:\${tel}\`} className="w-full rounded-full border-2 border-white/60 py-4 px-8 text-base font-bold text-white transition hover:bg-white/10 sm:w-auto">
               📞 {tel}
             </a>
           )}
         </div>
-
-        {/* Scroll hint */}
         <div className="mt-12 flex flex-col items-center gap-1 opacity-60 select-none">
           <span className="text-sm font-medium">↓ Узнать больше</span>
           <span className="animate-bounce text-lg">↓</span>
         </div>
       </div>
-    </section>
+    </section>`;
+
+    const splitLayout = `
+    <section className="relative overflow-hidden px-4 py-20 sm:px-6 sm:py-28 lg:px-8">
+      <div className="mx-auto grid max-w-6xl items-center gap-10 lg:grid-cols-2">
+        <div>
+          <div className="mb-6 flex flex-wrap gap-2">
+            {["★ 5.0 рейтинг", "✓ Гарантия", "🚀 Быстро"].map((b) => (
+              <span key={b} className="rounded-full border px-3 py-1 text-xs font-semibold" style={{ borderColor: "color-mix(in srgb, var(--primary) 30%, transparent)", color: "var(--primary)", background: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+                {b}
+              </span>
+            ))}
+          </div>
+          {title && (
+            <h1 className="text-4xl font-black leading-[1.05] tracking-tight sm:text-5xl lg:text-6xl whitespace-pre-line">
+              <span className="grad-text">{title}</span>
+            </h1>
+          )}
+          {subtitle && (
+            <p className="mt-5 max-w-xl text-base leading-relaxed text-slate-600 sm:text-lg whitespace-pre-line">
+              {subtitle}
+            </p>
+          )}
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+            {cta_text && (
+              <a href={${ctaHref}} className="btn-glow rounded-full px-8 py-4 text-center text-base font-bold text-white" style={{ background: "linear-gradient(120deg, var(--primary), var(--secondary))" }}>
+                {cta_text}
+              </a>
+            )}
+            {tel && (
+              <a href={\`tel:\${tel}\`} className="rounded-full border-2 px-8 py-4 text-center text-base font-bold transition hover:bg-slate-50" style={{ borderColor: "color-mix(in srgb, var(--primary) 30%, transparent)", color: "var(--primary)" }}>
+                📞 {tel}
+              </a>
+            )}
+          </div>
+        </div>
+        <div className="relative">
+          <div className="absolute -inset-4 rounded-[2rem] opacity-40 blur-2xl" style={{ background: "linear-gradient(120deg, var(--primary), var(--secondary))" }} />
+          <div className="relative aspect-[4/3] w-full overflow-hidden rounded-[2rem] shadow-2xl" style={{ background: "linear-gradient(135deg, var(--primary), var(--secondary))" }}>
+            {bg && <img src={bg} alt="" className="h-full w-full object-cover" />}
+          </div>
+        </div>
+      </div>
+    </section>`;
+
+    return head + (split ? splitLayout : centered) + `
   );
 }
 `;
@@ -278,7 +315,7 @@ export default function About({ section }: { section: SiteSection }) {
   return (
     <section className="px-4 py-20 bg-white sm:px-6 lg:px-8" id="about">
       <div className="mx-auto max-w-4xl">
-        <div className="mb-3 h-1 w-12 rounded-full" style={{ backgroundColor: "var(--primary)" }} />
+        <div className="accent-bar" />
         {title && (
           <h2 className="mb-6 text-2xl font-black leading-tight text-slate-900 sm:text-3xl lg:text-4xl">
             {title}
@@ -305,7 +342,7 @@ export default function Services({ section }: { section: SiteSection }) {
   return (
     <section className="px-4 py-20 bg-slate-50 sm:px-6 lg:px-8" id="services">
       <div className="mx-auto max-w-5xl">
-        <div className="mb-3 h-1 w-12 rounded-full" style={{ backgroundColor: "var(--primary)" }} />
+        <div className="accent-bar" />
         {title && (
           <h2 className="mb-10 text-2xl font-black text-slate-900 sm:text-3xl lg:text-4xl">
             {title}
@@ -315,7 +352,7 @@ export default function Services({ section }: { section: SiteSection }) {
           {items.map((item, i) => (
             <div
               key={i}
-              className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-7 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
+              className="glow-card group relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-7 shadow-sm"
             >
               <div
                 className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl text-xl text-white"
@@ -365,7 +402,7 @@ export default function Gallery({ section }: { section: SiteSection }) {
   return (
     <section className="px-4 py-20 bg-white sm:px-6 lg:px-8" id="gallery">
       <div className="mx-auto max-w-5xl">
-        <div className="mb-3 h-1 w-12 rounded-full" style={{ backgroundColor: "var(--primary)" }} />
+        <div className="accent-bar" />
         {title && (
           <h2 className="mb-10 text-2xl font-black text-slate-900 sm:text-3xl lg:text-4xl">{title}</h2>
         )}
@@ -402,14 +439,14 @@ export default function Reviews({ section }: { section: SiteSection }) {
   return (
     <section className="px-4 py-20 bg-slate-50 sm:px-6 lg:px-8" id="reviews">
       <div className="mx-auto max-w-5xl">
-        <div className="mb-3 h-1 w-12 rounded-full" style={{ backgroundColor: "var(--primary)" }} />
+        <div className="accent-bar" />
         {title && (
           <h2 className="mb-4 text-2xl font-black text-slate-900 sm:text-3xl lg:text-4xl">{title}</h2>
         )}
         <p className="mb-8 text-base font-semibold text-slate-500">⭐ 4.9 из 5 — на основе отзывов клиентов</p>
         <div className="grid gap-5 sm:grid-cols-2">
           {items.map((r, i) => (
-            <div key={i} className="rounded-2xl border border-slate-200 bg-white p-7 shadow-sm">
+            <div key={i} className="glow-card rounded-2xl border border-slate-200 bg-white p-7 shadow-sm">
               <div className="flex gap-0.5">
                 {Array.from({ length: 5 }).map((_, j) => (
                   <svg key={j} className="h-5 w-5" viewBox="0 0 20 20" fill={j < (r.rating ?? 5) ? "var(--primary)" : "#e2e8f0"}>
@@ -441,7 +478,7 @@ export default function FAQ({ section }: { section: SiteSection }) {
   return (
     <section className="px-4 py-20 bg-white sm:px-6 lg:px-8 overflow-x-hidden" id="faq">
       <div className="mx-auto max-w-3xl w-full">
-        <div className="mb-3 h-1 w-12 rounded-full" style={{ backgroundColor: "var(--primary)" }} />
+        <div className="accent-bar" />
         {title && (
           <h2 className="mb-10 text-2xl font-black text-slate-900 sm:text-3xl lg:text-4xl">{title}</h2>
         )}
@@ -486,7 +523,7 @@ export default function Pricing({ section }: { section: SiteSection }) {
   return (
     <section className="px-4 py-20 bg-slate-50 sm:px-6 lg:px-8" id="pricing">
       <div className="mx-auto max-w-5xl">
-        <div className="mb-3 h-1 w-12 rounded-full" style={{ backgroundColor: "var(--primary)" }} />
+        <div className="accent-bar" />
         {title && (
           <h2 className="mb-10 text-2xl font-black text-slate-900 sm:text-3xl lg:text-4xl">{title}</h2>
         )}
@@ -494,7 +531,7 @@ export default function Pricing({ section }: { section: SiteSection }) {
           {plans.map((p, i) => (
             <div
               key={i}
-              className="rounded-2xl border bg-white p-7 shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
+              className="glow-card rounded-2xl border bg-white p-7 shadow-sm"
               style={i === 1 ? { borderColor: "var(--primary)", borderWidth: 2 } : { borderColor: "#e2e8f0" }}
             >
               {i === 1 && (
@@ -554,7 +591,7 @@ export default function CTA({ section }: { section: SiteSection }) {
         {cta_text && (
           <a
             href={${ctaHref}}
-            className="mt-10 inline-flex w-full items-center justify-center gap-2 rounded-full bg-white py-4 px-8 text-lg font-bold shadow-xl transition hover:-translate-y-0.5 hover:shadow-2xl active:scale-95 sm:w-auto sm:px-12"
+            className="btn-glow mt-10 inline-flex w-full items-center justify-center gap-2 rounded-full bg-white py-4 px-8 text-lg font-bold active:scale-95 sm:w-auto sm:px-12"
             style={{ color: "var(--primary)" }}
           >
             {cta_text} →
@@ -607,13 +644,13 @@ export default function Contacts({ section }: { section: SiteSection }) {
   return (
     <section className="px-4 py-20 bg-white sm:px-6 lg:px-8" id="contacts">
       <div className="mx-auto max-w-4xl">
-        <div className="mb-3 h-1 w-12 rounded-full" style={{ backgroundColor: "var(--primary)" }} />
+        <div className="accent-bar" />
         {title && (
           <h2 className="mb-10 text-2xl font-black text-slate-900 sm:text-3xl lg:text-4xl">{title}</h2>
         )}
         <div className="grid gap-4 sm:grid-cols-2">
           {items.map((item, i) => (
-            <div key={i} className="group flex items-start gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-5 transition hover:border-slate-300 hover:bg-white hover:shadow-sm">
+            <div key={i} className="glow-card group flex items-start gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-5">
               <div
                 className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-xl"
                 style={{ backgroundColor: "color-mix(in srgb, var(--primary) 12%, white)" }}
@@ -665,7 +702,7 @@ export default function Map({ section }: { section: SiteSection }) {
   return (
     <section className="px-4 py-20 bg-slate-50 sm:px-6 lg:px-8" id="map">
       <div className="mx-auto max-w-4xl">
-        <div className="mb-3 h-1 w-12 rounded-full" style={{ backgroundColor: "var(--primary)" }} />
+        <div className="accent-bar" />
         {title && <h2 className="mb-4 text-2xl font-black text-slate-900 sm:text-3xl lg:text-4xl">{title}</h2>}
         {address && <p className="mb-6 text-slate-600">📍 {address}</p>}
         {src ? (
@@ -1005,54 +1042,106 @@ function genPostcssConfig(): string {
 `;
 }
 
-const FONT_IMPORTS: Record<string, string> = {
-  Inter:       "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap",
-  Manrope:     "https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap",
-  Montserrat:  "https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;900&display=swap",
-  Roboto:      "https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap",
-  "Open Sans": "https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&display=swap",
-};
+function genGlobalsCSS(primary: string, secondary: string, design: DesignTheme, font?: string): string {
+  // Heading font from the design theme; body font respects the client's pick.
+  const headFont = design.headingFont;
+  const bodyFont = font || design.bodyFont;
+  const importHref = googleFontsHref([headFont, bodyFont]);
+  const radius = `${design.radius}px`;
+  const glow = design.glow.toFixed(2);
+  const uppercase = design.uppercaseHeads
+    ? "  text-transform: uppercase;\n  letter-spacing: -0.01em;"
+    : "  letter-spacing: -0.02em;";
 
-function genGlobalsCSS(primary: string, secondary: string, font?: string): string {
-  const fontImport = font && FONT_IMPORTS[font]
-    ? `@import url("${FONT_IMPORTS[font]}");\n`
-    : "";
-  const fontFamily = font && font !== "Inter"
-    ? `  --font: "${font}", sans-serif;`
-    : `  --font: "Inter", "system-ui", sans-serif;`;
-
-  return `${fontImport}@tailwind base;
+  return `@import url("${importHref}");
+@tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
   --primary: ${primary};
   --secondary: ${secondary};
-${fontFamily}
+  --font-head: ${fontStack(headFont)};
+  --font-body: ${fontStack(bodyFont)};
+  --radius: ${radius};
+  --glow: ${glow};
 }
 
-* {
-  box-sizing: border-box;
-  -webkit-tap-highlight-color: transparent;
-}
-
-html {
-  scroll-behavior: smooth;
-}
-
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html { scroll-behavior: smooth; }
 body {
-  font-family: var(--font);
+  font-family: var(--font-body);
+  background: #ffffff;
 }
 
-button, a {
-  touch-action: manipulation;
+h1, h2, h3, .font-head {
+  font-family: var(--font-head);
+${uppercase}
+}
+
+button, a { touch-action: manipulation; }
+
+/* ── Decorative page background (theme: ${design.bg}) ───────────────────── */
+.site-bg {
+  position: fixed; inset: 0; z-index: -1; pointer-events: none; overflow: hidden;
+}
+.site-bg::before, .site-bg::after {
+  content: ""; position: absolute; border-radius: 9999px;
+  filter: blur(80px); opacity: calc(0.22 * var(--glow));
+}
+.site-bg::before {
+  width: 46vw; height: 46vw; top: -8vw; left: -6vw;
+  background: var(--primary);
+  animation: floaty 14s ease-in-out infinite;
+}
+.site-bg::after {
+  width: 40vw; height: 40vw; bottom: -10vw; right: -8vw;
+  background: var(--secondary);
+  animation: floaty 18s ease-in-out infinite reverse;
+}
+${design.bg === "grid" ? `.site-bg {
+  background-image: linear-gradient(var(--primary) 1px, transparent 1px), linear-gradient(90deg, var(--primary) 1px, transparent 1px);
+  background-size: 44px 44px; opacity: 0.04;
+}` : ""}
+${design.bg === "mesh" ? `.site-bg {
+  background:
+    radial-gradient(40vw 40vw at 80% 0%, color-mix(in srgb, var(--secondary) 22%, transparent), transparent 60%),
+    radial-gradient(40vw 40vw at 0% 70%, color-mix(in srgb, var(--primary) 18%, transparent), transparent 60%);
+}` : ""}
+
+/* ── Utilities ──────────────────────────────────────────────────────────── */
+.accent-bar {
+  height: 5px; width: 56px; border-radius: 9999px; margin-bottom: 14px;
+  background: linear-gradient(90deg, var(--primary), var(--secondary));
+  box-shadow: 0 0 18px color-mix(in srgb, var(--primary) calc(70% * var(--glow)), transparent);
+}
+.grad-text {
+  background: linear-gradient(120deg, var(--primary), var(--secondary));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.glow-card { transition: transform .3s ease, box-shadow .3s ease, border-color .3s ease; }
+.glow-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 18px 50px color-mix(in srgb, var(--primary) calc(28% * var(--glow)), transparent);
+  border-color: color-mix(in srgb, var(--primary) 40%, transparent);
+}
+.btn-glow {
+  box-shadow: 0 10px 30px color-mix(in srgb, var(--primary) calc(45% * var(--glow)), transparent);
+  transition: transform .2s ease, box-shadow .2s ease;
+}
+.btn-glow:hover { transform: translateY(-2px); box-shadow: 0 16px 44px color-mix(in srgb, var(--primary) calc(60% * var(--glow)), transparent); }
+
+@keyframes floaty {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(4%, 6%) scale(1.08); }
+}
+@keyframes glowpulse {
+  0%, 100% { opacity: calc(0.5 * var(--glow)); }
+  50% { opacity: var(--glow); }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    animation-duration: 0.01ms !important;
-    transition-duration: 0.01ms !important;
-  }
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }
 `;
 }
@@ -1103,8 +1192,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="ru">
       <body className="bg-white text-slate-900 antialiased">
+        <div className="site-bg" aria-hidden="true" />
         ${hasNav ? `<Navigation />` : ""}
-        <div${hasNav ? ` className="pt-[72px]"` : ""}>{children}</div>
+        <div${hasNav ? ` className="relative pt-[72px]"` : ` className="relative"`}>{children}</div>
         ${hasMobileCTA ? `<MobileCTA />` : ""}
         <CookieBanner />
       </body>
@@ -1320,6 +1410,7 @@ export function generateProject(site: SiteJson): Record<string, string> {
   const files: Record<string, string> = {};
   const primary = site.branding.primary || "#6366f1";
   const secondary = site.branding.secondary || "#8b5cf6";
+  const design = site.design ?? DESIGN_THEMES[0];
   const enabledSections = site.sections.filter((s) => s.enabled);
 
   const hasNav = enabledSections.some((s) => SECTION_NAV[s.type as SectionType]);
@@ -1347,7 +1438,7 @@ export function generateProject(site: SiteJson): Record<string, string> {
   // App shell
   files["app/layout.tsx"] = genLayout(site, hasNav, hasMobileCTA);
   files["app/page.tsx"] = genPage(enabledSections);
-  files["app/globals.css"] = genGlobalsCSS(primary, secondary, site.font);
+  files["app/globals.css"] = genGlobalsCSS(primary, secondary, design, site.font);
 
   // Navigation
   if (hasNav) {

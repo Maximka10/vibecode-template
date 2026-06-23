@@ -1,6 +1,8 @@
 import { formatWorkingHours } from "@/lib/utils/workingHours";
+import { resolveDesignTheme, type DesignTheme } from "@/lib/export/designThemes";
 
 export type BuildData = {
+  design: DesignTheme;
   meta: {
     template_id: string;
     template_name: string;
@@ -83,8 +85,11 @@ export function buildOrderSite(
 
   const pd = projectData ?? {};
   const ce = pd.content_edits ?? {};
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const designOverride = (ce as any)?.design_theme as string | undefined;
 
   return {
+    design: resolveDesignTheme(designOverride, snapshot.template_id ?? order.template_id ?? ""),
     meta: {
       template_id: snapshot.template_id ?? order.template_id ?? "",
       template_name: snapshot.template_name ?? order.template_name ?? "",

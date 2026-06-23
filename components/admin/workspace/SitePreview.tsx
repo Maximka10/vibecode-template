@@ -6,6 +6,7 @@
 import { BuildData } from "@/lib/build/buildOrderSite";
 import { SiteSection } from "@/types/sections";
 import { formatWorkingHours } from "@/lib/utils/workingHours";
+import { DESIGN_THEMES, fontStack, googleFontsHref } from "@/lib/export/designThemes";
 
 type PreviewDevice = "desktop" | "mobile";
 
@@ -94,7 +95,7 @@ function SectionHero({ content, primary, secondary, contactLink }: { content: Re
 function SectionAbout({ content, primary }: { content: Record<string, unknown>; primary: string }) {
   return (
     <div className="px-4 py-12 bg-white border-b border-slate-100 sm:px-8 sm:py-14">
-      <div className="mb-3 h-1 w-10 rounded-full" style={{ backgroundColor: primary }} />
+      <div className="vp-accent" />
       {!!content.title && <h2 className="mb-4 text-xl font-black text-slate-900 sm:mb-5 sm:text-2xl">{s(content.title)}</h2>}
       {!!content.text && <p className="text-sm leading-relaxed text-slate-600 whitespace-pre-line max-w-3xl">{s(content.text)}</p>}
     </div>
@@ -105,11 +106,11 @@ function SectionServices({ content, primary }: { content: Record<string, unknown
   const items = ((content.items as unknown[]) ?? []).map(itemText).filter(Boolean);
   return (
     <div className="px-4 py-12 bg-slate-50 border-b border-slate-100 sm:px-8 sm:py-14">
-      <div className="mb-3 h-1 w-10 rounded-full" style={{ backgroundColor: primary }} />
+      <div className="vp-accent" />
       {!!content.title && <h2 className="mb-6 text-xl font-black text-slate-900 sm:mb-7 sm:text-2xl">{s(content.title)}</h2>}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {items.map((item, i) => (
-          <div key={i} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+          <div key={i} className="glow-card rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
             <div
               className="mb-3 flex h-9 w-9 items-center justify-center rounded-xl text-base text-white sm:h-10 sm:w-10 sm:text-lg"
               style={{ backgroundColor: primary }}
@@ -189,11 +190,11 @@ function SectionReviews({ content, primary }: { content: Record<string, unknown>
   const items = (content.items as { author: string; text: string; rating: number }[]) ?? [];
   return (
     <div className="px-4 py-12 bg-slate-50 border-b border-slate-100 sm:px-8 sm:py-14">
-      <div className="mb-3 h-1 w-10 rounded-full" style={{ backgroundColor: primary }} />
+      <div className="vp-accent" />
       {!!content.title && <h2 className="mb-6 text-xl font-black text-slate-900 sm:mb-7 sm:text-2xl">{s(content.title)}</h2>}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {items.map((r, i) => (
-          <div key={i} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div key={i} className="glow-card rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
             <div className="flex gap-0.5">
               {Array.from({ length: 5 }).map((_, j) => (
                 <svg key={j} className="h-4 w-4" viewBox="0 0 20 20" fill={j < (r.rating ?? 5) ? primary : "#e2e8f0"}>
@@ -214,7 +215,7 @@ function SectionFAQ({ content, primary }: { content: Record<string, unknown>; pr
   const items = (content.items as { question: string; answer: string }[]) ?? [];
   return (
     <div className="px-8 py-14 bg-white border-b border-slate-100">
-      <div className="mb-3 h-1 w-10 rounded-full" style={{ backgroundColor: primary }} />
+      <div className="vp-accent" />
       {!!content.title && <h2 className="mb-7 text-2xl font-black text-slate-900">{s(content.title)}</h2>}
       <div className="space-y-3 max-w-3xl">
         {items.map((f, i) => (
@@ -236,7 +237,7 @@ function SectionPricing({ content, primary, contactLink }: { content: Record<str
   const href = resolveCtaHref(s(content.contact_link) || contactLink);
   return (
     <div className="px-4 py-12 bg-slate-50 border-b border-slate-100 sm:px-8 sm:py-14">
-      <div className="mb-3 h-1 w-10 rounded-full" style={{ backgroundColor: primary }} />
+      <div className="vp-accent" />
       {!!content.title && <h2 className="mb-6 text-xl font-black text-slate-900 sm:mb-7 sm:text-2xl">{s(content.title)}</h2>}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         {plans.map((p, i) => (
@@ -309,11 +310,11 @@ function SectionContacts({ content, primary }: { content: Record<string, unknown
 
   return (
     <div className="px-8 py-14 bg-white border-b border-slate-100">
-      <div className="mb-3 h-1 w-10 rounded-full" style={{ backgroundColor: primary }} />
+      <div className="vp-accent" />
       {!!content.title && <h2 className="mb-7 text-2xl font-black text-slate-900">{s(content.title)}</h2>}
       <div className="grid gap-4 sm:grid-cols-2">
         {items.map((item, i) => (
-          <div key={i} className="flex items-start gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-5">
+          <div key={i} className="glow-card flex items-start gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-5">
             <div
               className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-xl"
               style={{ backgroundColor: `${primary}1a` }}
@@ -337,7 +338,7 @@ function SectionMap({ content, primary }: { content: Record<string, unknown>; pr
 
   return (
     <div className="px-8 py-14 bg-slate-50 border-b border-slate-100">
-      <div className="mb-3 h-1 w-10 rounded-full" style={{ backgroundColor: primary }} />
+      <div className="vp-accent" />
       {!!content.title && <h2 className="mb-4 text-2xl font-black text-slate-900">{s(content.title)}</h2>}
       {!!content.address && <p className="mb-5 text-sm text-slate-600">📍 {s(content.address)}</p>}
       {embedUrl ? (
@@ -419,15 +420,6 @@ function renderSection(section: SiteSection, primary: string, secondary: string,
   }
 }
 
-const FONT_FAMILIES: Record<string, string> = {
-  Inter: '"Inter", system-ui, sans-serif',
-  Manrope: '"Manrope", system-ui, sans-serif',
-  Montserrat: '"Montserrat", system-ui, sans-serif',
-  Roboto: '"Roboto", system-ui, sans-serif',
-  "Open Sans": '"Open Sans", system-ui, sans-serif',
-  "PT Sans": '"PT Sans", system-ui, sans-serif',
-};
-
 export default function SitePreview({
   data,
   sections,
@@ -449,17 +441,29 @@ export default function SitePreview({
   const primary = branding.primary_color || "#6366f1";
   const secondary = branding.secondary_color || "#8b5cf6";
   const contactLink = content.contact_link;
-  const fontFamily = data.font ? (FONT_FAMILIES[data.font] ?? data.font) : undefined;
+  const design = data.design ?? DESIGN_THEMES[0];
+  const bodyFont = data.font || design.bodyFont;
+
+  // Scoped theme CSS — mirrors the exported site's look (fonts, gradient accent
+  // bars, glow cards, decorative background) so the preview matches the ZIP.
+  const themeCss = `
+    @import url("${googleFontsHref([design.headingFont, bodyFont])}");
+    .vp { font-family: ${fontStack(bodyFont)}; --primary: ${primary}; --secondary: ${secondary}; --glow: ${design.glow.toFixed(2)}; position: relative; }
+    .vp h1, .vp h2, .vp h3 { font-family: ${fontStack(design.headingFont)};${design.uppercaseHeads ? " text-transform: uppercase; letter-spacing: -0.01em;" : ""} }
+    .vp-accent { height: 5px; width: 48px; border-radius: 9999px; margin-bottom: 12px; background: linear-gradient(90deg, var(--primary), var(--secondary)); box-shadow: 0 0 16px color-mix(in srgb, var(--primary) calc(70% * var(--glow)), transparent); }
+    .vp .grad-text { background: linear-gradient(120deg, var(--primary), var(--secondary)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .vp .glow-card { transition: transform .3s ease, box-shadow .3s ease; }
+    .vp .glow-card:hover { transform: translateY(-3px); box-shadow: 0 16px 40px color-mix(in srgb, var(--primary) calc(26% * var(--glow)), transparent); }
+  `;
 
   return (
     <div
       className="mx-auto transition-all duration-300"
       style={{ maxWidth: DEVICE_WIDTH[device], width: "100%" }}
     >
-      <div
-        className="overflow-hidden rounded-2xl border border-white/10 bg-white text-slate-900 shadow-2xl"
-        style={fontFamily ? { fontFamily } : undefined}
-      >
+      {/* eslint-disable-next-line react/no-danger */}
+      <style dangerouslySetInnerHTML={{ __html: themeCss }} />
+      <div className="vp overflow-hidden rounded-2xl border border-white/10 bg-white text-slate-900 shadow-2xl">
         {/* Browser chrome */}
         <div className="flex items-center gap-2 border-b border-slate-200 bg-slate-100 px-4 py-2.5">
           <div className="flex gap-1.5">
