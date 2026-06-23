@@ -85,8 +85,7 @@ export function buildOrderSite(
 
   const pd = projectData ?? {};
   const ce = pd.content_edits ?? {};
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const designOverride = (ce as any)?.design_theme as string | undefined;
+  const designOverride = (ce as { design_theme?: string })?.design_theme;
 
   return {
     design: resolveDesignTheme(designOverride, snapshot.template_id ?? order.template_id ?? ""),

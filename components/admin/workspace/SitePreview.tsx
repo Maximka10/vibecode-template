@@ -461,7 +461,6 @@ export default function SitePreview({
       className="mx-auto transition-all duration-300"
       style={{ maxWidth: DEVICE_WIDTH[device], width: "100%" }}
     >
-      {/* eslint-disable-next-line react/no-danger */}
       <style dangerouslySetInnerHTML={{ __html: themeCss }} />
       <div className="vp overflow-hidden rounded-2xl border border-white/10 bg-white text-slate-900 shadow-2xl">
         {/* Browser chrome */}

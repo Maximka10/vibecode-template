@@ -64,6 +64,7 @@ export function CropEditor({
   const [crop, setCrop] = useState<CropState>({ x: 0.05, y: 0.05, w: 0.9, h: 0.9 });
   const [lockedAspect, setLockedAspect] = useState<number>(initialAspect ?? 0);
   const [imgLoaded, setImgLoaded] = useState(false);
+  const [naturalSize, setNaturalSize] = useState<{ w: number; h: number } | null>(null);
   const [adjust, setAdjust] = useState<Adjust>({ ...NEUTRAL });
   const [activePreset, setActivePreset] = useState("Оригинал");
   const dragging = useRef<null | { type: "move" | "tl" | "tr" | "bl" | "br"; startX: number; startY: number; startCrop: CropState }>(null);
@@ -96,7 +97,7 @@ export function CropEditor({
   useEffect(() => {
     const img = new Image();
     img.crossOrigin = "anonymous";
-    img.onload = () => { imgRef.current = img; setImgLoaded(true); };
+    img.onload = () => { imgRef.current = img; setNaturalSize({ w: img.naturalWidth, h: img.naturalHeight }); setImgLoaded(true); };
     img.src = src;
   }, [src]);
 
@@ -248,10 +249,9 @@ export function CropEditor({
     out.toBlob((blob) => { if (blob) onConfirm(blob); }, "image/jpeg", 0.92);
   }
 
-  const imgEl = imgRef.current;
-  const cropPx = imgEl ? {
-    w: Math.round(imgEl.naturalWidth * crop.w),
-    h: Math.round(imgEl.naturalHeight * crop.h),
+  const cropPx = naturalSize ? {
+    w: Math.round(naturalSize.w * crop.w),
+    h: Math.round(naturalSize.h * crop.h),
   } : null;
 
   return (
