@@ -1,3 +1,8 @@
+"use client";
+// Must be a Client Component: SectionGallery passes onError handlers to <img>.
+// Event-handler props can't be passed to host elements during a Server
+// Component render — doing so throws ("A server error occurred"), which is why
+// the preview crashed whenever a gallery section had images.
 import { BuildData } from "@/lib/build/buildOrderSite";
 import { SiteSection } from "@/types/sections";
 import { formatWorkingHours } from "@/lib/utils/workingHours";
