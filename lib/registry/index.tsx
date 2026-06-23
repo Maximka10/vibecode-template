@@ -25,19 +25,6 @@ function itemText(v: unknown): string {
   return String(v);
 }
 
-// Coerce a gallery item (string URL, or object like {url}/{src}/{image}) to a
-// plain string so the renderer never calls string methods on an object — which
-// would throw and break the whole preview. Returns "" for unusable entries.
-function imageUrl(v: unknown): string {
-  if (typeof v === "string") return v;
-  if (v && typeof v === "object") {
-    const o = v as Record<string, unknown>;
-    const u = o.url ?? o.src ?? o.image ?? o.value;
-    return typeof u === "string" ? u : "";
-  }
-  return "";
-}
-
 function Hero({ section, template }: Props) {
   const c = section.content;
   const heroImage = c.heroImage as string | undefined;
@@ -129,7 +116,11 @@ function About({ section, template }: Props) {
 }
 
 function Gallery({ section, template }: Props) {
-  const items = ((section.content.images as unknown[]) ?? []).map(imageUrl).filter(Boolean);
+  type GalleryImg = { url: string; title?: string };
+  const raw = (section.content.images as (string | GalleryImg)[]) ?? [];
+  const items: GalleryImg[] = raw.map((x) =>
+    typeof x === "string" ? { url: x } : { url: String((x as GalleryImg).url ?? ""), title: (x as GalleryImg).title }
+  ).filter((x) => isUrl(x.url));
   const film = template.style.galleryStyle === "film";
   const masonry = template.style.galleryStyle === "masonry";
   if (items.length === 0) return null;
@@ -152,18 +143,10 @@ function Gallery({ section, template }: Props) {
       >
         {items.map((x, i) => (
           <div
-            key={`${x}-${i}`}
+            key={`${x.url}-${i}`}
             className={`${getRadiusClass(template.style)} ${film ? "w-[min(280px,72vw)] shrink-0" : ""} ${masonry ? "break-inside-avoid" : ""} aspect-[4/3] overflow-hidden relative bg-gradient-to-br from-[var(--primary)]/30 to-[var(--secondary)]/15`}
           >
-            {isUrl(x) ? (
-              <img src={x} alt={`Gallery ${i + 1}`} className="w-full h-full object-cover" />
-            ) : (
-              <div className="absolute inset-0 flex items-end p-4">
-                <span className="text-sm font-medium text-[var(--text-secondary)] bg-[var(--bg-surface)]/70 rounded-lg px-3 py-1.5">
-                  {x}
-                </span>
-              </div>
-            )}
+            <img src={x.url} alt={x.title ?? `Gallery ${i + 1}`} className="w-full h-full object-cover" />
           </div>
         ))}
       </div>
@@ -198,7 +181,7 @@ function Simple({ section, template }: Props) {
         <h2 className={getHeadingClass(template.style)}>
           {String(section.content.title ?? section.type)}
         </h2>
-        <p className="mt-3 text-[var(--text-secondary)] whitespace-pre-line">
+        <p className="mt-3 text-[var(--text-secondary)]">
           {String(section.content.text ?? "Оставьте заявку — подготовим сайт под ваш бизнес.")}
         </p>
       </div>

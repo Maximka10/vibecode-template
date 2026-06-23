@@ -213,7 +213,7 @@ export default function OverviewTab({ order: initialOrder, projectData }: { orde
             {order.notes && (
               <div className="col-span-full">
                 <p className="text-xs text-white/40">Комментарий</p>
-                <p className="mt-0.5 text-sm text-white/85">{order.notes}</p>
+                <p className="mt-0.5 text-sm text-white/85 whitespace-pre-line">{order.notes}</p>
               </div>
             )}
             {order.project_snapshot && (
@@ -240,9 +240,9 @@ export default function OverviewTab({ order: initialOrder, projectData }: { orde
                   {order.selected_options?.company_name || order.template_name}
                 </p>
                 {order.selected_options?.company_description && (
-                  <p className="mt-1 text-xs text-white/50 line-clamp-2">
-                    {String(order.selected_options.company_description).slice(0, 120)}
-                    {String(order.selected_options.company_description).length > 120 ? "…" : ""}
+                  <p className="mt-1 text-xs text-white/50 whitespace-pre-line line-clamp-3">
+                    {String(order.selected_options.company_description).slice(0, 200)}
+                    {String(order.selected_options.company_description).length > 200 ? "…" : ""}
                   </p>
                 )}
               </div>
