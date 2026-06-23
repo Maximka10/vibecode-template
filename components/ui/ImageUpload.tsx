@@ -9,6 +9,32 @@ interface CropState {
   h: number;
 }
 
+interface Adjust {
+  brightness: number; // %
+  contrast: number;   // %
+  saturate: number;   // %
+  sepia: number;      // %
+  grayscale: number;  // %
+  hueRotate: number;  // deg
+  glow: number;       // 0..0.6 bloom intensity
+}
+
+const NEUTRAL: Adjust = { brightness: 100, contrast: 100, saturate: 100, sepia: 0, grayscale: 0, hueRotate: 0, glow: 0 };
+
+const FILTER_PRESETS: { label: string; adj: Adjust }[] = [
+  { label: "Оригинал", adj: { ...NEUTRAL } },
+  { label: "Яркий",    adj: { ...NEUTRAL, brightness: 106, contrast: 114, saturate: 135 } },
+  { label: "Свечение", adj: { ...NEUTRAL, brightness: 104, saturate: 116, glow: 0.38 } },
+  { label: "Тёплый",   adj: { ...NEUTRAL, brightness: 104, saturate: 118, sepia: 28 } },
+  { label: "Холодный", adj: { ...NEUTRAL, brightness: 101, contrast: 108, saturate: 92, hueRotate: 330 } },
+  { label: "Винтаж",   adj: { ...NEUTRAL, brightness: 102, contrast: 95, saturate: 108, sepia: 45 } },
+  { label: "Ч/Б",      adj: { ...NEUTRAL, grayscale: 100, contrast: 112 } },
+];
+
+function filterString(a: Adjust): string {
+  return `brightness(${a.brightness}%) contrast(${a.contrast}%) saturate(${a.saturate}%) sepia(${a.sepia}%) grayscale(${a.grayscale}%) hue-rotate(${a.hueRotate}deg)`;
+}
+
 const ASPECT_PRESETS = [
   { label: "Свободно", value: 0 },
   { label: "1:1", value: 1 },
@@ -19,7 +45,7 @@ const ASPECT_PRESETS = [
   { label: "3:4", value: 3 / 4 },
 ];
 
-function CropEditor({
+export function CropEditor({
   src,
   aspectRatio: initialAspect,
   onConfirm,
@@ -38,7 +64,34 @@ function CropEditor({
   const [crop, setCrop] = useState<CropState>({ x: 0.05, y: 0.05, w: 0.9, h: 0.9 });
   const [lockedAspect, setLockedAspect] = useState<number>(initialAspect ?? 0);
   const [imgLoaded, setImgLoaded] = useState(false);
+  const [adjust, setAdjust] = useState<Adjust>({ ...NEUTRAL });
+  const [activePreset, setActivePreset] = useState("Оригинал");
   const dragging = useRef<null | { type: "move" | "tl" | "tr" | "bl" | "br"; startX: number; startY: number; startCrop: CropState }>(null);
+
+  // Paint `img` (source rect → dest rect) with the current adjustments + glow.
+  const paint = useCallback((ctx: CanvasRenderingContext2D, img: HTMLImageElement,
+    sx: number, sy: number, sw: number, sh: number, dx: number, dy: number, dw: number, dh: number) => {
+    ctx.save();
+    ctx.filter = filterString(adjust);
+    ctx.drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh);
+    if (adjust.glow > 0) {
+      // Bloom: a blurred, brighter copy added on top.
+      ctx.globalCompositeOperation = "lighter";
+      ctx.globalAlpha = adjust.glow;
+      ctx.filter = `${filterString(adjust)} blur(6px) brightness(150%)`;
+      ctx.drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh);
+    }
+    ctx.restore();
+  }, [adjust]);
+
+  function setPreset(p: { label: string; adj: Adjust }) {
+    setActivePreset(p.label);
+    setAdjust({ ...p.adj });
+  }
+  function patchAdjust(patch: Partial<Adjust>) {
+    setActivePreset("Свой");
+    setAdjust((a) => ({ ...a, ...patch }));
+  }
 
   useEffect(() => {
     const img = new Image();
@@ -70,7 +123,7 @@ function CropEditor({
     if (!canvas || !img) return;
     const ctx = canvas.getContext("2d")!;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    paint(ctx, img, 0, 0, img.naturalWidth, img.naturalHeight, 0, 0, canvas.width, canvas.height);
     const { x, y, w, h } = crop;
     const cx = x * canvas.width, cy = y * canvas.height;
     const cw = w * canvas.width, ch = h * canvas.height;
@@ -99,7 +152,7 @@ function CropEditor({
     }
     // Update preview
     drawPreview();
-  }, [crop]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [crop, paint]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const drawPreview = useCallback(() => {
     const pc = previewCanvasRef.current;
@@ -108,8 +161,8 @@ function CropEditor({
     const ctx = pc.getContext("2d")!;
     const { x, y, w, h } = crop;
     ctx.clearRect(0, 0, pc.width, pc.height);
-    ctx.drawImage(img, img.naturalWidth * x, img.naturalHeight * y, img.naturalWidth * w, img.naturalHeight * h, 0, 0, pc.width, pc.height);
-  }, [crop]);
+    paint(ctx, img, img.naturalWidth * x, img.naturalHeight * y, img.naturalWidth * w, img.naturalHeight * h, 0, 0, pc.width, pc.height);
+  }, [crop, paint]);
 
   useEffect(() => { if (imgLoaded) draw(); }, [draw, imgLoaded]);
 
@@ -190,7 +243,8 @@ function CropEditor({
     const { x, y, w, h } = crop;
     out.width = Math.max(1, Math.round(img.naturalWidth * w));
     out.height = Math.max(1, Math.round(img.naturalHeight * h));
-    out.getContext("2d")!.drawImage(img, img.naturalWidth * x, img.naturalHeight * y, out.width, out.height, 0, 0, out.width, out.height);
+    // Bake the crop AND the effects into the exported image.
+    paint(out.getContext("2d")!, img, img.naturalWidth * x, img.naturalHeight * y, img.naturalWidth * w, img.naturalHeight * h, 0, 0, out.width, out.height);
     out.toBlob((blob) => { if (blob) onConfirm(blob); }, "image/jpeg", 0.92);
   }
 
@@ -230,6 +284,48 @@ function CropEditor({
           ))}
         </div>
 
+        {/* Filter presets */}
+        <div className="flex flex-wrap gap-1.5 px-4">
+          <span className="text-xs text-white/30 self-center mr-1">Эффекты:</span>
+          {FILTER_PRESETS.map((p) => (
+            <button
+              key={p.label}
+              onClick={() => setPreset(p)}
+              className={`rounded-lg border px-2.5 py-1 text-xs font-semibold transition ${activePreset === p.label ? "border-fuchsia-500/50 bg-fuchsia-500/15 text-fuchsia-300" : "border-white/10 text-white/40 hover:text-white/70"}`}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Adjustment sliders */}
+        <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 px-4 sm:grid-cols-4">
+          {([
+            ["Яркость", "brightness", 50, 150],
+            ["Контраст", "contrast", 50, 150],
+            ["Насыщенность", "saturate", 0, 200],
+            ["Свечение", "glow", 0, 60],
+          ] as [string, keyof Adjust, number, number][]).map(([label, key, min, max]) => {
+            const isGlow = key === "glow";
+            const val = isGlow ? Math.round(adjust.glow * 100) : adjust[key];
+            return (
+              <label key={key} className="flex flex-col gap-0.5">
+                <span className="flex justify-between text-[10px] text-white/40">
+                  <span>{label}</span><span className="font-mono">{val}{isGlow ? "" : "%"}</span>
+                </span>
+                <input
+                  type="range" min={min} max={max} value={val}
+                  onChange={(e) => {
+                    const n = Number(e.target.value);
+                    patchAdjust(isGlow ? { glow: n / 100 } : ({ [key]: n } as Partial<Adjust>));
+                  }}
+                  className="h-1 w-full cursor-pointer accent-fuchsia-500"
+                />
+              </label>
+            );
+          })}
+        </div>
+
         {/* Main area: canvas + preview */}
         <div className="flex gap-3 px-4 overflow-y-auto" style={{ maxHeight: "calc(95vh - 200px)" }}>
           {/* Main canvas */}
@@ -256,7 +352,7 @@ function CropEditor({
               <p className="text-[10px] text-white/30 font-mono">{cropPx.w}×{cropPx.h}px</p>
             )}
             <button
-              onClick={() => setCrop({ x: 0.05, y: 0.05, w: 0.9, h: 0.9 })}
+              onClick={() => { setCrop({ x: 0.05, y: 0.05, w: 0.9, h: 0.9 }); setPreset(FILTER_PRESETS[0]); }}
               className="text-xs text-white/30 hover:text-white/60 text-left mt-1"
             >
               ↺ Сбросить

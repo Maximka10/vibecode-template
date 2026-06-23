@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Card } from "@/components/ui/Card";
 import { Btn } from "@/components/ui/Btn";
+import { CropEditor } from "@/components/ui/ImageUpload";
 
 type FileMeta = { type?: string; title?: string; description?: string; placement_notes?: string };
 type FileEntry = { name: string; url: string; size?: number; created_at?: string; path?: string; metadata?: FileMeta };
@@ -83,6 +84,10 @@ export default function MaterialsTab({ orderId, order }: { orderId: string; orde
   const [editForm, setEditForm] = useState<FileMeta>({});
   const [savingMeta, setSavingMeta] = useState(false);
   const inputRefs = useRef<Record<Folder, HTMLInputElement | null>>({ logo: null, photos: null, documents: null });
+  const [editFolder, setEditFolder] = useState<Folder | null>(null);
+  const [editQueue, setEditQueue] = useState<File[]>([]);
+  const [editSrc, setEditSrc] = useState<string | null>(null);
+  const [editName, setEditName] = useState<string>("");
 
   async function loadFiles() {
     setLoading(true);
@@ -97,24 +102,69 @@ export default function MaterialsTab({ orderId, order }: { orderId: string; orde
 
   useEffect(() => { loadFiles(); }, [orderId]);
 
+  async function uploadOne(folder: Folder, file: File | Blob, name: string) {
+    const formData = new FormData();
+    formData.append("file", file instanceof File ? file : new File([file], name, { type: file.type || "image/jpeg" }));
+    formData.append("folder", folder);
+    formData.append("material_type", uploadType[folder] || FOLDER_CONFIG[folder].defaultType);
+    const res = await fetch(`/api/orders/${orderId}/files/upload`, { method: "POST", body: formData });
+    const result = await res.json();
+    if (!result.ok) throw new Error(result.error ?? "Ошибка загрузки");
+  }
+
   async function handleUpload(folder: Folder, fileList: FileList | null) {
     if (!fileList?.length) return;
-    setUploading(folder);
+    if (inputRefs.current[folder]) inputRefs.current[folder]!.value = "";
+    const files = Array.from(fileList);
+    // Images (logo/photos) go through the crop + effects editor first; other
+    // files upload directly.
+    const editable = folder !== "documents" ? files.filter((f) => f.type.startsWith("image/")) : [];
+    const direct = files.filter((f) => !editable.includes(f));
+
+    if (direct.length) {
+      setUploading(folder);
+      setError(null);
+      try {
+        for (const f of direct) await uploadOne(folder, f, f.name);
+        await loadFiles();
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Ошибка загрузки");
+      } finally {
+        setUploading(null);
+      }
+    }
+    if (editable.length) startEditQueue(folder, editable);
+  }
+
+  // ── Editor queue: edit each selected image, then upload the result ──────────
+  function startEditQueue(folder: Folder, files: File[]) {
+    setEditFolder(folder);
+    setEditQueue(files);
+    openEditor(files[0]);
+  }
+  function openEditor(file: File) {
+    const reader = new FileReader();
+    reader.onload = (e) => { setEditName(file.name); setEditSrc(e.target?.result as string); };
+    reader.readAsDataURL(file);
+  }
+  function advanceQueue() {
+    const rest = editQueue.slice(1);
+    setEditQueue(rest);
+    setEditSrc(null);
+    if (rest.length) openEditor(rest[0]);
+    else { setEditFolder(null); loadFiles(); }
+  }
+  async function handleEditorConfirm(blob: Blob) {
+    if (!editFolder) return;
+    setUploading(editFolder);
     setError(null);
     try {
-      for (const file of Array.from(fileList)) {
-        const formData = new FormData();
-        formData.append("file", file);
-        formData.append("folder", folder);
-        formData.append("material_type", uploadType[folder] || FOLDER_CONFIG[folder].defaultType);
-        const res = await fetch(`/api/orders/${orderId}/files/upload`, { method: "POST", body: formData });
-        const result = await res.json();
-        if (!result.ok) { setError(result.error ?? "Ошибка загрузки"); return; }
-      }
-      await loadFiles();
+      await uploadOne(editFolder, blob, editName || `${Date.now()}.jpg`);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Ошибка загрузки");
     } finally {
       setUploading(null);
-      if (inputRefs.current[folder]) inputRefs.current[folder]!.value = "";
+      advanceQueue();
     }
   }
 
@@ -201,6 +251,13 @@ export default function MaterialsTab({ orderId, order }: { orderId: string; orde
 
   return (
     <div className="space-y-5">
+      {editSrc && (
+        <CropEditor
+          src={editSrc}
+          onConfirm={handleEditorConfirm}
+          onCancel={advanceQueue}
+        />
+      )}
       {clientAssets.length > 0 && (
         <Card variant="solid" padding="md">
           <h3 className="mb-3 text-sm font-semibold">Материалы от клиента</h3>
