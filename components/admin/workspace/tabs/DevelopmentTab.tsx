@@ -148,19 +148,26 @@ function WorkingHoursEditor({ value, onChange }: { value?: string | null; onChan
   );
 }
 
+type PickerImg = { name: string; url: string; source: "client" | "admin" };
+
 function GalleryPicker({ orderId, onPick }: { orderId: string; onPick: (url: string) => void }) {
   const [open, setOpen] = useState(false);
-  const [imgs, setImgs] = useState<{ name: string; url: string }[]>([]);
+  const [imgs, setImgs] = useState<PickerImg[]>([]);
 
   async function load() {
     const res = await fetch(`/api/orders/${orderId}/files`);
     const data = await res.json();
     if (!data.ok) return;
-    const photos: { name: string; url: string }[] = [
+    const isImg = (f: { name: string }) => /\.(jpg|jpeg|png|webp|gif|svg)/i.test(f.name);
+    // Client-uploaded assets first, then the admin's own uploaded materials.
+    const client: PickerImg[] = (data.files.client ?? []).map((f: { name: string; url: string }) => ({ ...f, source: "client" as const }));
+    const admin: PickerImg[] = [
       ...(data.files.logo ?? []),
       ...(data.files.photos ?? []),
-    ].filter((f: { name: string }) => /\.(jpg|jpeg|png|webp|gif|svg)$/i.test(f.name));
-    setImgs(photos);
+    ].filter(isImg).map((f: { name: string; url: string }) => ({ ...f, source: "admin" as const }));
+    // De-dupe by url (a client image may also appear in materials).
+    const seen = new Set<string>();
+    setImgs([...client, ...admin].filter((f) => (seen.has(f.url) ? false : (seen.add(f.url), true))));
   }
 
   function toggle() {
@@ -186,9 +193,12 @@ function GalleryPicker({ orderId, onPick }: { orderId: string; onPick: (url: str
               key={img.url}
               type="button"
               onClick={() => { onPick(img.url); setOpen(false); }}
-              className="overflow-hidden rounded-lg border border-white/10 transition hover:border-cyan-500/60"
+              className="relative overflow-hidden rounded-lg border border-white/10 transition hover:border-cyan-500/60"
             >
-              <img src={img.url} alt={img.name} className="w-full aspect-square object-cover" />
+              <img src={img.url} alt={img.name} className="w-full aspect-square object-cover" onError={(e) => { (e.target as HTMLImageElement).style.opacity = "0.3"; }} />
+              {img.source === "client" && (
+                <span className="absolute left-1 top-1 rounded bg-cyan-500/80 px-1 py-0.5 text-[9px] font-bold leading-none text-white">клиент</span>
+              )}
             </button>
           ))}
         </div>

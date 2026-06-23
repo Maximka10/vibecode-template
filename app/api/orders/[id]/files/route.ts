@@ -17,8 +17,11 @@ export async function GET(
   const folders = ["logo", "photos", "documents"] as const;
   const results: Record<string, Array<{ name: string; url: string; size?: number; created_at?: string; path: string; metadata: Record<string, unknown> }>> = {};
 
-  // Fetch file metadata stored in project_data
-  const { data: pd } = await admin.from("project_data").select("content_edits").eq("order_id", id).maybeSingle();
+  // Fetch file metadata + the order (for client-uploaded assets) in parallel
+  const [{ data: pd }, { data: orderRow }] = await Promise.all([
+    admin.from("project_data").select("content_edits").eq("order_id", id).maybeSingle(),
+    admin.from("orders").select("selected_options").eq("id", id).maybeSingle(),
+  ]);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const fileMetadata: Record<string, any> = (pd?.content_edits as Record<string, any>)?.file_metadata ?? {};
 
@@ -54,7 +57,41 @@ export async function GET(
     });
   }
 
+  // Images the client uploaded in the constructor live in selected_options
+  // (hero/cover/gallery) as stable public URLs. Surface them so the admin can
+  // reuse them in the gallery picker alongside their own uploads.
+  results.client = extractClientAssets(orderRow?.selected_options).map((url) => ({
+    name: url.split("/").pop() ?? "client-image",
+    url,
+    path: "",
+    metadata: { type: "client" },
+  }));
+
   return NextResponse.json({ ok: true, files: results });
+}
+
+// Pull image URLs out of the client's saved customization (selected_options).
+function extractClientAssets(opts: unknown): string[] {
+  if (!opts || typeof opts !== "object") return [];
+  const sections = ((opts as Record<string, unknown>).sections as Array<Record<string, unknown>> | undefined) ?? [];
+  const urls: string[] = [];
+  for (const sec of sections) {
+    const content = (sec?.content as Record<string, unknown> | undefined) ?? {};
+    for (const key of ["heroImage", "coverImage", "image"]) {
+      const v = content[key];
+      if (typeof v === "string" && v) urls.push(v);
+    }
+    const images = content.images;
+    if (Array.isArray(images)) {
+      for (const im of images) {
+        if (typeof im === "string" && im) urls.push(im);
+        else if (im && typeof im === "object" && typeof (im as Record<string, unknown>).url === "string") {
+          urls.push((im as Record<string, string>).url);
+        }
+      }
+    }
+  }
+  return [...new Set(urls)].filter(Boolean);
 }
 
 export async function DELETE(
