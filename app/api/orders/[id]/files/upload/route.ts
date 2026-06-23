@@ -57,7 +57,9 @@ export async function POST(
   contentEdits.file_metadata = fileMetadata;
   await admin.from("project_data").upsert({ order_id: id, content_edits: contentEdits }, { onConflict: "order_id" });
 
-  const { data: signedData } = await admin.storage.from(BUCKET).createSignedUrl(path, 3600);
+  // Long-lived (1 year): this URL may be persisted into section data, so a
+  // short TTL would make the saved image 404 once the hour elapsed.
+  const { data: signedData } = await admin.storage.from(BUCKET).createSignedUrl(path, 60 * 60 * 24 * 365);
   const url = signedData?.signedUrl ?? admin.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
   return NextResponse.json({ ok: true, path, url, metadata: fileMetadata[path] });
 }

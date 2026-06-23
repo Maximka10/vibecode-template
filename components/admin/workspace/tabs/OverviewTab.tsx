@@ -157,9 +157,17 @@ export default function OverviewTab({ order: initialOrder, projectData }: { orde
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ orderId: order.id, action }),
       });
-      const result = await res.json();
-      if (result.ok) setOrder((prev) => ({ ...prev, status: result.status }));
-      else setActionError("Не удалось изменить статус. Попробуйте ещё раз.");
+      // "Idempotent" rejections (already in the target status) are not real
+      // failures — refresh from the server instead of showing an error.
+      const result = await res.json().catch(() => ({ ok: false, error: `HTTP ${res.status}` }));
+      if (result.ok) {
+        setOrder((prev) => ({ ...prev, status: result.status }));
+      } else if (typeof result.error === "string" && result.error.includes("idempotent")) {
+        router.refresh();
+      } else {
+        const detail = result.error ? ` (${result.error})` : ` (HTTP ${res.status})`;
+        setActionError(`Не удалось изменить статус${detail}`);
+      }
     } catch { setActionError("Ошибка соединения. Проверьте подключение к сети."); }
     finally { setStatusSaving(false); }
   }

@@ -30,7 +30,10 @@ export async function GET(
     if (error || !data) { results[folder] = []; continue; }
 
     const paths = data.map((f) => `${id}/${folder}/${f.name}`);
-    const { data: signed } = await admin.storage.from(BUCKET).createSignedUrls(paths, 3600);
+    // Long-lived (1 year): these URLs get persisted into gallery/hero section
+    // data, so a short TTL would make saved images 404 in the preview and the
+    // exported ZIP once the hour elapsed.
+    const { data: signed } = await admin.storage.from(BUCKET).createSignedUrls(paths, 60 * 60 * 24 * 365);
     const urlMap: Record<string, string> = {};
     for (const s of signed ?? []) {
       if (s.signedUrl && s.path) urlMap[s.path] = s.signedUrl;
