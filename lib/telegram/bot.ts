@@ -69,6 +69,8 @@ export async function getFileUrl(fileId: string): Promise<string | null> {
 // ── Status notification messages sent to clients ──────────────────────────────
 
 const CLIENT_STATUS_MESSAGES: Record<string, string | null> = {
+  contacted:
+    "👋 *Менеджер на связи!*\n\nМы получили вашу заявку и приступаем к подготовке. Здесь будут приходить обновления по заказу.",
   in_progress:
     "✅ *Работа над вашим сайтом началась!*\n\nСрок — 3 рабочих дня. Напишите сюда, если возникнут вопросы.",
   waiting_client:

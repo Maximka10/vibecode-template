@@ -461,10 +461,12 @@ function MessageBubble({
 
 // ── Deep-link panel (order not linked) ───────────────────────────────────────
 
-function NotLinkedPanel({ orderId }: { orderId: string }) {
+function NotLinkedPanel({ orderId, clientTelegram }: { orderId: string; clientTelegram?: string | null }) {
   const [copied, setCopied] = useState(false);
   const botUsername = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME;
   const link = botUsername ? `https://t.me/${botUsername}?start=${orderId}` : null;
+  const tgHandle = clientTelegram ? clientTelegram.replace(/^@/, "") : null;
+  const qrSrc = link ? `https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=8&data=${encodeURIComponent(link)}` : null;
 
   function copy() {
     if (!link) return;
@@ -494,8 +496,20 @@ function NotLinkedPanel({ orderId }: { orderId: string }) {
       </div>
       <h3 className="text-lg font-bold">Telegram не привязан</h3>
       <p className="mt-2 max-w-xs text-sm text-white/40">
-        Отправьте клиенту ссылку. После нажатия Start аккаунт автоматически привяжется к заказу.
+        Бот может писать клиенту только после того, как тот один раз нажмёт Start.
+        Отправьте ссылку или дайте отсканировать QR — заказ привяжется автоматически.
       </p>
+      {tgHandle && (
+        <p className="mt-3 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-sm text-white/60">
+          Клиент указал: <a href={`https://t.me/${tgHandle}`} target="_blank" rel="noopener noreferrer" className="font-semibold text-cyan-400 hover:underline">@{tgHandle}</a>
+        </p>
+      )}
+      {qrSrc && (
+        <div className="mt-5 rounded-2xl border border-white/10 bg-white p-3">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={qrSrc} alt="QR для подключения Telegram" width={160} height={160} className="h-40 w-40" />
+        </div>
+      )}
       <div className="mt-6 flex w-full max-w-md flex-col gap-2">
         <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-left font-mono text-xs text-white/60 break-all">
           {link}
@@ -795,7 +809,7 @@ export default function TelegramTab({
               </div>
             </>
           ) : (
-            <NotLinkedPanel orderId={orderId} />
+            <NotLinkedPanel orderId={orderId} clientTelegram={projectData?.telegram} />
           )}
         </div>
 
