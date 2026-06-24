@@ -1,10 +1,7 @@
 "use client";
 import { useState } from "react";
 import { Btn } from "@/components/ui/Btn";
-import { Message } from "@/components/chat/ChatWindow";
 import OverviewTab from "./tabs/OverviewTab";
-// ChatTab kept for reference but not in nav
-// import ChatTab from "./tabs/ChatTab";
 import BriefTab from "./tabs/BriefTab";
 import MaterialsTab from "./tabs/MaterialsTab";
 import DevelopmentTab from "./tabs/DevelopmentTab";
@@ -41,14 +38,10 @@ type TabId = (typeof TABS)[number]["id"];
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export default function OrderWorkspace({
   order,
-  initialMessages,
-  adminId: _adminId,
   projectData,
 }: {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   order: Record<string, any>;
-  initialMessages: Message[];
-  adminId: string;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   projectData?: Record<string, any> | null;
 }) {
@@ -107,7 +100,7 @@ export default function OrderWorkspace({
         {activeTab === "preview" && <PreviewTab orderId={order.id} />}
         {activeTab === "deploy" && <DeployTab orderId={order.id} />}
         {activeTab === "export" && <ExportTab orderId={order.id} />}
-        {activeTab === "history" && <HistoryTab order={order} messages={initialMessages} />}
+        {activeTab === "history" && <HistoryTab order={order} />}
         {activeTab === "telegram" && (
           <ErrorBoundary label="Telegram CRM">
             <TelegramTab orderId={order.id} projectData={projectData} />

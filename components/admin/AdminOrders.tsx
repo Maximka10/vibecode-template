@@ -1,6 +1,5 @@
 "use client";
-import React, { useState, useMemo, useEffect } from "react";
-import AdminChat from "@/components/chat/AdminChat";
+import React, { useState, useMemo } from "react";
 import { Btn } from "@/components/ui/Btn";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
@@ -149,11 +148,9 @@ function StatusBadge({ status }: { status: string }) {
 
 function OrderCard({
   order,
-  unread,
   onStatusChange,
 }: {
   order: Order;
-  unread: number;
   onStatusChange: (id: string, status: string) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
@@ -184,11 +181,6 @@ function OrderCard({
           <div className="flex flex-wrap items-center gap-2">
             <p className="font-bold">{order.template_name ?? order.template_id ?? "—"}</p>
             <StatusBadge status={order.status} />
-            {unread > 0 && (
-              <span className="rounded-full bg-red-500 px-2 py-0.5 text-xs font-bold text-white">
-                {unread} новых
-              </span>
-            )}
           </div>
           <p className="mt-1 text-sm text-white/50">
             {order.template_name ?? order.template_id ?? "—"}
@@ -258,9 +250,6 @@ function OrderCard({
               <p className="mt-2 text-xs text-red-400">{transitionError}</p>
             )}
           </div>
-
-          {/* Chat */}
-          <AdminChat orderId={order.id} unread={unread} />
         </div>
       )}
     </Card>
@@ -270,13 +259,11 @@ function OrderCard({
 export default function AdminOrders({
   orders: initialOrders,
   profiles,
-  unreadByOrder,
   stats,
   activeTab,
 }: {
   orders: Order[];
   profiles: Profile[];
-  unreadByOrder: Record<string, number>;
   stats: {
     total: number;
     new: number;
@@ -454,7 +441,6 @@ export default function AdminOrders({
                   <OrderCard
                     key={order.id}
                     order={order}
-                    unread={unreadByOrder[order.id] ?? 0}
                     onStatusChange={handleStatusChange}
                   />
                 ))}

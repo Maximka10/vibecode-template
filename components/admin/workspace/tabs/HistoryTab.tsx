@@ -1,5 +1,4 @@
 import { Card } from "@/components/ui/Card";
-import { Message } from "@/components/chat/ChatWindow";
 
 const STATUS_LABELS: Record<string, string> = {
   new: "Новая",
@@ -52,7 +51,7 @@ function TimelineItem({
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export default function HistoryTab({ order, messages }: { order: Record<string, any>; messages: Message[] }) {
+export default function HistoryTab({ order }: { order: Record<string, any> }) {
   const events = [
     {
       dot: "📋",
@@ -92,7 +91,6 @@ export default function HistoryTab({ order, messages }: { order: Record<string, 
       {/* Stats */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {[
-          { label: "Сообщений", value: messages.length },
           { label: "Статус", value: STATUS_LABELS[order.status] ?? order.status },
           { label: "Стоимость", value: order.total_price ? `${Number(order.total_price).toLocaleString("ru-RU")} ₽` : "—" },
           { label: "Шаблон", value: order.template_id ?? "—" },
@@ -113,26 +111,6 @@ export default function HistoryTab({ order, messages }: { order: Record<string, 
           ))}
         </div>
       </Card>
-
-      {/* Messages preview */}
-      {messages.length > 0 && (
-        <Card variant="solid" padding="md">
-          <h3 className="mb-3 text-xs font-semibold uppercase tracking-widest text-white/40">
-            Последние сообщения ({messages.length})
-          </h3>
-          <div className="space-y-2">
-            {messages.slice(-5).map((m) => (
-              <div key={m.id} className="flex items-start gap-3">
-                <div className={`mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full ${m.sender_id ? "bg-cyan-400" : "bg-white/30"}`} />
-                <div className="min-w-0">
-                  <p className="truncate text-sm text-white/75">{m.text}</p>
-                  <p className="text-xs text-white/25">{new Date(m.created_at).toLocaleString("ru-RU")}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </Card>
-      )}
     </div>
   );
 }

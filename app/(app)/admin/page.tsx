@@ -16,21 +16,14 @@ export default async function AdminPage({
   const admin = createAdminClient();
   const { tab = "orders" } = await searchParams;
 
-  const [ordersRes, profilesRes, messagesRes, tgLinkedRes] = await Promise.all([
+  const [ordersRes, profilesRes, tgLinkedRes] = await Promise.all([
     admin.from("orders").select("*").order("created_at", { ascending: false }),
     admin.from("profiles").select("*").order("created_at", { ascending: false }),
-    admin.from("messages").select("order_id").eq("is_read", false),
     admin.from("orders").select("id", { count: "exact", head: true }).not("telegram_client_id", "is", null),
   ]);
 
   const orders = ordersRes.data ?? [];
   const profiles = profilesRes.data ?? [];
-  const unreadMessages = messagesRes.data ?? [];
-
-  const unreadByOrder = unreadMessages.reduce<Record<string, number>>(
-    (acc, m) => ({ ...acc, [m.order_id]: (acc[m.order_id] ?? 0) + 1 }),
-    {}
-  );
 
   const stats = {
     total: orders.length,
@@ -56,7 +49,6 @@ export default async function AdminPage({
     <AdminOrders
       orders={orders}
       profiles={profiles}
-      unreadByOrder={unreadByOrder}
       stats={stats}
       activeTab={tab}
     />
