@@ -4,6 +4,12 @@ import { DesignTheme, DESIGN_THEMES, fontStack, googleFontsHref } from "@/lib/ex
 export type SiteJson = {
   meta: { title: string; description: string; domain: string };
   branding: { primary: string; secondary: string; accent?: string };
+  theme?: {
+    bgBase: string; bgSurface: string; bgBorder: string;
+    textPrimary: string; textSecondary: string;
+    glowPrimary: string; glowSecondary: string;
+    gradientFrom: string; gradientTo: string;
+  };
   font?: string;
   logo?: string;
   design?: DesignTheme;
@@ -1047,7 +1053,7 @@ function genPostcssConfig(): string {
 `;
 }
 
-function genGlobalsCSS(primary: string, secondary: string, design: DesignTheme, font?: string): string {
+function genGlobalsCSS(primary: string, secondary: string, design: DesignTheme, theme: SiteJson["theme"], font?: string): string {
   // Heading font from the design theme; body font respects the client's pick.
   const headFont = design.headingFont;
   const bodyFont = font || design.bodyFont;
@@ -1057,6 +1063,12 @@ function genGlobalsCSS(primary: string, secondary: string, design: DesignTheme, 
   const uppercase = design.uppercaseHeads
     ? "  text-transform: uppercase;\n  letter-spacing: -0.01em;"
     : "  letter-spacing: -0.02em;";
+  const th = theme ?? {
+    bgBase: "#0b1020", bgSurface: "#141b2e", bgBorder: "rgba(255,255,255,0.1)",
+    textPrimary: "#f8fafc", textSecondary: "#cbd5e1",
+    glowPrimary: "rgba(124,58,237,0.3)", glowSecondary: "rgba(34,211,238,0.22)",
+    gradientFrom: primary, gradientTo: secondary,
+  };
 
   return `@import url("${importHref}");
 @tailwind base;
@@ -1066,6 +1078,15 @@ function genGlobalsCSS(primary: string, secondary: string, design: DesignTheme, 
 :root {
   --primary: ${primary};
   --secondary: ${secondary};
+  --bg-base: ${th.bgBase};
+  --bg-surface: ${th.bgSurface};
+  --bg-border: ${th.bgBorder};
+  --text-primary: ${th.textPrimary};
+  --text-secondary: ${th.textSecondary};
+  --glow-primary: ${th.glowPrimary};
+  --glow-secondary: ${th.glowSecondary};
+  --grad-from: ${th.gradientFrom};
+  --grad-to: ${th.gradientTo};
   --font-head: ${fontStack(headFont)};
   --font-body: ${fontStack(bodyFont)};
   --radius: ${radius};
@@ -1076,8 +1097,19 @@ function genGlobalsCSS(primary: string, secondary: string, design: DesignTheme, 
 html { scroll-behavior: smooth; }
 body {
   font-family: var(--font-body);
-  background: #ffffff;
+  background: var(--bg-base);
+  color: var(--text-primary);
 }
+
+/* ── Theme remap: flip the hardcoded light section colours to the theme ── */
+.bg-white { background: var(--bg-surface) !important; }
+.bg-slate-50 { background: var(--bg-base) !important; }
+.bg-slate-100 { background: var(--bg-surface) !important; }
+.bg-slate-900 { background: color-mix(in srgb, var(--bg-base) 80%, #000) !important; }
+.bg-slate-200 { background: var(--bg-surface) !important; }
+.text-slate-900, .text-slate-800 { color: var(--text-primary) !important; }
+.text-slate-700, .text-slate-600, .text-slate-500, .text-slate-400, .text-slate-300 { color: var(--text-secondary) !important; }
+.border-slate-100, .border-slate-200, .border-slate-300 { border-color: var(--bg-border) !important; }
 
 h1, h2, h3, .font-head {
   font-family: var(--font-head);
@@ -1121,7 +1153,7 @@ ${design.bg === "mesh" ? `.site-bg {
   box-shadow: 0 0 18px color-mix(in srgb, var(--primary) calc(70% * var(--glow)), transparent);
 }
 .grad-text {
-  background: linear-gradient(120deg, var(--primary), var(--secondary));
+  background: linear-gradient(120deg, var(--text-primary), var(--grad-to));
   -webkit-background-clip: text; background-clip: text; color: transparent;
 }
 .glow-card { transition: transform .3s ease, box-shadow .3s ease, border-color .3s ease; }
@@ -1196,7 +1228,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ru">
-      <body className="bg-white text-slate-900 antialiased">
+      <body className="antialiased">
         <div className="site-bg" aria-hidden="true" />
         ${hasNav ? `<Navigation />` : ""}
         <div${hasNav ? ` className="relative pt-[72px]"` : ` className="relative"`}>{children}</div>
@@ -1443,7 +1475,7 @@ export function generateProject(site: SiteJson): Record<string, string> {
   // App shell
   files["app/layout.tsx"] = genLayout(site, hasNav, hasMobileCTA);
   files["app/page.tsx"] = genPage(enabledSections);
-  files["app/globals.css"] = genGlobalsCSS(primary, secondary, design, site.font);
+  files["app/globals.css"] = genGlobalsCSS(primary, secondary, design, site.theme, site.font);
 
   // Navigation
   if (hasNav) {
