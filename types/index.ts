@@ -23,7 +23,7 @@ export interface TemplateStyle {
   galleryStyle: "masonry" | "grid" | "film";
 }
 
-export type SectionType = "hero"|"stats"|"about"|"gallery"|"services"|"hosting-service"|"templates-gallery"|"calculator"|"footer"|"reviews";
+export type SectionType = "hero"|"stats"|"about"|"gallery"|"services"|"pricing"|"faq"|"contacts"|"hosting-service"|"templates-gallery"|"calculator"|"footer"|"reviews";
 export interface Section { id: string; type: SectionType; content: Record<string, unknown> }
 export interface Template { id: string; name: string; category: string; description: string; thumbnail: string; theme: ThemeTokens; style: TemplateStyle; sections: Section[]; tags?: string[]; featured?: boolean; priceFrom?: number; deliveryDays?: number; }
 export type Role = "admin" | "client";

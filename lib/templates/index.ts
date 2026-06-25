@@ -91,6 +91,18 @@ const universal: Template = {
       },
     },
     {
+      id: `${UNIVERSAL_TEMPLATE_ID}-pricing`,
+      type: "pricing",
+      content: {
+        title: "Тарифы",
+        plans: [
+          { name: "Старт", price: "от 14 900 ₽", features: ["Лендинг под ключ", "Адаптив под мобильные", "Форма заявки", "Домен и хостинг на 1 год"] },
+          { name: "Бизнес", price: "от 29 900 ₽", features: ["Всё из «Старт»", "До 6 секций", "Подключение Telegram", "Базовое SEO", "Приоритетная поддержка"] },
+          { name: "Премиум", price: "от 49 900 ₽", features: ["Всё из «Бизнес»", "Индивидуальный дизайн", "Копирайтинг", "Интеграции", "Менеджер проекта"] },
+        ],
+      },
+    },
+    {
       id: `${UNIVERSAL_TEMPLATE_ID}-gallery`,
       type: "gallery",
       content: {
@@ -119,9 +131,26 @@ const universal: Template = {
       },
     },
     {
+      id: `${UNIVERSAL_TEMPLATE_ID}-faq`,
+      type: "faq",
+      content: {
+        title: "Частые вопросы",
+        items: [
+          { question: "Сколько занимает запуск?", answer: "Обычно 3 рабочих дня после согласования контента." },
+          { question: "Нужна ли предоплата?", answer: "Нет. Оплата только после того, как вы приняли готовый сайт." },
+          { question: "Домен и хостинг входят в стоимость?", answer: "Да — регистрация домена и хостинг на 1 год включены." },
+        ],
+      },
+    },
+    {
       id: `${UNIVERSAL_TEMPLATE_ID}-calc`,
       type: "calculator",
       content: { title: "Рассчитайте стоимость" },
+    },
+    {
+      id: `${UNIVERSAL_TEMPLATE_ID}-contacts`,
+      type: "contacts",
+      content: { title: "Контакты", phone: "", email: "", telegram: "", address: "" },
     },
     {
       id: `${UNIVERSAL_TEMPLATE_ID}-footer`,

@@ -24,7 +24,7 @@ function isDarkBg(hex?: string): boolean {
 }
 
 type Device = "desktop" | "mobile";
-type Tab = "hero" | "about" | "services" | "gallery" | "order" | "colors" | "lead";
+type Tab = "hero" | "about" | "services" | "gallery" | "pricing" | "faq" | "contacts" | "order" | "colors" | "lead";
 type OrderStep = "form" | "company" | "confirm" | "done";
 
 const SECTION_TABS: { id: Tab; label: string }[] = [
@@ -32,10 +32,16 @@ const SECTION_TABS: { id: Tab; label: string }[] = [
   { id: "about", label: "О нас" },
   { id: "services", label: "Услуги" },
   { id: "gallery", label: "Галерея" },
+  { id: "pricing", label: "Цены" },
+  { id: "faq", label: "FAQ" },
+  { id: "contacts", label: "Контакты" },
   { id: "order", label: "Порядок секций" },
   { id: "colors", label: "Цвета" },
   { id: "lead", label: "Заявка" },
 ];
+
+type Plan = { name: string; price: string; features: string[] };
+type FaqItem = { question: string; answer: string };
 
 // Russian labels for every section type that can appear in the reorder list
 const SECTION_LABELS: Record<string, string> = {
@@ -44,6 +50,9 @@ const SECTION_LABELS: Record<string, string> = {
   about: "О нас",
   gallery: "Галерея",
   services: "Услуги",
+  pricing: "Цены",
+  faq: "FAQ",
+  contacts: "Контакты",
   "hosting-service": "Хостинг и домен",
   "templates-gallery": "Примеры работ",
   calculator: "Калькулятор",
@@ -136,6 +145,11 @@ export default function CustomizeClient({
   const hero = getSectionContent(template, "hero");
   const about = getSectionContent(template, "about");
   const services = getSectionContent(template, "services");
+  const pricing = getSectionContent(template, "pricing");
+  const faq = getSectionContent(template, "faq");
+  const contacts = getSectionContent(template, "contacts");
+  const plans = (pricing.plans as Plan[]) ?? [];
+  const faqItems = (faq.items as FaqItem[]) ?? [];
 
   async function handleOrder() {
     setSubmitting(true);
@@ -453,6 +467,103 @@ export default function CustomizeClient({
                 </>
               );
             })()}
+
+            {/* ── Pricing ── */}
+            {tab === "pricing" && (
+              <>
+                <Input
+                  label="Заголовок раздела"
+                  value={String(pricing.title ?? "Цены")}
+                  onChange={(e) => setTemplate(updateSectionContent(template, "pricing", "title", e.target.value))}
+                />
+                {plans.map((p, i) => (
+                  <div key={i} className="rounded-xl border border-white/10 bg-white/4 p-3 space-y-2">
+                    <div className="flex gap-2">
+                      <Input
+                        label="Тариф"
+                        className="flex-1"
+                        value={p.name}
+                        onChange={(e) => setTemplate(updateSectionContent(template, "pricing", "plans", plans.map((x, j) => j === i ? { ...x, name: e.target.value } : x)))}
+                      />
+                      <Input
+                        label="Цена"
+                        value={p.price}
+                        onChange={(e) => setTemplate(updateSectionContent(template, "pricing", "plans", plans.map((x, j) => j === i ? { ...x, price: e.target.value } : x)))}
+                      />
+                    </div>
+                    <Textarea
+                      label="Что входит (по одному в строку)"
+                      rows={4}
+                      value={(p.features ?? []).join("\n")}
+                      onChange={(e) => setTemplate(updateSectionContent(template, "pricing", "plans", plans.map((x, j) => j === i ? { ...x, features: e.target.value.split("\n").filter(Boolean) } : x)))}
+                    />
+                    <button
+                      onClick={() => setTemplate(updateSectionContent(template, "pricing", "plans", plans.filter((_, j) => j !== i)))}
+                      className="text-xs text-red-400/70 hover:text-red-400"
+                    >
+                      ✕ Удалить тариф
+                    </button>
+                  </div>
+                ))}
+                <Btn
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setTemplate(updateSectionContent(template, "pricing", "plans", [...plans, { name: "", price: "", features: [] }]))}
+                >
+                  + Добавить тариф
+                </Btn>
+              </>
+            )}
+
+            {/* ── FAQ ── */}
+            {tab === "faq" && (
+              <>
+                <Input
+                  label="Заголовок раздела"
+                  value={String(faq.title ?? "Частые вопросы")}
+                  onChange={(e) => setTemplate(updateSectionContent(template, "faq", "title", e.target.value))}
+                />
+                {faqItems.map((f, i) => (
+                  <div key={i} className="rounded-xl border border-white/10 bg-white/4 p-3 space-y-2">
+                    <Input
+                      label="Вопрос"
+                      value={f.question}
+                      onChange={(e) => setTemplate(updateSectionContent(template, "faq", "items", faqItems.map((x, j) => j === i ? { ...x, question: e.target.value } : x)))}
+                    />
+                    <Textarea
+                      label="Ответ"
+                      rows={3}
+                      value={f.answer}
+                      onChange={(e) => setTemplate(updateSectionContent(template, "faq", "items", faqItems.map((x, j) => j === i ? { ...x, answer: e.target.value } : x)))}
+                    />
+                    <button
+                      onClick={() => setTemplate(updateSectionContent(template, "faq", "items", faqItems.filter((_, j) => j !== i)))}
+                      className="text-xs text-red-400/70 hover:text-red-400"
+                    >
+                      ✕ Удалить вопрос
+                    </button>
+                  </div>
+                ))}
+                <Btn
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setTemplate(updateSectionContent(template, "faq", "items", [...faqItems, { question: "", answer: "" }]))}
+                >
+                  + Добавить вопрос
+                </Btn>
+              </>
+            )}
+
+            {/* ── Contacts ── */}
+            {tab === "contacts" && (
+              <>
+                <Input label="Заголовок раздела" value={String(contacts.title ?? "Контакты")} onChange={(e) => setTemplate(updateSectionContent(template, "contacts", "title", e.target.value))} />
+                <Input label="Телефон" value={String(contacts.phone ?? "")} onChange={(e) => setTemplate(updateSectionContent(template, "contacts", "phone", e.target.value))} placeholder="+7 (999) 000-00-00" />
+                <Input label="Email" value={String(contacts.email ?? "")} onChange={(e) => setTemplate(updateSectionContent(template, "contacts", "email", e.target.value))} placeholder="info@company.ru" />
+                <Input label="Telegram" value={String(contacts.telegram ?? "")} onChange={(e) => setTemplate(updateSectionContent(template, "contacts", "telegram", e.target.value))} placeholder="@username" />
+                <Input label="Адрес (появится карта)" value={String(contacts.address ?? "")} onChange={(e) => setTemplate(updateSectionContent(template, "contacts", "address", e.target.value))} placeholder="г. Москва, ул. Примерная, 1" />
+              </>
+            )}
 
             {/* ── Section order ── */}
             {tab === "order" && (

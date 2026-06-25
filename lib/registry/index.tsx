@@ -101,9 +101,9 @@ function Stats({ section, template }: Props) {
     <Wrap template={template}>
       <div className={template.style.statsLayout === "inline" ? "flex flex-wrap gap-4" : "grid grid-cols-2 sm:grid-cols-4 gap-4"}>
         {items.map((it, i) => (
-          <div key={i} className={`${getCardClass(template.style)} p-5 text-center`}>
+          <div key={i} className={`vibe-card ${getCardClass(template.style)} p-5 text-center`}>
             <div className="text-2xl sm:text-3xl font-black">
-              <span className="whitespace-nowrap">
+              <span className="whitespace-nowrap" style={{ backgroundImage: "linear-gradient(120deg, var(--gradient-from), var(--gradient-to))", WebkitBackgroundClip: "text", backgroundClip: "text", color: "transparent" }}>
                 {String(it.prefix ?? "")}{String(it.value ?? "")}{String(it.suffix ?? "")}
               </span>
             </div>
@@ -123,7 +123,7 @@ function About({ section, template }: Props) {
   if (!title && !text && !hasCover) return null;
   return (
     <Wrap template={template}>
-      <div className={`${getCardClass(template.style)} overflow-hidden`}>
+      <div className={`vibe-card ${getCardClass(template.style)} overflow-hidden`}>
         {hasCover && (
           <div className="w-full aspect-[16/9] overflow-hidden">
             <img src={coverImage} alt="" className="w-full h-full object-cover" />
@@ -167,7 +167,7 @@ function Gallery({ section, template }: Props) {
         {items.map((x, i) => (
           <div
             key={`${x.url}-${i}`}
-            className={`${getRadiusClass(template.style)} ${film ? "w-[min(280px,72vw)] shrink-0" : ""} ${masonry ? "break-inside-avoid" : ""} aspect-[4/3] overflow-hidden relative bg-gradient-to-br from-[var(--primary)]/30 to-[var(--secondary)]/15`}
+            className={`vibe-tile ${getRadiusClass(template.style)} ${film ? "w-[min(280px,72vw)] shrink-0" : ""} ${masonry ? "break-inside-avoid" : ""} aspect-[4/3] overflow-hidden relative bg-gradient-to-br from-[var(--primary)]/30 to-[var(--secondary)]/15`}
           >
             <img src={x.url} alt={x.title ?? `Gallery ${i + 1}`} className="w-full h-full object-cover" />
           </div>
@@ -187,7 +187,7 @@ function Services({ section, template }: Props) {
       </h2>
       <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
         {items.map((x, i) => (
-          <div key={`${x}-${i}`} className={`${getCardClass(template.style)} p-5 flex items-start gap-3`}>
+          <div key={`${x}-${i}`} className={`vibe-card ${getCardClass(template.style)} p-5 flex items-start gap-3`}>
             <span className="mt-0.5 text-[var(--primary)] font-bold">✓</span>
             <span className="whitespace-pre-line">{x}</span>
           </div>
@@ -222,7 +222,7 @@ function Reviews({ section, template }: Props) {
       </h2>
       <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
         {items.map((x, i) => (
-          <blockquote key={i} className={`${getCardClass(template.style)} p-5`}>
+          <blockquote key={i} className={`vibe-card ${getCardClass(template.style)} p-5`}>
             <p className="text-[var(--text-secondary)] whitespace-pre-line">«{itemText(x)}»</p>
             <div className="mt-3 flex gap-1">
               {[1,2,3,4,5].map((s) => (
@@ -236,12 +236,108 @@ function Reviews({ section, template }: Props) {
   );
 }
 
+function Pricing({ section, template }: Props) {
+  const plans = (section.content.plans as { name?: string; price?: string; features?: string[] }[]) ?? [];
+  if (plans.length === 0) return null;
+  return (
+    <Wrap template={template}>
+      <h2 className={getHeadingClass(template.style)}>{String(section.content.title ?? "Цены")}</h2>
+      <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {plans.map((p, i) => (
+          <div
+            key={i}
+            className={`vibe-card ${getCardClass(template.style)} p-6 flex flex-col`}
+            style={i === 1 ? { borderColor: "var(--primary)", boxShadow: "0 18px 50px var(--glow-primary)" } : undefined}
+          >
+            {i === 1 && (
+              <span className="mb-3 inline-flex w-fit rounded-full px-3 py-0.5 text-xs font-bold text-white" style={{ backgroundImage: "linear-gradient(120deg, var(--gradient-from), var(--gradient-to))" }}>
+                Популярный
+              </span>
+            )}
+            <p className="font-bold">{String(p.name ?? "")}</p>
+            <p className="mt-1 text-3xl font-black" style={{ color: "var(--primary)" }}>{String(p.price ?? "")}</p>
+            <ul className="mt-4 space-y-2 flex-1">
+              {(p.features ?? []).map((f, j) => (
+                <li key={j} className="flex items-start gap-2 text-sm text-[var(--text-secondary)]">
+                  <span className="font-bold" style={{ color: "var(--primary)" }}>✓</span>
+                  <span>{String(f)}</span>
+                </li>
+              ))}
+            </ul>
+            <a href="#lead" className="mt-5 block rounded-full py-2.5 text-center text-sm font-bold text-white transition hover:-translate-y-0.5" style={{ backgroundImage: "linear-gradient(120deg, var(--gradient-from), var(--gradient-to))", boxShadow: "0 10px 26px var(--glow-primary)" }}>
+              Выбрать
+            </a>
+          </div>
+        ))}
+      </div>
+    </Wrap>
+  );
+}
+
+function FAQ({ section, template }: Props) {
+  const items = (section.content.items as { question?: string; answer?: string }[]) ?? [];
+  if (items.length === 0) return null;
+  return (
+    <Wrap template={template}>
+      <h2 className={getHeadingClass(template.style)}>{String(section.content.title ?? "Вопросы и ответы")}</h2>
+      <div className="mt-6 space-y-3 max-w-3xl">
+        {items.map((f, i) => (
+          <div key={i} className={`vibe-card ${getCardClass(template.style)} p-5`}>
+            <p className="font-bold">{String(f.question ?? "")}</p>
+            {!!f.answer && <p className="mt-2 text-[var(--text-secondary)] whitespace-pre-line">{String(f.answer)}</p>}
+          </div>
+        ))}
+      </div>
+    </Wrap>
+  );
+}
+
+function Contacts({ section, template }: Props) {
+  const c = section.content;
+  const address = String(c.address ?? "");
+  const items = [
+    c.phone && { icon: "📞", label: "Телефон", value: String(c.phone) },
+    c.email && { icon: "✉️", label: "Email", value: String(c.email) },
+    c.telegram && { icon: "💬", label: "Telegram", value: String(c.telegram) },
+    c.whatsapp && { icon: "📱", label: "WhatsApp", value: String(c.whatsapp) },
+    address && { icon: "📍", label: "Адрес", value: address },
+  ].filter(Boolean) as { icon: string; label: string; value: string }[];
+  if (items.length === 0 && !address) return null;
+  const mapSrc = address ? `https://yandex.ru/map-widget/v1/?text=${encodeURIComponent(address)}&z=15&lang=ru_RU` : null;
+  return (
+    <Wrap template={template}>
+      <h2 id="contacts" className={getHeadingClass(template.style)}>{String(c.title ?? "Контакты")}</h2>
+      <div className="mt-6 grid gap-4 md:grid-cols-2">
+        <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-1">
+          {items.map((it, i) => (
+            <div key={i} className={`vibe-card ${getCardClass(template.style)} p-4 flex items-center gap-3`}>
+              <span className="text-xl">{it.icon}</span>
+              <div className="min-w-0">
+                <p className="text-xs text-[var(--text-secondary)]">{it.label}</p>
+                <p className="font-semibold truncate" style={{ color: "var(--primary)" }}>{it.value}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+        {mapSrc && (
+          <div className={`${getRadiusClass(template.style)} overflow-hidden border border-[var(--bg-border)]`}>
+            <iframe src={mapSrc} className="h-64 w-full md:h-full border-0" loading="lazy" title="Карта" />
+          </div>
+        )}
+      </div>
+    </Wrap>
+  );
+}
+
 export const SectionRegistry = {
   hero: Hero,
   stats: Stats,
   about: About,
   gallery: Gallery,
   services: Services,
+  pricing: Pricing,
+  faq: FAQ,
+  contacts: Contacts,
   "hosting-service": Simple,
   "templates-gallery": Simple,
   calculator: Simple,
@@ -260,6 +356,14 @@ const REGISTRY_CSS = `
   margin: 0 auto;
   background: linear-gradient(90deg, transparent, var(--bg-border), transparent);
 }
+.vibe-card { transition: transform .3s ease, box-shadow .3s ease, border-color .3s ease; }
+.vibe-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 22px 55px var(--glow-primary);
+  border-color: color-mix(in srgb, var(--primary) 45%, var(--bg-border));
+}
+.vibe-tile { transition: transform .35s ease, box-shadow .35s ease; }
+.vibe-tile:hover { transform: scale(1.03); box-shadow: 0 18px 44px var(--glow-secondary); }
 @media (prefers-reduced-motion: reduce) {
   .vibe-site * { animation: none !important; }
 }
