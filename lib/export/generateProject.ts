@@ -29,7 +29,7 @@ const SECTION_NAV: Partial<Record<SectionType, { href: string; label: string }>>
 
 function genNavigation(site: SiteJson, sections: SiteSection[]): string {
   const navItems = sections
-    .filter((s) => s.enabled && SECTION_NAV[s.type as SectionType])
+    .filter((s) => s.enabled !== false && SECTION_NAV[s.type as SectionType])
     .map((s) => SECTION_NAV[s.type as SectionType]!);
 
   const itemsJson = JSON.stringify(navItems);
@@ -1210,7 +1210,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 }
 
 function genPage(sections: SiteSection[]): string {
-  const enabled = sections.filter((s) => s.enabled);
+  const enabled = sections.filter((s) => s.enabled !== false);
 
   // Deduplicate imports — multiple sections of same type share one component file
   const seenTypes = new Set<string>();
@@ -1416,7 +1416,7 @@ export function generateProject(site: SiteJson): Record<string, string> {
   const primary = site.branding.primary || "#6366f1";
   const secondary = site.branding.secondary || "#8b5cf6";
   const design = site.design ?? DESIGN_THEMES[0];
-  const enabledSections = site.sections.filter((s) => s.enabled);
+  const enabledSections = site.sections.filter((s) => s.enabled !== false);
 
   const hasNav = enabledSections.some((s) => SECTION_NAV[s.type as SectionType]);
   const hasMobileCTA = !!(site.contacts.phone || site.contacts.telegram);

@@ -491,7 +491,7 @@ export default function SitePreview({
             </div>
           )}
           {sections && sections.length > 0
-            ? sections.filter((s) => s.enabled).map((s) => renderSection(s, primary, secondary, contactLink))
+            ? sections.filter((s) => s.enabled !== false).map((s) => renderSection(s, primary, secondary, contactLink))
             : (
               /* Fallback when no sections configured yet */
               <>
