@@ -27,6 +27,7 @@ export type BuildData = {
     secondary_color: string;
   };
   font?: string;
+  logo?: string;
   seo: {
     title: string;
     description: string;
@@ -85,6 +86,7 @@ export function buildOrderSite(
 
   const pd = projectData ?? {};
   const ce = pd.content_edits ?? {};
+  const opts = (order.selected_options as Record<string, unknown> | undefined) ?? {};
   const designOverride = (ce as { design_theme?: string })?.design_theme;
 
   return {
@@ -112,7 +114,8 @@ export function buildOrderSite(
       primary_color: pd.branding?.primary_color ?? "#6366f1",
       secondary_color: pd.branding?.secondary_color ?? "#8b5cf6",
     },
-    font: pd.font ?? undefined,
+    font: pd.font ?? (opts.font as string | undefined) ?? undefined,
+    logo: ((ce as { logo?: string })?.logo) ?? (opts.logo as string | undefined) ?? undefined,
     seo: {
       title: pd.seo_title ?? ce.hero?.title ?? pd.company_name ?? order.template_name ?? "",
       description: pd.seo_description ?? ce.about?.text ?? pd.company_description ?? "",

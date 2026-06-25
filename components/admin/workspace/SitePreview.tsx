@@ -480,6 +480,12 @@ export default function SitePreview({
 
         {/* Content */}
         <div>
+          {data.logo && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <div className="flex items-center border-b border-slate-100 bg-white px-6 py-3">
+              <img src={data.logo} alt="" className="h-8 w-auto object-contain" />
+            </div>
+          )}
           {sections && sections.length > 0
             ? sections.filter((s) => s.enabled).map((s) => renderSection(s, primary, secondary, contactLink))
             : (

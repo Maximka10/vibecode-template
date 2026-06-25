@@ -36,6 +36,9 @@ export async function POST(
   // Extract sections from content_edits
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const contentEdits = (pd.content_edits as Record<string, any>) ?? {};
+  // Font/logo the client chose in the constructor live in selected_options.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const opts = (order.selected_options as Record<string, any>) ?? {};
   const allSections: SiteSection[] = contentEdits.sections ?? [];
   const sections = allSections.filter((s) => s.enabled !== false);
   if (allSections.length === 0) {
@@ -53,7 +56,8 @@ export async function POST(
       primary: pd.branding?.primary_color ?? "#6366f1",
       secondary: pd.branding?.secondary_color ?? "#8b5cf6",
     },
-    font: pd.font ?? undefined,
+    font: pd.font ?? opts.font ?? undefined,
+    logo: contentEdits.logo ?? opts.logo ?? undefined,
     design: resolveDesignTheme(contentEdits.design_theme, order.template_id),
     contact_link: pd.contact_link ?? undefined,
     company: {

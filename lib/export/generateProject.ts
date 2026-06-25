@@ -5,6 +5,7 @@ export type SiteJson = {
   meta: { title: string; description: string; domain: string };
   branding: { primary: string; secondary: string; accent?: string };
   font?: string;
+  logo?: string;
   design?: DesignTheme;
   contact_link?: string;
   company: { name: string; description: string; address: string; working_hours: string };
@@ -33,11 +34,14 @@ function genNavigation(site: SiteJson, sections: SiteSection[]): string {
 
   const itemsJson = JSON.stringify(navItems);
   const companyName = JSON.stringify(site.company.name || "Компания");
+  const logoJson = JSON.stringify(site.logo ?? "");
 
   return `"use client";
 import { useState, useEffect } from "react";
 
 const NAV_ITEMS = ${itemsJson};
+const LOGO = ${logoJson};
+const COMPANY = ${companyName};
 
 export default function Navigation() {
   const [open, setOpen] = useState(false);
@@ -58,13 +62,8 @@ export default function Navigation() {
       }\`}
     >
       <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
-        <a
-          href="#"
-          onClick={close}
-          className="text-lg font-black"
-          style={{ color: "var(--primary)" }}
-        >
-          {${companyName}}
+        <a href="#" onClick={close} className="flex items-center gap-2 text-lg font-black" style={{ color: "var(--primary)" }}>
+          {LOGO ? <img src={LOGO} alt={COMPANY} className="h-8 w-auto object-contain" /> : COMPANY}
         </a>
 
         {/* Desktop nav */}
@@ -110,8 +109,8 @@ export default function Navigation() {
       >
         <div className="flex h-full flex-col px-6 py-6">
           <div className="mb-6 flex items-center justify-between">
-            <span className="text-lg font-black" style={{ color: "var(--primary)" }}>
-              {${companyName}}
+            <span className="flex items-center gap-2 text-lg font-black" style={{ color: "var(--primary)" }}>
+              {LOGO ? <img src={LOGO} alt={COMPANY} className="h-8 w-auto object-contain" /> : COMPANY}
             </span>
             <button
               onClick={close}
@@ -746,11 +745,12 @@ export default function Map({ section }: { section: SiteSection }) {
 }
 `,
 
-  footer: (s, _site) => {
+  footer: (s, site) => {
     const phone = (s.content as { phone?: string }).phone ?? "";
     const email = (s.content as { email?: string }).email ?? "";
     const phoneStr = JSON.stringify(phone);
     const emailStr = JSON.stringify(email);
+    const logoStr = JSON.stringify(site.logo ?? "");
     return `import { SiteSection } from "@/types";
 
 export default function Footer({ section }: { section: SiteSection }) {
@@ -759,15 +759,20 @@ export default function Footer({ section }: { section: SiteSection }) {
   };
   const tel = phone || ${phoneStr};
   const mail = email || ${emailStr};
+  const logo = ${logoStr};
   const year = new Date().getFullYear();
   return (
     <footer className="bg-slate-900 px-4 pt-12 pb-8 text-slate-400 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-5xl">
         <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
           <div className="lg:col-span-2">
-            <span className="text-lg font-black" style={{ color: "var(--primary)" }}>
-              {company_name}
-            </span>
+            {logo ? (
+              <img src={logo} alt={company_name} className="h-9 w-auto object-contain" />
+            ) : (
+              <span className="text-lg font-black" style={{ color: "var(--primary)" }}>
+                {company_name}
+              </span>
+            )}
             <p className="mt-2 text-sm text-slate-500 max-w-xs">
               Профессиональные услуги для вашего бизнеса
             </p>
