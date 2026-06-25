@@ -51,42 +51,43 @@ function SectionHero({ content, primary, secondary, contactLink }: { content: Re
   const heroImage = s(content.heroImage);
   return (
     <div
-      className="relative overflow-hidden px-6 py-16 text-white sm:px-8 sm:py-20"
+      className="relative overflow-hidden px-6 py-20 text-white sm:px-8 sm:py-24"
       style={{ background: `linear-gradient(135deg, ${primary}, ${secondary})` }}
     >
       {heroImage && (
         // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={heroImage}
-          alt=""
-          className="absolute inset-0 h-full w-full object-cover opacity-20"
-        />
+        <img src={heroImage} alt="" className="absolute inset-0 h-full w-full object-cover opacity-20" />
       )}
+      {/* Animated glow orbs */}
+      <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="vp-orb absolute -top-24 left-[10%] h-80 w-80 rounded-full bg-white/15 blur-3xl" />
+        <div className="vp-orb absolute -bottom-28 right-[8%] h-72 w-72 rounded-full bg-black/15 blur-3xl" style={{ animationDirection: "reverse" }} />
+      </div>
       <div className="relative mx-auto max-w-4xl">
+        <div className="mb-6 flex flex-wrap gap-2">
+          {[{ icon: "★", text: "5.0 рейтинг" }, { icon: "✓", text: "Гарантия" }, { icon: "🚀", text: "Быстро" }].map((b) => (
+            <span key={b.text} className="inline-flex items-center gap-1.5 rounded-full border border-white/25 bg-white/10 px-3 py-1 text-xs font-semibold backdrop-blur-sm">
+              <span>{b.icon}</span><span>{b.text}</span>
+            </span>
+          ))}
+        </div>
         {!!content.title && (
-          <h1 className="text-3xl font-black leading-tight sm:text-4xl lg:text-5xl break-words whitespace-pre-line">{s(content.title)}</h1>
+          <h1 className="text-3xl font-black leading-[1.08] tracking-tight sm:text-4xl lg:text-6xl break-words whitespace-pre-line">{s(content.title)}</h1>
         )}
         {!!content.subtitle && (
-          <p className="mt-4 max-w-2xl text-sm leading-relaxed opacity-85 sm:text-base whitespace-pre-line">{s(content.subtitle)}</p>
+          <p className="mt-5 max-w-2xl text-sm leading-relaxed opacity-90 sm:text-lg whitespace-pre-line">{s(content.subtitle)}</p>
         )}
         {!!content.cta_text && (
           <div className="mt-8">
             <a
               href={href}
-              className="inline-flex items-center gap-2 rounded-full px-8 py-3 text-sm font-bold shadow-lg transition hover:opacity-90"
-              style={{ backgroundColor: "white", color: primary }}
+              className="inline-flex items-center gap-2 rounded-full bg-white px-8 py-3.5 text-sm font-bold transition hover:-translate-y-0.5"
+              style={{ color: primary, boxShadow: "0 14px 40px rgba(0,0,0,0.28)" }}
             >
               {ctaIcon(href)}{s(content.cta_text)}
             </a>
           </div>
         )}
-        <div className="mt-10 flex flex-wrap gap-4 opacity-70">
-          {[{ icon: "⭐", text: "5.0 рейтинг" }, { icon: "✓", text: "Гарантия" }, { icon: "🚀", text: "Быстро" }].map((b) => (
-            <div key={b.text} className="flex items-center gap-1.5 text-xs font-semibold">
-              <span>{b.icon}</span><span>{b.text}</span>
-            </div>
-          ))}
-        </div>
       </div>
     </div>
   );
@@ -454,6 +455,9 @@ export default function SitePreview({
     .vp .grad-text { background: linear-gradient(120deg, var(--primary), var(--secondary)); -webkit-background-clip: text; background-clip: text; color: transparent; }
     .vp .glow-card { transition: transform .3s ease, box-shadow .3s ease; }
     .vp .glow-card:hover { transform: translateY(-3px); box-shadow: 0 16px 40px color-mix(in srgb, var(--primary) calc(26% * var(--glow)), transparent); }
+    @keyframes vp-float { 0%, 100% { transform: translate(0,0) scale(1); } 50% { transform: translate(5%,7%) scale(1.1); } }
+    .vp .vp-orb { animation: vp-float 16s ease-in-out infinite; }
+    @media (prefers-reduced-motion: reduce) { .vp * { animation: none !important; } }
   `;
 
   return (

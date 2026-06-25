@@ -5,6 +5,11 @@ import { buildOrderSite } from "@/lib/build/buildOrderSite";
 import SitePreview from "@/components/admin/workspace/SitePreview";
 import { SiteSection } from "@/types/sections";
 
+// Always render fresh so the live preview reflects the latest edits and never
+// serves a cached (old-design) version.
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function PreviewFramePage({
   params,
 }: {

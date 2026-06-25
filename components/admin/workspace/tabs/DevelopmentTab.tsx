@@ -1068,8 +1068,7 @@ export default function DevelopmentTab({ orderId, order }: { orderId: string; or
                 </div>
                 <iframe
                   ref={iframeRef}
-                  key={`mobile-${previewKey}`}
-                  src={`/preview-frame/${orderId}`}
+                  src={`/preview-frame/${orderId}?v=${previewKey}`}
                   width={390}
                   height={844}
                   style={{ display: "block", border: "none", background: "white" }}
@@ -1084,8 +1083,7 @@ export default function DevelopmentTab({ orderId, order }: { orderId: string; or
         ) : (
           <div className="overflow-hidden rounded-2xl border border-white/10 shadow-xl">
             <iframe
-              key={`desktop-${previewKey}`}
-              src={`/preview-frame/${orderId}`}
+              src={`/preview-frame/${orderId}?v=${previewKey}`}
               style={{ display: "block", border: "none", width: "100%", height: 700, background: "white" }}
               title="Desktop preview"
             />

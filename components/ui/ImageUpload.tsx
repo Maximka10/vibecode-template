@@ -65,6 +65,9 @@ export function CropEditor({
   const [lockedAspect, setLockedAspect] = useState<number>(initialAspect ?? 0);
   const [imgLoaded, setImgLoaded] = useState(false);
   const [naturalSize, setNaturalSize] = useState<{ w: number; h: number } | null>(null);
+  // The canvas is sized to the image's aspect ratio (contain-fit into a fixed
+  // box) so the picture is never stretched and always fits the editor window.
+  const [canvasSize, setCanvasSize] = useState<{ w: number; h: number }>({ w: 600, h: 400 });
   const [adjust, setAdjust] = useState<Adjust>({ ...NEUTRAL });
   const [activePreset, setActivePreset] = useState("Оригинал");
   const dragging = useRef<null | { type: "move" | "tl" | "tr" | "bl" | "br"; startX: number; startY: number; startCrop: CropState }>(null);
@@ -97,7 +100,17 @@ export function CropEditor({
   useEffect(() => {
     const img = new Image();
     img.crossOrigin = "anonymous";
-    img.onload = () => { imgRef.current = img; setNaturalSize({ w: img.naturalWidth, h: img.naturalHeight }); setImgLoaded(true); };
+    img.onload = () => {
+      imgRef.current = img;
+      setNaturalSize({ w: img.naturalWidth, h: img.naturalHeight });
+      // Fit the image into a fixed 600×400 box, preserving aspect ratio.
+      const BOX_W = 600, BOX_H = 400;
+      const a = img.naturalWidth / img.naturalHeight || 1;
+      let w = BOX_W, h = w / a;
+      if (h > BOX_H) { h = BOX_H; w = h * a; }
+      setCanvasSize({ w: Math.round(w), h: Math.round(h) });
+      setImgLoaded(true);
+    };
     img.src = src;
   }, [src]);
 
@@ -327,15 +340,16 @@ export function CropEditor({
         </div>
 
         {/* Main area: canvas + preview */}
-        <div className="flex gap-3 px-4 overflow-y-auto" style={{ maxHeight: "calc(95vh - 200px)" }}>
-          {/* Main canvas */}
-          <div className="flex-1 rounded-xl overflow-hidden bg-black min-h-0">
-            {!imgLoaded && <div className="flex items-center justify-center h-48 text-white/30 text-sm">Загрузка…</div>}
+        <div className="flex gap-3 px-4 overflow-y-auto" style={{ maxHeight: "calc(95vh - 220px)" }}>
+          {/* Main canvas — fixed box, image centred and never stretched */}
+          <div className="flex flex-1 items-center justify-center rounded-xl bg-black/60 min-h-0" style={{ height: 400 }}>
+            {!imgLoaded && <div className="flex items-center justify-center text-white/30 text-sm">Загрузка…</div>}
             <canvas
               ref={canvasRef}
-              width={600}
-              height={380}
-              className={`w-full cursor-crosshair ${imgLoaded ? "" : "hidden"}`}
+              width={canvasSize.w}
+              height={canvasSize.h}
+              style={{ width: canvasSize.w, height: canvasSize.h, maxWidth: "100%", maxHeight: "100%" }}
+              className={`cursor-crosshair ${imgLoaded ? "" : "hidden"}`}
               onMouseDown={onMouseDown}
               onMouseMove={onMouseMove}
               onMouseUp={onMouseUp}
