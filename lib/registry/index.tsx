@@ -1,5 +1,6 @@
 import type { Section, Template } from "@/types";
 import { getCardClass, getHeadingClass, getRadiusClass, getSectionPadding, themeToCSSVars } from "@/lib/theme/tokens";
+import { fontStack, googleFontsHref } from "@/lib/export/designThemes";
 
 type Props = { section: Section; template: Template };
 
@@ -49,6 +50,9 @@ function Hero({ section, template }: Props) {
       <div className="relative mx-auto max-w-6xl">
         <div className={`grid gap-8 lg:gap-12 ${centered ? "text-center place-items-center" : "md:grid-cols-2 md:items-center"}`}>
           <div className={centered ? "mx-auto max-w-2xl" : ""}>
+            {template.logo && isUrl(template.logo) && (
+              <img src={template.logo} alt="" className={`mb-5 h-12 w-auto object-contain ${centered ? "mx-auto" : ""}`} />
+            )}
             {badge && (
               <p className="mb-4 inline-flex items-center gap-2 rounded-full border border-[var(--bg-border)] bg-[var(--bg-surface)]/60 px-4 py-2 text-sm text-[var(--text-secondary)] backdrop-blur">
                 <span className="h-1.5 w-1.5 rounded-full" style={{ background: "var(--primary)", boxShadow: "0 0 10px var(--primary)" }} />
@@ -333,6 +337,26 @@ function Contacts({ section, template }: Props) {
   );
 }
 
+function Footer({ section, template }: Props) {
+  const brand = String(section.content.brand ?? section.content.company_name ?? template.name ?? "");
+  const hasLogo = !!template.logo && isUrl(template.logo);
+  return (
+    <Wrap template={template}>
+      <div className="flex flex-col items-center gap-4 border-t border-[var(--bg-border)] pt-8 text-center">
+        {hasLogo ? (
+          <img src={template.logo} alt="" className="h-10 w-auto object-contain" />
+        ) : (
+          <span className="text-lg font-black" style={{ color: "var(--primary)" }}>{brand}</span>
+        )}
+        {hasLogo && brand && <span className="text-sm font-bold">{brand}</span>}
+        <p className="text-xs text-[var(--text-secondary)]">
+          © {new Date().getFullYear()} {brand}. Все права защищены.
+        </p>
+      </div>
+    </Wrap>
+  );
+}
+
 export const SectionRegistry = {
   hero: Hero,
   stats: Stats,
@@ -345,7 +369,7 @@ export const SectionRegistry = {
   "hosting-service": Simple,
   "templates-gallery": Simple,
   calculator: Simple,
-  footer: Simple,
+  footer: Footer,
   reviews: Reviews,
 };
 
@@ -374,12 +398,14 @@ const REGISTRY_CSS = `
 `;
 
 export function SectionRenderer({ template }: { template: Template }) {
+  const font = template.font;
+  const fontCss = font ? `@import url("${googleFontsHref([font])}");\n.vibe-site { font-family: ${fontStack(font)}; }\n` : "";
   return (
     <div
       style={themeToCSSVars(template.theme) as React.CSSProperties}
       className="vibe-site min-h-screen bg-[var(--bg-base)] text-[var(--text-primary)]"
     >
-      <style dangerouslySetInnerHTML={{ __html: REGISTRY_CSS }} />
+      <style dangerouslySetInnerHTML={{ __html: fontCss + REGISTRY_CSS }} />
       {template.sections.map((section) => {
         if (section.enabled === false) return null;
         const C = SectionRegistry[section.type];

@@ -35,6 +35,8 @@ const SECONDARY_PALETTE = [
   "#60a5fa", "#fb923c", "#2dd4bf", "#e879f9", "#f87171",
 ];
 
+const FONTS = ["Inter", "Manrope", "Montserrat", "Open Sans", "Playfair Display", "Space Grotesk", "Nunito"];
+
 type Device = "desktop" | "mobile";
 type Tab = "hero" | "about" | "services" | "gallery" | "pricing" | "reviews" | "faq" | "contacts" | "order" | "colors" | "lead";
 type OrderStep = "form" | "company" | "confirm" | "done";
@@ -278,6 +280,12 @@ export default function CustomizeClient({
     a.click();
   }
 
+  function resetDraft() {
+    if (typeof window !== "undefined" && !window.confirm("Сбросить все изменения и вернуться к исходному шаблону?")) return;
+    try { localStorage.removeItem(`draft-${initialTemplate.id}`); } catch { /* ignore */ }
+    setTemplate(initialTemplate);
+  }
+
   return (
     <main className="min-h-screen bg-slate-950 text-white flex flex-col">
       {/* Topbar */}
@@ -302,6 +310,9 @@ export default function CustomizeClient({
             size="sm"
           >
             Mobile
+          </Btn>
+          <Btn onClick={resetDraft} variant="ghost" size="sm">
+            ↺ Сбросить
           </Btn>
           {isAdmin && (
             <Btn onClick={exportTemplate} variant="outline" size="sm">
@@ -350,6 +361,17 @@ export default function CustomizeClient({
             {/* ── Hero ── */}
             {tab === "hero" && (
               <>
+                <div>
+                  <ImageUpload
+                    label="Логотип (шапка и подвал)"
+                    value={template.logo}
+                    onChange={(url) => setTemplate((t) => ({ ...t, logo: url ?? undefined }))}
+                    storagePath={`${template.id}/logo`}
+                    aspectClass="aspect-[3/1]"
+                    compact
+                  />
+                  <p className="mt-1 text-xs text-white/35">PNG с прозрачным фоном смотрится лучше всего</p>
+                </div>
                 <Textarea
                   label="Заголовок"
                   rows={2}
@@ -722,6 +744,18 @@ export default function CustomizeClient({
                       })}
                     </div>
                     <p className="mt-1.5 text-[11px] text-white/30">Свечение и градиенты включены в обеих темах</p>
+                  </div>
+
+                  <div>
+                    <label className="text-xs text-white/50 block mb-2">Шрифт</label>
+                    <select
+                      value={template.font ?? ""}
+                      onChange={(e) => setTemplate((t) => ({ ...t, font: e.target.value || undefined }))}
+                      className="w-full rounded-xl border border-white/12 bg-white/8 px-3 py-2 text-sm text-white outline-none focus:border-cyan-500/60"
+                    >
+                      <option value="">По умолчанию</option>
+                      {FONTS.map((f) => <option key={f} value={f}>{f}</option>)}
+                    </select>
                   </div>
 
                   <div>
