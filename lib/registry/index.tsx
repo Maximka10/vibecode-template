@@ -381,6 +381,7 @@ export function SectionRenderer({ template }: { template: Template }) {
     >
       <style dangerouslySetInnerHTML={{ __html: REGISTRY_CSS }} />
       {template.sections.map((section) => {
+        if (section.enabled === false) return null;
         const C = SectionRegistry[section.type];
         if (!C) return null;
         return <C key={section.id} section={section} template={template} />;

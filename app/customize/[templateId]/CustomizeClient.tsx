@@ -148,7 +148,13 @@ export default function CustomizeClient({
       const saved = localStorage.getItem(`draft-${initialTemplate.id}`);
       if (saved) {
         const parsed = JSON.parse(saved) as Template;
-        if (parsed.id === initialTemplate.id) setTemplate(parsed);
+        if (parsed.id === initialTemplate.id) {
+          // Merge in any sections the base template gained since the draft was
+          // saved, so the editor and preview always have every section.
+          const haveTypes = new Set(parsed.sections.map((s) => s.type));
+          const missing = initialTemplate.sections.filter((s) => !haveTypes.has(s.type));
+          setTemplate({ ...parsed, sections: [...parsed.sections, ...missing] });
+        }
       }
     } catch { /* ignore parse errors */ }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -632,23 +638,40 @@ export default function CustomizeClient({
 
             {/* ── Section order ── */}
             {tab === "order" && (
-              <Reorder.Group
-                axis="y"
-                values={template.sections}
-                onReorder={(sections) => setTemplate((t) => ({ ...t, sections }))}
-                className="space-y-2"
-              >
-                {template.sections.map((s) => (
-                  <Reorder.Item
-                    key={s.id}
-                    value={s}
-                    className="flex items-center justify-between rounded-xl bg-white/10 p-3 cursor-grab active:cursor-grabbing"
-                  >
-                    <span className="text-sm">{SECTION_LABELS[s.type] ?? s.type}</span>
-                    <span className="text-white/30">⠿</span>
-                  </Reorder.Item>
-                ))}
-              </Reorder.Group>
+              <>
+                <p className="mb-2 text-xs text-white/40">Перетащите для порядка. Глазом скройте секцию с сайта.</p>
+                <Reorder.Group
+                  axis="y"
+                  values={template.sections}
+                  onReorder={(sections) => setTemplate((t) => ({ ...t, sections }))}
+                  className="space-y-2"
+                >
+                  {template.sections.map((s) => {
+                    const hidden = s.enabled === false;
+                    return (
+                      <Reorder.Item
+                        key={s.id}
+                        value={s}
+                        className={`flex items-center gap-2 rounded-xl bg-white/10 p-3 ${hidden ? "opacity-45" : ""}`}
+                      >
+                        <span className="cursor-grab text-white/30 active:cursor-grabbing">⠿</span>
+                        <span className="flex-1 text-sm">{SECTION_LABELS[s.type] ?? s.type}</span>
+                        <button
+                          type="button"
+                          title={hidden ? "Показать" : "Скрыть"}
+                          onClick={() => setTemplate((t) => ({
+                            ...t,
+                            sections: t.sections.map((x) => x.id === s.id ? { ...x, enabled: hidden ? true : false } : x),
+                          }))}
+                          className="rounded-lg border border-white/10 px-2 py-1 text-xs text-white/50 transition hover:text-white"
+                        >
+                          {hidden ? "🙈 Скрыта" : "👁 Видна"}
+                        </button>
+                      </Reorder.Item>
+                    );
+                  })}
+                </Reorder.Group>
+              </>
             )}
 
             {/* ── Colors ── */}
@@ -1001,6 +1024,7 @@ export default function CustomizeClient({
             <iframe
               ref={iframe}
               src={`/preview/${template.id}`}
+              onLoad={() => iframe.current?.contentWindow?.postMessage({ type: "VIBECODE_UPDATE", template }, "*")}
               className="h-[calc(100vh-140px)] min-h-[500px] bg-white rounded-lg"
               style={{ width: device === "mobile" ? 393 : "100%" }}
             />
