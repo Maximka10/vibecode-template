@@ -1,8 +1,9 @@
 import type { MetadataRoute } from "next";
+import { templates } from "@/lib/templates";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://vibecode.studio";
 
-const TEMPLATE_IDS = ["coffee-shop", "beauty-salon", "barber-shop", "car-wash", "restaurant"];
+const TEMPLATE_IDS = templates.map((t) => t.id);
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date();

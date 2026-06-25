@@ -124,11 +124,11 @@ const REVIEWS = [
 ];
 
 const TEMPLATE_META = [
-  { id: "coffee-shop", name: "Кофейня", hint: "Меню, онлайн-заказ, акции", color: "from-amber-500/20 to-orange-500/10" },
-  { id: "beauty-salon", name: "Салон красоты", hint: "Услуги, онлайн-запись, цены", color: "from-pink-500/20 to-rose-500/10" },
-  { id: "barber-shop", name: "Барбершоп", hint: "Мастера, прайс, запись", color: "from-blue-500/20 to-indigo-500/10" },
-  { id: "car-wash", name: "Автомойка", hint: "Услуги, боксы, онлайн-очередь", color: "from-cyan-500/20 to-blue-500/10" },
-  { id: "restaurant", name: "Ресторан", hint: "Меню, бронь стола, акции", color: "from-purple-500/20 to-violet-500/10" },
+  { id: "coffee", name: "Кофейня", hint: "Меню, онлайн-заказ, акции", color: "from-amber-500/25 to-orange-500/10", icon: "☕" },
+  { id: "beauty", name: "Салон красоты", hint: "Услуги, онлайн-запись, цены", color: "from-pink-500/25 to-rose-500/10", icon: "💅" },
+  { id: "barber", name: "Барбершоп", hint: "Мастера, прайс, запись", color: "from-blue-500/25 to-indigo-500/10", icon: "💈" },
+  { id: "wash", name: "Автомойка", hint: "Услуги, боксы, очередь", color: "from-cyan-500/25 to-blue-500/10", icon: "🚗" },
+  { id: "restaurant", name: "Ресторан", hint: "Меню, бронь стола, акции", color: "from-violet-500/25 to-fuchsia-500/10", icon: "🍽" },
 ];
 
 const TRUST = [
@@ -408,34 +408,30 @@ export default function HomePage() {
         <div className="relative mx-auto max-w-6xl px-4">
           <div className="flex flex-col items-start justify-between gap-5 sm:flex-row sm:items-end mb-10">
             <div>
-              <p className="text-xs font-bold uppercase tracking-[0.25em] text-cyan-400">Шаблоны</p>
-              <h2 className="mt-3 text-4xl font-black sm:text-5xl">5 отраслевых шаблонов</h2>
+              <p className="text-xs font-bold uppercase tracking-[0.25em] text-cyan-400">Один шаблон</p>
+              <h2 className="mt-3 text-4xl font-black sm:text-5xl">Подходит под любой бизнес</h2>
               <p className="mt-3 text-white/50 text-lg">
-                Каждый шаблон создан под конкретный бизнес.
+                Универсальный премиум-шаблон. Настраиваем под вашу нишу и бренд.
               </p>
             </div>
             <Link
               href="/templates"
               className="shrink-0 rounded-full border border-cyan-500/30 bg-cyan-500/10 px-6 py-3 text-sm font-semibold text-cyan-400 transition hover:bg-cyan-500/20 hover:shadow-lg hover:shadow-cyan-500/15"
             >
-              Все шаблоны →
+              О шаблоне →
             </Link>
           </div>
 
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
-            {TEMPLATE_META.map(({ id, name, hint, color }) => (
+            {TEMPLATE_META.map(({ id, name, hint, color, icon }) => (
               <Link
                 key={id}
-                href={`/customize/${id}`}
+                href="/customize/universal"
                 className="group relative overflow-hidden rounded-2xl border border-white/10 bg-white/4 transition hover:border-white/25 hover:shadow-xl hover:scale-[1.04]"
               >
-                <div className={`absolute inset-0 bg-gradient-to-br ${color} opacity-0 group-hover:opacity-100 transition`} />
-                <div className="relative aspect-[3/4] overflow-hidden">
-                  <img
-                    src={`/templates/${id}.svg`}
-                    alt={name}
-                    className="h-full w-full object-cover object-top opacity-80 transition group-hover:opacity-100 group-hover:scale-105"
-                  />
+                <div className={`absolute inset-0 bg-gradient-to-br ${color} opacity-60 transition group-hover:opacity-100`} />
+                <div className="relative flex aspect-[3/4] items-center justify-center">
+                  <span className="text-5xl drop-shadow-lg transition group-hover:scale-110">{icon}</span>
                 </div>
                 <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/95 via-black/60 to-transparent p-3 pt-14">
                   <p className="text-xs font-bold text-white">{name}</p>

@@ -8,11 +8,20 @@ import { isImageUrl } from "@/lib/supabase/storage";
 import { Input, Textarea } from "@/components/ui/Input";
 import { Btn } from "@/components/ui/Btn";
 import { calcPrice } from "@/lib/pricing/engine";
+import { LIGHT_THEME, DARK_THEME } from "@/lib/templates";
 
 const PALETTES = [
   "#d97706","#be185d","#eab308","#0ea5e9","#b45309",
   "#7c3aed","#16a34a","#dc2626","#0f766e","#c026d3",
 ];
+
+function isDarkBg(hex?: string): boolean {
+  if (!hex) return true;
+  const h = hex.replace("#", "");
+  if (h.length < 6) return true;
+  const r = parseInt(h.slice(0, 2), 16), g = parseInt(h.slice(2, 4), 16), b = parseInt(h.slice(4, 6), 16);
+  return 0.299 * r + 0.587 * g + 0.114 * b < 128;
+}
 
 type Device = "desktop" | "mobile";
 type Tab = "hero" | "about" | "services" | "gallery" | "order" | "colors" | "lead";
@@ -469,6 +478,32 @@ export default function CustomizeClient({
             {/* ── Colors ── */}
             {tab === "colors" && (
               <>
+                <div>
+                  <label className="text-xs text-white/50 block mb-2">Тема оформления</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {([["dark", "Тёмная", DARK_THEME], ["light", "Светлая", LIGHT_THEME]] as const).map(([mode, label, preset]) => {
+                      const active = isDarkBg(template.theme.bgBase) === (mode === "dark");
+                      return (
+                        <button
+                          key={mode}
+                          onClick={() => setTemplate((t) => ({
+                            ...t,
+                            theme: {
+                              ...preset,
+                              // keep the brand accent
+                              primary: t.theme.primary, secondary: t.theme.secondary, accent: t.theme.accent,
+                              gradientFrom: t.theme.gradientFrom, gradientTo: t.theme.gradientTo,
+                            },
+                          }))}
+                          className={`rounded-xl border px-3 py-2.5 text-sm font-semibold transition ${active ? "border-cyan-500/50 bg-cyan-500/15 text-cyan-300" : "border-white/10 text-white/50 hover:text-white"}`}
+                        >
+                          {mode === "dark" ? "🌙" : "☀️"} {label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <p className="mt-1.5 text-[11px] text-white/30">Свечение и градиенты включены в обеих темах</p>
+                </div>
                 <div>
                   <label className="text-xs text-white/50">Основной цвет</label>
                   <div className="mt-2 grid grid-cols-5 gap-2">

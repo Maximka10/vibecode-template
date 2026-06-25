@@ -34,40 +34,63 @@ function Hero({ section, template }: Props) {
   const badge = String(c.badge ?? "");
 
   return (
-    <Wrap template={template}>
-      <div className={`grid gap-8 lg:gap-12 ${centered ? "text-center place-items-center" : "md:grid-cols-2 md:items-center"}`}>
-        <div className={centered ? "mx-auto max-w-2xl" : ""}>
-          {badge && (
-            <p className="mb-4 inline-flex rounded-full border border-[var(--bg-border)] px-4 py-2 text-sm text-[var(--text-secondary)]">
-              {badge}
-            </p>
-          )}
-          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black tracking-tight leading-[1.08] whitespace-pre-line">
-            {String(c.headline ?? "")}
-          </h1>
-          <p className={`mt-5 text-base sm:text-lg text-[var(--text-secondary)] whitespace-pre-line ${centered ? "mx-auto max-w-2xl" : "max-w-xl"}`}>
-            {String(c.subheadline ?? "")}
-          </p>
-          <div className={`mt-7 flex flex-col xs:flex-row gap-3 ${centered ? "justify-center" : ""}`}>
-            <a className="rounded-full bg-[var(--primary)] px-5 sm:px-7 py-3 text-sm sm:text-[15px] font-bold text-black text-center" href="#lead">
-              {String(c.cta ?? "Заказать")}
-            </a>
-            <a className="rounded-full border border-[var(--bg-border)] px-5 sm:px-7 py-3 text-sm sm:text-[15px] text-center" href="#services">
-              {String(c.secondaryCta ?? "Подробнее")}
-            </a>
-          </div>
-        </div>
-        {hasImage && (
-          <div className={`${getCardClass(template.style)} w-full overflow-hidden`}>
-            <img
-              src={heroImage}
-              alt=""
-              className="aspect-[4/3] md:aspect-[3/4] lg:aspect-[4/3] h-full w-full object-cover"
-            />
-          </div>
-        )}
+    <section className={`relative overflow-hidden ${getSectionPadding(template.style)} px-4 sm:px-6`}>
+      {/* Ambient glow orbs */}
+      <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div
+          className="absolute -top-24 -left-16 h-[28rem] w-[28rem] rounded-full blur-3xl"
+          style={{ background: "var(--glow-primary)", animation: "vibe-float 16s ease-in-out infinite" }}
+        />
+        <div
+          className="absolute -bottom-32 right-0 h-[24rem] w-[24rem] rounded-full blur-3xl"
+          style={{ background: "var(--glow-secondary)", animation: "vibe-float 22s ease-in-out infinite reverse" }}
+        />
       </div>
-    </Wrap>
+      <div className="relative mx-auto max-w-6xl">
+        <div className={`grid gap-8 lg:gap-12 ${centered ? "text-center place-items-center" : "md:grid-cols-2 md:items-center"}`}>
+          <div className={centered ? "mx-auto max-w-2xl" : ""}>
+            {badge && (
+              <p className="mb-4 inline-flex items-center gap-2 rounded-full border border-[var(--bg-border)] bg-[var(--bg-surface)]/60 px-4 py-2 text-sm text-[var(--text-secondary)] backdrop-blur">
+                <span className="h-1.5 w-1.5 rounded-full" style={{ background: "var(--primary)", boxShadow: "0 0 10px var(--primary)" }} />
+                {badge}
+              </p>
+            )}
+            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black tracking-tight leading-[1.08] whitespace-pre-line">
+              <span style={{ backgroundImage: "linear-gradient(120deg, var(--text-primary), var(--gradient-to))", WebkitBackgroundClip: "text", backgroundClip: "text", color: "transparent" }}>
+                {String(c.headline ?? "")}
+              </span>
+            </h1>
+            <p className={`mt-5 text-base sm:text-lg text-[var(--text-secondary)] whitespace-pre-line ${centered ? "mx-auto max-w-2xl" : "max-w-xl"}`}>
+              {String(c.subheadline ?? "")}
+            </p>
+            <div className={`mt-7 flex flex-col xs:flex-row gap-3 ${centered ? "justify-center" : ""}`}>
+              <a
+                className="rounded-full px-5 sm:px-7 py-3 text-sm sm:text-[15px] font-bold text-white text-center transition hover:-translate-y-0.5"
+                style={{ backgroundImage: "linear-gradient(120deg, var(--gradient-from), var(--gradient-to))", boxShadow: "0 12px 34px var(--glow-primary)" }}
+                href="#lead"
+              >
+                {String(c.cta ?? "Заказать")}
+              </a>
+              <a className="rounded-full border border-[var(--bg-border)] bg-[var(--bg-surface)]/40 px-5 sm:px-7 py-3 text-sm sm:text-[15px] text-center backdrop-blur transition hover:bg-[var(--bg-surface)]/70" href="#services">
+                {String(c.secondaryCta ?? "Подробнее")}
+              </a>
+            </div>
+          </div>
+          {hasImage && (
+            <div className="relative">
+              <div aria-hidden className="absolute -inset-3 rounded-[2rem] blur-2xl" style={{ background: "linear-gradient(120deg, var(--glow-primary), var(--glow-secondary))" }} />
+              <div className={`relative ${getCardClass(template.style)} w-full overflow-hidden`}>
+                <img
+                  src={heroImage}
+                  alt=""
+                  className="aspect-[4/3] md:aspect-[3/4] lg:aspect-[4/3] h-full w-full object-cover"
+                />
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -200,7 +223,7 @@ function Reviews({ section, template }: Props) {
       <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
         {items.map((x, i) => (
           <blockquote key={i} className={`${getCardClass(template.style)} p-5`}>
-            <p className="text-[var(--text-secondary)] whitespace-pre-line">"{itemText(x)}"</p>
+            <p className="text-[var(--text-secondary)] whitespace-pre-line">«{itemText(x)}»</p>
             <div className="mt-3 flex gap-1">
               {[1,2,3,4,5].map((s) => (
                 <span key={s} className="text-[var(--primary)] text-sm">★</span>
@@ -226,12 +249,29 @@ export const SectionRegistry = {
   reviews: Reviews,
 };
 
+const REGISTRY_CSS = `
+@keyframes vibe-float {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(6%, 8%) scale(1.1); }
+}
+.vibe-site { position: relative; }
+.vibe-site > section + section::before {
+  content: ""; display: block; height: 1px; width: 100%; max-width: 72rem;
+  margin: 0 auto;
+  background: linear-gradient(90deg, transparent, var(--bg-border), transparent);
+}
+@media (prefers-reduced-motion: reduce) {
+  .vibe-site * { animation: none !important; }
+}
+`;
+
 export function SectionRenderer({ template }: { template: Template }) {
   return (
     <div
       style={themeToCSSVars(template.theme) as React.CSSProperties}
-      className="min-h-screen bg-[var(--bg-base)] text-[var(--text-primary)]"
+      className="vibe-site min-h-screen bg-[var(--bg-base)] text-[var(--text-primary)]"
     >
+      <style dangerouslySetInnerHTML={{ __html: REGISTRY_CSS }} />
       {template.sections.map((section) => {
         const C = SectionRegistry[section.type];
         if (!C) return null;
