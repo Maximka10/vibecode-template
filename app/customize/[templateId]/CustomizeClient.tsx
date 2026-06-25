@@ -23,8 +23,20 @@ function isDarkBg(hex?: string): boolean {
   return 0.299 * r + 0.587 * g + 0.114 * b < 128;
 }
 
+function hexToRgba(hex: string, a: number): string {
+  const h = (hex || "#000000").replace("#", "");
+  if (h.length < 6) return `rgba(0,0,0,${a})`;
+  const r = parseInt(h.slice(0, 2), 16), g = parseInt(h.slice(2, 4), 16), b = parseInt(h.slice(4, 6), 16);
+  return `rgba(${r},${g},${b},${a})`;
+}
+
+const SECONDARY_PALETTE = [
+  "#22d3ee", "#a78bfa", "#34d399", "#f472b6", "#facc15",
+  "#60a5fa", "#fb923c", "#2dd4bf", "#e879f9", "#f87171",
+];
+
 type Device = "desktop" | "mobile";
-type Tab = "hero" | "about" | "services" | "gallery" | "pricing" | "faq" | "contacts" | "order" | "colors" | "lead";
+type Tab = "hero" | "about" | "services" | "gallery" | "pricing" | "reviews" | "faq" | "contacts" | "order" | "colors" | "lead";
 type OrderStep = "form" | "company" | "confirm" | "done";
 
 const SECTION_TABS: { id: Tab; label: string }[] = [
@@ -33,6 +45,7 @@ const SECTION_TABS: { id: Tab; label: string }[] = [
   { id: "services", label: "Услуги" },
   { id: "gallery", label: "Галерея" },
   { id: "pricing", label: "Цены" },
+  { id: "reviews", label: "Отзывы" },
   { id: "faq", label: "FAQ" },
   { id: "contacts", label: "Контакты" },
   { id: "order", label: "Порядок секций" },
@@ -42,6 +55,16 @@ const SECTION_TABS: { id: Tab; label: string }[] = [
 
 type Plan = { name: string; price: string; features: string[] };
 type FaqItem = { question: string; answer: string };
+type Review = { author: string; text: string };
+
+function toReview(x: unknown): Review {
+  if (typeof x === "string") return { author: "", text: x };
+  if (x && typeof x === "object") {
+    const o = x as Record<string, unknown>;
+    return { author: String(o.author ?? ""), text: String(o.text ?? "") };
+  }
+  return { author: "", text: "" };
+}
 
 // Russian labels for every section type that can appear in the reorder list
 const SECTION_LABELS: Record<string, string> = {
@@ -148,8 +171,10 @@ export default function CustomizeClient({
   const pricing = getSectionContent(template, "pricing");
   const faq = getSectionContent(template, "faq");
   const contacts = getSectionContent(template, "contacts");
+  const reviews = getSectionContent(template, "reviews");
   const plans = (pricing.plans as Plan[]) ?? [];
   const faqItems = (faq.items as FaqItem[]) ?? [];
+  const reviewItems = ((reviews.items as unknown[]) ?? []).map(toReview);
 
   async function handleOrder() {
     setSubmitting(true);
@@ -515,6 +540,46 @@ export default function CustomizeClient({
               </>
             )}
 
+            {/* ── Reviews ── */}
+            {tab === "reviews" && (
+              <>
+                <Input
+                  label="Заголовок раздела"
+                  value={String(reviews.title ?? "Отзывы")}
+                  onChange={(e) => setTemplate(updateSectionContent(template, "reviews", "title", e.target.value))}
+                />
+                {reviewItems.map((r, i) => (
+                  <div key={i} className="rounded-xl border border-white/10 bg-white/4 p-3 space-y-2">
+                    <Input
+                      label="Имя клиента"
+                      value={r.author}
+                      onChange={(e) => setTemplate(updateSectionContent(template, "reviews", "items", reviewItems.map((x, j) => j === i ? { ...x, author: e.target.value } : x)))}
+                      placeholder="Алексей М."
+                    />
+                    <Textarea
+                      label="Текст отзыва"
+                      rows={3}
+                      value={r.text}
+                      onChange={(e) => setTemplate(updateSectionContent(template, "reviews", "items", reviewItems.map((x, j) => j === i ? { ...x, text: e.target.value } : x)))}
+                    />
+                    <button
+                      onClick={() => setTemplate(updateSectionContent(template, "reviews", "items", reviewItems.filter((_, j) => j !== i)))}
+                      className="text-xs text-red-400/70 hover:text-red-400"
+                    >
+                      ✕ Удалить отзыв
+                    </button>
+                  </div>
+                ))}
+                <Btn
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setTemplate(updateSectionContent(template, "reviews", "items", [...reviewItems, { author: "", text: "" }]))}
+                >
+                  + Добавить отзыв
+                </Btn>
+              </>
+            )}
+
             {/* ── FAQ ── */}
             {tab === "faq" && (
               <>
@@ -587,75 +652,101 @@ export default function CustomizeClient({
             )}
 
             {/* ── Colors ── */}
-            {tab === "colors" && (
-              <>
-                <div>
-                  <label className="text-xs text-white/50 block mb-2">Тема оформления</label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {([["dark", "Тёмная", DARK_THEME], ["light", "Светлая", LIGHT_THEME]] as const).map(([mode, label, preset]) => {
-                      const active = isDarkBg(template.theme.bgBase) === (mode === "dark");
-                      return (
-                        <button
-                          key={mode}
-                          onClick={() => setTemplate((t) => ({
-                            ...t,
-                            theme: {
-                              ...preset,
-                              // keep the brand accent
-                              primary: t.theme.primary, secondary: t.theme.secondary, accent: t.theme.accent,
-                              gradientFrom: t.theme.gradientFrom, gradientTo: t.theme.gradientTo,
-                            },
-                          }))}
-                          className={`rounded-xl border px-3 py-2.5 text-sm font-semibold transition ${active ? "border-cyan-500/50 bg-cyan-500/15 text-cyan-300" : "border-white/10 text-white/50 hover:text-white"}`}
-                        >
-                          {mode === "dark" ? "🌙" : "☀️"} {label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                  <p className="mt-1.5 text-[11px] text-white/30">Свечение и градиенты включены в обеих темах</p>
-                </div>
-                <div>
-                  <label className="text-xs text-white/50">Основной цвет</label>
-                  <div className="mt-2 grid grid-cols-5 gap-2">
-                    {PALETTES.map((p) => (
-                      <button
-                        key={p}
-                        style={{ background: p }}
-                        className={`h-10 rounded-xl transition ${template.theme.primary === p ? "ring-2 ring-white" : ""}`}
-                        onClick={() =>
-                          setTemplate((t) => ({ ...t, theme: { ...t.theme, primary: p, gradientFrom: p } }))
-                        }
-                      />
-                    ))}
-                  </div>
-                  <input
-                    type="color"
-                    value={template.theme.primary?.slice(0, 7) ?? "#000000"}
-                    onChange={(e) =>
-                      setTemplate((t) => ({ ...t, theme: { ...t.theme, primary: e.target.value, gradientFrom: e.target.value } }))
-                    }
-                    className="mt-3 h-10 w-full rounded-xl cursor-pointer"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-white/50 block mb-2">Фон</label>
-                  {(["bgBase", "bgSurface"] as const).map((k) => (
-                    <div key={k} className="flex items-center gap-2 mb-2">
-                      <input
-                        type="color"
-                        value={((template.theme as unknown as Record<string, string>)[k])?.slice(0, 7) ?? "#000000"}
-                        onChange={(e) =>
-                          setTemplate((t) => ({ ...t, theme: { ...t.theme, [k]: e.target.value } }))
-                        }
-                        className="h-8 w-12 rounded-lg cursor-pointer"
-                      />
-                      <span className="text-xs text-white/40">{k}</span>
+            {tab === "colors" && (() => {
+              const setThemeColor = (key: string, value: string) => setTemplate((t) => {
+                const theme = { ...t.theme, [key]: value } as typeof t.theme;
+                if (key === "primary") { theme.gradientFrom = value; theme.glowPrimary = hexToRgba(value, 0.3); }
+                if (key === "secondary") { theme.gradientTo = value; theme.glowSecondary = hexToRgba(value, 0.22); }
+                return { ...t, theme };
+              });
+              const th = template.theme as unknown as Record<string, string>;
+              const colorRows: { key: string; label: string }[] = [
+                { key: "primary", label: "Основной" },
+                { key: "secondary", label: "Дополнительный" },
+                { key: "accent", label: "Акцент" },
+                { key: "gradientFrom", label: "Градиент: начало" },
+                { key: "gradientTo", label: "Градиент: конец" },
+                { key: "bgBase", label: "Фон страницы" },
+                { key: "bgSurface", label: "Фон карточек" },
+                { key: "bgBorder", label: "Границы" },
+                { key: "textPrimary", label: "Текст" },
+                { key: "textSecondary", label: "Текст вторичный" },
+              ];
+              return (
+                <>
+                  <div>
+                    <label className="text-xs text-white/50 block mb-2">Тема оформления</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {([["dark", "Тёмная", DARK_THEME], ["light", "Светлая", LIGHT_THEME]] as const).map(([mode, label, preset]) => {
+                        const active = isDarkBg(template.theme.bgBase) === (mode === "dark");
+                        return (
+                          <button
+                            key={mode}
+                            onClick={() => setTemplate((t) => ({
+                              ...t,
+                              theme: {
+                                ...preset,
+                                primary: t.theme.primary, secondary: t.theme.secondary, accent: t.theme.accent,
+                                gradientFrom: t.theme.gradientFrom, gradientTo: t.theme.gradientTo,
+                                glowPrimary: t.theme.glowPrimary, glowSecondary: t.theme.glowSecondary,
+                              },
+                            }))}
+                            className={`rounded-xl border px-3 py-2.5 text-sm font-semibold transition ${active ? "border-cyan-500/50 bg-cyan-500/15 text-cyan-300" : "border-white/10 text-white/50 hover:text-white"}`}
+                          >
+                            {mode === "dark" ? "🌙" : "☀️"} {label}
+                          </button>
+                        );
+                      })}
                     </div>
-                  ))}
-                </div>
-              </>
-            )}
+                    <p className="mt-1.5 text-[11px] text-white/30">Свечение и градиенты включены в обеих темах</p>
+                  </div>
+
+                  <div>
+                    <label className="text-xs text-white/50 block mb-2">Палитра — основной</label>
+                    <div className="grid grid-cols-5 gap-2">
+                      {PALETTES.map((p) => (
+                        <button key={p} style={{ background: p }} aria-label={p}
+                          className={`h-9 rounded-lg transition ${template.theme.primary === p ? "ring-2 ring-white" : ""}`}
+                          onClick={() => setThemeColor("primary", p)} />
+                      ))}
+                    </div>
+                    <label className="text-xs text-white/50 block mt-3 mb-2">Палитра — дополнительный</label>
+                    <div className="grid grid-cols-5 gap-2">
+                      {SECONDARY_PALETTE.map((p) => (
+                        <button key={p} style={{ background: p }} aria-label={p}
+                          className={`h-9 rounded-lg transition ${template.theme.secondary === p ? "ring-2 ring-white" : ""}`}
+                          onClick={() => setThemeColor("secondary", p)} />
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Live gradient preview */}
+                  <div className="rounded-xl border border-white/10 p-3">
+                    <p className="mb-2 text-xs text-white/40">Предпросмотр градиента</p>
+                    <div className="h-10 w-full rounded-lg" style={{ backgroundImage: `linear-gradient(120deg, ${th.gradientFrom ?? th.primary}, ${th.gradientTo ?? th.secondary})`, boxShadow: `0 8px 26px ${th.glowPrimary ?? "transparent"}` }} />
+                  </div>
+
+                  <div>
+                    <label className="text-xs text-white/50 block mb-2">Все цвета</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {colorRows.map(({ key, label }) => (
+                        <label key={key} className="flex items-center gap-2 rounded-lg border border-white/8 bg-white/4 px-2 py-1.5">
+                          <input type="color" value={(th[key] ?? "#000000").slice(0, 7)} onChange={(e) => setThemeColor(key, e.target.value)} className="h-7 w-8 shrink-0 cursor-pointer rounded bg-transparent" />
+                          <span className="truncate text-xs text-white/55">{label}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => setTemplate((t) => ({ ...t, theme: { ...(isDarkBg(t.theme.bgBase) ? DARK_THEME : LIGHT_THEME) } }))}
+                    className="text-xs text-white/35 hover:text-white/70"
+                  >
+                    ↺ Сбросить цвета темы
+                  </button>
+                </>
+              );
+            })()}
 
             {/* ── Lead / Order ── */}
             {tab === "lead" && (

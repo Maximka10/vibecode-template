@@ -213,7 +213,7 @@ function Simple({ section, template }: Props) {
 }
 
 function Reviews({ section, template }: Props) {
-  const items = (section.content.items as string[]) ?? [];
+  const items = ((section.content.items as unknown[]) ?? []).filter((x) => !!itemText(x));
   if (items.length === 0) return null;
   return (
     <Wrap template={template}>
@@ -221,16 +221,20 @@ function Reviews({ section, template }: Props) {
         {String(section.content.title ?? "Отзывы")}
       </h2>
       <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {items.map((x, i) => (
-          <blockquote key={i} className={`vibe-card ${getCardClass(template.style)} p-5`}>
-            <p className="text-[var(--text-secondary)] whitespace-pre-line">«{itemText(x)}»</p>
-            <div className="mt-3 flex gap-1">
-              {[1,2,3,4,5].map((s) => (
-                <span key={s} className="text-[var(--primary)] text-sm">★</span>
-              ))}
-            </div>
-          </blockquote>
-        ))}
+        {items.map((x, i) => {
+          const author = x && typeof x === "object" ? String((x as Record<string, unknown>).author ?? "") : "";
+          return (
+            <blockquote key={i} className={`vibe-card ${getCardClass(template.style)} p-5`}>
+              <div className="flex gap-1">
+                {[1, 2, 3, 4, 5].map((s) => (
+                  <span key={s} className="text-[var(--primary)] text-sm">★</span>
+                ))}
+              </div>
+              <p className="mt-3 text-[var(--text-secondary)] whitespace-pre-line">«{itemText(x)}»</p>
+              {author && <p className="mt-3 text-sm font-semibold">— {author}</p>}
+            </blockquote>
+          );
+        })}
       </div>
     </Wrap>
   );
