@@ -53,7 +53,7 @@ export function Navbar() {
           : "border-b border-transparent bg-transparent backdrop-blur-xl"
       }`}
     >
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3.5 sm:py-4">
+      <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3.5 sm:py-4 2xl:max-w-[1440px]">
         {/* Logo */}
         <Link href="/" className="group flex items-center gap-2">
           <span className="text-sm font-black tracking-tight text-white transition-opacity group-hover:opacity-80 sm:text-base">

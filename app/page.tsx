@@ -181,7 +181,7 @@ export default function HomePage() {
           <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: "linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)", backgroundSize: "80px 80px" }} />
         </div>
 
-        <div className="relative mx-auto max-w-6xl px-4 pb-24 pt-24 text-center sm:pb-32">
+        <div className="relative mx-auto max-w-6xl 2xl:max-w-[1440px] px-4 pb-24 pt-24 text-center sm:pb-32">
           <div className="inline-flex items-center gap-2 rounded-full border border-cyan-500/40 bg-cyan-500/10 px-5 py-2 text-sm font-medium text-cyan-300 shadow-lg shadow-cyan-500/20 backdrop-blur">
             <span className="h-2 w-2 animate-pulse rounded-full bg-cyan-400 shadow-sm shadow-cyan-400" />
             Запускаем сайты для малого бизнеса в России
@@ -257,7 +257,7 @@ export default function HomePage() {
           <div className="absolute right-0 top-0 h-80 w-80 rounded-full bg-blue-600/8 blur-[100px]" />
           <div className="absolute left-0 bottom-0 h-64 w-64 rounded-full bg-purple-600/8 blur-[80px]" />
         </div>
-        <div className="relative mx-auto max-w-6xl px-4">
+        <div className="relative mx-auto max-w-6xl 2xl:max-w-[1440px] px-4">
           <Reveal className="mb-16 text-center">
             <p className="text-xs font-bold uppercase tracking-[0.25em] text-cyan-400">Процесс работы</p>
             <h2 className="mt-4 text-4xl font-black sm:text-5xl">Как мы работаем</h2>
@@ -291,7 +291,7 @@ export default function HomePage() {
           <div className="absolute left-0 top-1/2 h-80 w-80 -translate-y-1/2 rounded-full bg-purple-600/8 blur-[100px]" />
           <div className="absolute right-1/4 bottom-0 h-64 w-64 rounded-full bg-cyan-500/6 blur-[80px]" />
         </div>
-        <div className="relative mx-auto max-w-6xl px-4">
+        <div className="relative mx-auto max-w-6xl 2xl:max-w-[1440px] px-4">
           <Reveal className="mb-16 text-center">
             <p className="text-xs font-bold uppercase tracking-[0.25em] text-cyan-400">Что включено</p>
             <h2 className="mt-4 text-4xl font-black sm:text-5xl">Всё необходимое для запуска</h2>
@@ -405,7 +405,7 @@ export default function HomePage() {
           <div className="absolute right-0 bottom-0 h-80 w-80 rounded-full bg-cyan-500/8 blur-[100px]" />
           <div className="absolute left-0 top-0 h-64 w-64 rounded-full bg-purple-500/6 blur-[80px]" />
         </div>
-        <div className="relative mx-auto max-w-6xl px-4">
+        <div className="relative mx-auto max-w-6xl 2xl:max-w-[1440px] px-4">
           <div className="flex flex-col items-start justify-between gap-5 sm:flex-row sm:items-end mb-10">
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.25em] text-cyan-400">Один шаблон</p>
@@ -449,7 +449,7 @@ export default function HomePage() {
         <div className="pointer-events-none absolute inset-0">
           <div className="absolute left-1/2 top-1/2 h-96 w-[800px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-blue-600/6 blur-[100px]" />
         </div>
-        <div className="relative mx-auto max-w-6xl px-4">
+        <div className="relative mx-auto max-w-6xl 2xl:max-w-[1440px] px-4">
           <Reveal className="mb-14 text-center">
             <p className="text-xs font-bold uppercase tracking-[0.25em] text-cyan-400">Отзывы</p>
             <h2 className="mt-4 text-4xl font-black sm:text-5xl">Клиенты о нас</h2>

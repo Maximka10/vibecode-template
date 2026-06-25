@@ -43,7 +43,7 @@ export function SiteFooter() {
         <div className="absolute left-1/2 top-0 h-40 w-[600px] -translate-x-1/2 rounded-full bg-cyan-500/4 blur-[60px]" />
       </div>
 
-      <div className="relative mx-auto max-w-6xl px-4 py-16 sm:py-20">
+      <div className="relative mx-auto max-w-6xl px-4 py-16 sm:py-20 2xl:max-w-[1440px]">
         {/* Top row */}
         <div className="flex flex-col gap-12 lg:flex-row lg:gap-16">
           {/* Brand */}
