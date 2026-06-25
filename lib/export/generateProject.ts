@@ -197,6 +197,16 @@ function resolveContactLink(contactLink: string, contacts: SiteJson["contacts"])
   return "#contacts";
 }
 
+// Section type → valid PascalCase component name. Handles hyphenated types
+// like "hosting-service" → "HostingService" (a bare capitalize would leave an
+// invalid identifier/filename).
+function pascalName(type: string): string {
+  return type
+    .split(/[-_]/)
+    .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
+    .join("");
+}
+
 const COMPONENT_TEMPLATES: Record<SectionType, (s: SiteSection, site: SiteJson) => string> = {
   hero: (s, site) => {
     const phoneStr = JSON.stringify((s.content as { phone?: string }).phone ?? "");
@@ -316,7 +326,8 @@ export default function Hero({ section }: { section: SiteSection }) {
   about: (_s, _site) => `import { SiteSection } from "@/types";
 
 export default function About({ section }: { section: SiteSection }) {
-  const { title, text } = section.content as { title?: string; text?: string };
+  const { title, text, coverImage, image } = section.content as { title?: string; text?: string; coverImage?: string; image?: string };
+  const cover = coverImage || image;
   return (
     <section className="px-4 py-20 bg-white sm:px-6 lg:px-8" id="about">
       <div className="mx-auto max-w-4xl">
@@ -325,6 +336,9 @@ export default function About({ section }: { section: SiteSection }) {
           <h2 className="mb-6 text-2xl font-black leading-tight text-slate-900 whitespace-pre-line sm:text-3xl lg:text-4xl">
             {title}
           </h2>
+        )}
+        {cover && (
+          <img src={cover} alt="" className="mb-6 w-full rounded-2xl aspect-[16/9] object-cover shadow-sm" />
         )}
         {text && (
           <p className="text-lg leading-relaxed text-slate-600 whitespace-pre-line max-w-3xl">
@@ -830,6 +844,68 @@ export default function Footer({ section }: { section: SiteSection }) {
 }
 `;
   },
+
+  stats: (_s, _site) => `import { SiteSection } from "@/types";
+
+export default function Stats({ section }: { section: SiteSection }) {
+  const { title, items } = section.content as { title?: string; items?: { value: string; suffix?: string; label: string }[] };
+  if (!items?.length) return null;
+  return (
+    <section className="px-4 py-14 bg-white sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-5xl">
+        {title && <h2 className="mb-8 text-2xl font-black text-slate-900 whitespace-pre-line sm:text-3xl lg:text-4xl">{title}</h2>}
+        <div className="grid grid-cols-2 gap-5 sm:grid-cols-4">
+          {items.map((it, i) => (
+            <div key={i} className="glow-card rounded-2xl border border-slate-200 bg-white p-6 text-center">
+              <p className="text-4xl font-black" style={{ color: "var(--primary)" }}>{it.value}{it.suffix ? <span className="text-2xl">{it.suffix}</span> : null}</p>
+              <p className="mt-1.5 text-sm font-semibold text-slate-500 whitespace-pre-line">{it.label}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+`,
+
+  "hosting-service": (_s, _site) => `import { SiteSection } from "@/types";
+
+export default function HostingService({ section }: { section: SiteSection }) {
+  const { title, text } = section.content as { title?: string; text?: string };
+  return (
+    <section className="px-4 py-20 bg-slate-50 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-4xl">
+        <div className="accent-bar" />
+        {title && <h2 className="mb-6 text-2xl font-black leading-tight text-slate-900 whitespace-pre-line sm:text-3xl lg:text-4xl">{title}</h2>}
+        {text && <p className="text-lg leading-relaxed text-slate-600 whitespace-pre-line max-w-3xl">{text}</p>}
+      </div>
+    </section>
+  );
+}
+`,
+
+  calculator: (_s, site) => {
+    const href = resolveContactLink(site.contact_link ?? "", site.contacts);
+    const hrefStr = JSON.stringify(href);
+    return `import { SiteSection } from "@/types";
+
+export default function Calculator({ section }: { section: SiteSection }) {
+  const { title, subtitle, cta_text } = section.content as { title?: string; subtitle?: string; cta_text?: string };
+  const href = ${hrefStr};
+  return (
+    <section className="px-4 py-20 text-center text-white sm:px-6 lg:px-8" style={{ background: "linear-gradient(135deg, var(--primary), var(--secondary))" }}>
+      <div className="mx-auto max-w-3xl">
+        {title && <h2 className="text-3xl font-black whitespace-pre-line sm:text-4xl">{title}</h2>}
+        {subtitle && <p className="mt-4 text-base opacity-90 whitespace-pre-line sm:text-lg">{subtitle}</p>}
+        <a href={href} className="mt-8 inline-flex items-center gap-2 rounded-full bg-white px-9 py-4 text-sm font-bold shadow-lg transition hover:opacity-90" style={{ color: "var(--primary)" }}>
+          {cta_text || "Оставить заявку"}
+        </a>
+      </div>
+    </section>
+  );
+}
+`;
+  },
 };
 
 // ── Legal generators ──────────────────────────────────────────────────────────
@@ -1248,13 +1324,13 @@ function genPage(sections: SiteSection[]): string {
   const seenTypes = new Set<string>();
   const imports = enabled
     .filter((s) => {
-      const name = s.type.charAt(0).toUpperCase() + s.type.slice(1);
+      const name = pascalName(s.type);
       if (seenTypes.has(name)) return false;
       seenTypes.add(name);
       return true;
     })
     .map((s) => {
-      const name = s.type.charAt(0).toUpperCase() + s.type.slice(1);
+      const name = pascalName(s.type);
       return `import ${name} from "@/components/sections/${name}";`;
     })
     .join("\n");
@@ -1269,7 +1345,7 @@ function genPage(sections: SiteSection[]): string {
 
   const sectionComponents = enabled
     .map((s, i) => {
-      const name = s.type.charAt(0).toUpperCase() + s.type.slice(1);
+      const name = pascalName(s.type);
       return `      <${name} section={section${i}} />`;
     })
     .join("\n");
@@ -1496,7 +1572,7 @@ export function generateProject(site: SiteJson): Record<string, string> {
     const type = section.type as SectionType;
     const tpl = COMPONENT_TEMPLATES[type];
     if (tpl) {
-      const name = type.charAt(0).toUpperCase() + type.slice(1);
+      const name = pascalName(type);
       files[`components/sections/${name}.tsx`] = tpl(section, site);
     }
   }

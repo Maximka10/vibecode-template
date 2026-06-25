@@ -1,11 +1,14 @@
 export type SectionType =
   | "hero"
   | "about"
+  | "stats"
   | "services"
   | "gallery"
   | "reviews"
   | "faq"
   | "pricing"
+  | "hosting-service"
+  | "calculator"
   | "cta"
   | "contacts"
   | "map"
@@ -46,11 +49,14 @@ export type SiteSection = {
 export const SECTION_TYPE_LABELS: Record<SectionType, string> = {
   hero: "Главный экран",
   about: "О нас",
+  stats: "Цифры / статистика",
   services: "Услуги",
   gallery: "Галерея",
   reviews: "Отзывы",
   faq: "FAQ",
   pricing: "Цены",
+  "hosting-service": "Домен и хостинг",
+  calculator: "Калькулятор / заявка",
   cta: "Призыв к действию",
   contacts: "Контакты",
   map: "Карта",
@@ -58,6 +64,6 @@ export const SECTION_TYPE_LABELS: Record<SectionType, string> = {
 };
 
 export const ALL_SECTION_TYPES: SectionType[] = [
-  "hero", "about", "services", "gallery", "reviews",
-  "faq", "pricing", "cta", "contacts", "map", "footer",
+  "hero", "about", "stats", "services", "gallery", "reviews",
+  "faq", "pricing", "hosting-service", "calculator", "cta", "contacts", "map", "footer",
 ];

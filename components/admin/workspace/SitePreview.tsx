@@ -90,11 +90,57 @@ function SectionHero({ content, primary, secondary, contactLink }: { content: Re
 }
 
 function SectionAbout({ content, primary }: { content: Record<string, unknown>; primary: string }) {
+  const cover = s(content.coverImage) || s(content.image);
   return (
     <div className="px-4 py-12 bg-white border-b border-slate-100 sm:px-8 sm:py-14">
       <div className="vp-accent" />
       {!!content.title && <h2 className="mb-4 text-xl font-black text-slate-900 whitespace-pre-line sm:mb-5 sm:text-2xl">{s(content.title)}</h2>}
+      {cover && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={cover} alt="" className="mb-5 w-full rounded-2xl aspect-[16/9] object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+      )}
       {!!content.text && <p className="text-sm leading-relaxed text-slate-600 whitespace-pre-line max-w-3xl">{s(content.text)}</p>}
+    </div>
+  );
+}
+
+function SectionStats({ content, primary }: { content: Record<string, unknown>; primary: string }) {
+  const items = (content.items as { value: string; suffix?: string; label: string }[]) ?? [];
+  if (items.length === 0) return null;
+  return (
+    <div className="px-4 py-10 bg-white border-b border-slate-100 sm:px-8">
+      {!!content.title && <h2 className="mb-6 text-xl font-black text-slate-900 whitespace-pre-line sm:text-2xl">{s(content.title)}</h2>}
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        {items.map((it, i) => (
+          <div key={i} className="glow-card rounded-2xl border border-slate-200 bg-white p-5 text-center">
+            <p className="text-3xl font-black" style={{ color: primary }}>{s(it.value)}{it.suffix ? <span className="text-xl">{s(it.suffix)}</span> : null}</p>
+            <p className="mt-1 text-xs font-semibold text-slate-500 whitespace-pre-line">{s(it.label)}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function SectionHosting({ content, primary }: { content: Record<string, unknown>; primary: string }) {
+  return (
+    <div className="px-4 py-12 bg-slate-50 border-b border-slate-100 sm:px-8 sm:py-14">
+      <div className="vp-accent" />
+      {!!content.title && <h2 className="mb-4 text-xl font-black text-slate-900 whitespace-pre-line sm:text-2xl">{s(content.title)}</h2>}
+      {!!content.text && <p className="text-sm leading-relaxed text-slate-600 whitespace-pre-line max-w-3xl">{s(content.text)}</p>}
+    </div>
+  );
+}
+
+function SectionCalculator({ content, primary, secondary, contactLink }: { content: Record<string, unknown>; primary: string; secondary: string; contactLink?: string }) {
+  const href = resolveCtaHref(s(content.contact_link) || contactLink);
+  return (
+    <div className="px-8 py-16 text-center" style={{ background: `linear-gradient(135deg, ${primary}, ${secondary})`, color: "#fff" }}>
+      {!!content.title && <h2 className="text-2xl font-black whitespace-pre-line sm:text-3xl">{s(content.title)}</h2>}
+      {!!content.subtitle && <p className="mt-3 text-sm opacity-90 whitespace-pre-line sm:text-base">{s(content.subtitle)}</p>}
+      <a href={href} className="mt-7 inline-flex items-center gap-2 rounded-full bg-white px-8 py-3.5 text-sm font-bold shadow-lg transition hover:opacity-90" style={{ color: primary }}>
+        {ctaIcon(href)}{s(content.cta_text) || "Оставить заявку"}
+      </a>
     </div>
   );
 }
@@ -404,6 +450,9 @@ function renderSection(section: SiteSection, primary: string, secondary: string,
   switch (section.type) {
     case "hero":     return <SectionHero     key={section.id} content={c} primary={primary} secondary={secondary} contactLink={contactLink} />;
     case "about":    return <SectionAbout    key={section.id} content={c} primary={primary} />;
+    case "stats":    return <SectionStats    key={section.id} content={c} primary={primary} />;
+    case "hosting-service": return <SectionHosting key={section.id} content={c} primary={primary} />;
+    case "calculator": return <SectionCalculator key={section.id} content={c} primary={primary} secondary={secondary} contactLink={contactLink} />;
     case "services": return <SectionServices key={section.id} content={c} primary={primary} />;
     case "gallery":  return <SectionGallery  key={section.id} content={c} />;
     case "reviews":  return <SectionReviews  key={section.id} content={c} primary={primary} />;

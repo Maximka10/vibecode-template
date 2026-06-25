@@ -38,12 +38,17 @@ export async function POST(
   } catch {
     return NextResponse.json({ ok: false, error: "Failed to read file data" }, { status: 400 });
   }
-  const { error } = await admin.storage
-    .from(BUCKET)
-    .upload(path, arrayBuffer, {
-      contentType: file.type,
-      upsert: false,
-    });
+
+  // Ensure the private bucket exists — a fresh Supabase project may not have it
+  // provisioned, which would make every upload fail with "Bucket not found".
+  async function uploadOnce() {
+    return admin.storage.from(BUCKET).upload(path, arrayBuffer, { contentType: file!.type, upsert: false });
+  }
+  let { error } = await uploadOnce();
+  if (error && /bucket not found/i.test(error.message)) {
+    await admin.storage.createBucket(BUCKET, { public: false, fileSizeLimit: 26214400 });
+    ({ error } = await uploadOnce());
+  }
 
   if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
 

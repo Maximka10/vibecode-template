@@ -46,10 +46,17 @@ function extractClientAssets(order: Record<string, unknown>): string[] {
 const FOLDER_CONFIG = {
   logo: { label: "Логотип", accept: "image/*", hint: "PNG, SVG, WebP — до 5 MB", defaultType: "logo" },
   photos: { label: "Фотографии", accept: "image/*", hint: "JPG, PNG, WebP — до 10 MB каждый", defaultType: "gallery" },
-  documents: { label: "Документы", accept: ".pdf,.doc,.docx,.txt", hint: "PDF, DOC, TXT — до 20 MB", defaultType: "document" },
+  documents: { label: "Документы", accept: "image/*,.pdf,.doc,.docx,.txt", hint: "Картинки, PDF, DOC, TXT — до 20 MB", defaultType: "document" },
 } as const;
 
 type Folder = keyof typeof FOLDER_CONFIG;
+
+// Detect images by extension so an image dropped into the "documents" folder
+// still previews as a picture (not a 📄 icon).
+const IMAGE_RE = /\.(jpe?g|png|webp|gif|svg|avif|bmp)$/i;
+function isImageName(name: string) {
+  return IMAGE_RE.test(name);
+}
 
 function formatSize(bytes?: number) {
   if (!bytes) return "";
@@ -100,6 +107,7 @@ export default function MaterialsTab({ orderId, order }: { orderId: string; orde
     }
   }
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect, react-hooks/exhaustive-deps
   useEffect(() => { loadFiles(); }, [orderId]);
 
   async function uploadOne(folder: Folder, file: File | Blob, name: string) {
@@ -245,7 +253,7 @@ export default function MaterialsTab({ orderId, order }: { orderId: string; orde
     ? allFiles
     : allFiles.filter((f) => categorize(f) === category);
 
-  const isImage = (f: FlatFile) => f.folder !== "documents";
+  const isImage = (f: FlatFile) => (f.folder !== "documents" ? true : isImageName(f.name));
 
   if (loading) return <p className="py-12 text-center text-sm text-white/30">Загрузка файлов…</p>;
 

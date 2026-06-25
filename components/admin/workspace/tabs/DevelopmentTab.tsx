@@ -42,6 +42,10 @@ type ProjectData = {
 
 const FONTS = ["Inter", "Manrope", "Montserrat", "Roboto", "Open Sans"] as const;
 
+// Quick-pick palettes (same idea as the client constructor).
+const PRIMARY_PALETTE = ["#6366f1", "#7c3aed", "#8b5cf6", "#a855f7", "#ec4899", "#f43f5e", "#ef4444", "#f59e0b", "#10b981", "#06b6d4"];
+const SECONDARY_PALETTE = ["#22d3ee", "#06b6d4", "#3b82f6", "#8b5cf6", "#ec4899", "#f59e0b", "#10b981", "#14b8a6", "#84cc16", "#eab308"];
+
 type Device = "desktop" | "mobile";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -54,6 +58,9 @@ function defaultContent(type: SectionType): SectionContent {
   switch (type) {
     case "hero": return { title: "", subtitle: "", cta_text: "" };
     case "about": return { title: "О нас", text: "" };
+    case "stats": return { items: [{ value: "100", suffix: "+", label: "клиентов" }] };
+    case "hosting-service": return { title: "Домен и хостинг", text: "" };
+    case "calculator": return { title: "Рассчитайте стоимость", cta_text: "Оставить заявку" };
     case "services": return { title: "Наши услуги", items: [] };
     case "gallery": return { title: "Галерея", images: [] };
     case "reviews": return { title: "Отзывы клиентов", items: [] };
@@ -295,6 +302,91 @@ function GalleryEditor({
   );
 }
 
+// ── Materials panel (client uploads + admin's own) shown inside Development ────
+function MaterialsPanel({ orderId }: { orderId: string }) {
+  const [imgs, setImgs] = useState<PickerImg[]>([]);
+  const [open, setOpen] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  async function load() {
+    const res = await fetch(`/api/orders/${orderId}/files`);
+    const data = await res.json();
+    if (!data.ok) return;
+    const isImg = (f: { name: string }) => /\.(jpe?g|png|webp|gif|svg|avif)$/i.test(f.name);
+    const client: PickerImg[] = (data.files.client ?? []).map((f: { name: string; url: string }) => ({ ...f, source: "client" as const }));
+    const admin: PickerImg[] = [
+      ...(data.files.logo ?? []),
+      ...(data.files.photos ?? []),
+      ...(data.files.documents ?? []),
+    ].filter(isImg).map((f: { name: string; url: string }) => ({ ...f, source: "admin" as const }));
+    const seen = new Set<string>();
+    setImgs([...client, ...admin].filter((f) => (seen.has(f.url) ? false : (seen.add(f.url), true))));
+  }
+
+  useEffect(() => {
+    // load() only setStates after an await, but the linter is conservative.
+    // eslint-disable-next-line react-hooks/set-state-in-effect, react-hooks/exhaustive-deps
+    load();
+  }, [orderId]);
+
+  async function handleFiles(fileList: FileList | null) {
+    if (!fileList?.length) return;
+    setUploading(true);
+    try {
+      for (const f of Array.from(fileList)) {
+        const fd = new FormData();
+        fd.append("file", f);
+        fd.append("folder", "photos");
+        fd.append("material_type", "gallery");
+        await fetch(`/api/orders/${orderId}/files/upload`, { method: "POST", body: fd });
+      }
+      await load();
+    } finally {
+      setUploading(false);
+      if (inputRef.current) inputRef.current.value = "";
+    }
+  }
+
+  const clientCount = imgs.filter((i) => i.source === "client").length;
+
+  return (
+    <Card variant="solid" padding="md">
+      <div className="flex items-center justify-between">
+        <button type="button" onClick={() => setOpen((p) => !p)} className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-white/40 hover:text-white/70">
+          {open ? "▾" : "▸"} Материалы ({imgs.length}{clientCount > 0 ? `, ${clientCount} от клиента` : ""})
+        </button>
+        <div className="flex items-center gap-2">
+          <input ref={inputRef} type="file" accept="image/*" multiple className="hidden" onChange={(e) => handleFiles(e.target.files)} />
+          <Btn variant="outline" size="sm" disabled={uploading} loading={uploading} onClick={() => inputRef.current?.click()}>
+            {uploading ? "Загрузка…" : "+ Загрузить фото"}
+          </Btn>
+        </div>
+      </div>
+      {open && (
+        <div className="mt-3">
+          {imgs.length === 0 ? (
+            <p className="py-4 text-center text-xs text-white/30">Материалов нет. Загрузите свои или попросите клиента — фото из его конструктора появятся здесь.</p>
+          ) : (
+            <div className="grid grid-cols-4 gap-2 sm:grid-cols-6">
+              {imgs.map((img) => (
+                <a key={img.url} href={img.url} target="_blank" rel="noopener noreferrer" className="relative overflow-hidden rounded-lg border border-white/10 transition hover:border-cyan-500/60">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={img.url} alt={img.name} className="aspect-square w-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.opacity = "0.3"; }} />
+                  {img.source === "client" && (
+                    <span className="absolute left-1 top-1 rounded bg-cyan-500/80 px-1 py-0.5 text-[9px] font-bold leading-none text-white">клиент</span>
+                  )}
+                </a>
+              ))}
+            </div>
+          )}
+          <p className="mt-2 text-[10px] text-white/30">Чтобы вставить фото в секцию — откройте секцию (галерея / hero / о нас) и нажмите «Выбрать из материалов».</p>
+        </div>
+      )}
+    </Card>
+  );
+}
+
 function SectionEditor({
   section,
   onChange,
@@ -317,6 +409,8 @@ function SectionEditor({
           <Field label="Заголовок" hint="Enter — перенос строки"><textarea className={`${FIELD_CLS} resize-none`} rows={2} value={String(c.title ?? "")} onChange={(e) => set("title", e.target.value)} placeholder="Название / слоган" /></Field>
           <Field label="Подзаголовок"><textarea className={`${FIELD_CLS} resize-none`} rows={2} value={String(c.subtitle ?? "")} onChange={(e) => set("subtitle", e.target.value)} placeholder="Краткое описание" /></Field>
           <Field label="Текст кнопки CTA"><input className={FIELD_CLS} value={String(c.cta_text ?? "")} onChange={(e) => set("cta_text", e.target.value)} placeholder="Оставить заявку" /></Field>
+          <Field label="Бейдж / плашка" hint="Короткая надпись над заголовком"><input className={FIELD_CLS} value={String(c.badge ?? "")} onChange={(e) => set("badge", e.target.value)} placeholder="Сайт под ключ за 3 дня" /></Field>
+          <Field label="Вторая кнопка (необязательно)"><input className={FIELD_CLS} value={String(c.secondaryCta ?? "")} onChange={(e) => set("secondaryCta", e.target.value)} placeholder="Смотреть пример" /></Field>
           <Field label="Фоновое изображение" hint="Накладывается на градиент с прозрачностью">
             {!!c.heroImage && (
               <div className="mb-2 flex items-center gap-2">
@@ -325,6 +419,7 @@ function SectionEditor({
                 <button type="button" onClick={() => set("heroImage", "")} className="text-xs text-red-400/60 hover:text-red-400">✕ Удалить</button>
               </div>
             )}
+            <ImageUpload label="Загрузить фон" value={null} onChange={(url) => { if (url) set("heroImage", url); }} storagePath={`${orderId}/hero`} aspectClass="aspect-video" enableCrop cropAspect={16 / 9} />
             <GalleryPicker orderId={orderId} onPick={(url) => set("heroImage", url)} />
           </Field>
         </div>
@@ -334,6 +429,51 @@ function SectionEditor({
         <div className="space-y-3">
           <Field label="Заголовок раздела" hint="Enter — перенос строки"><textarea className={`${FIELD_CLS} resize-none`} rows={2} value={String(c.title ?? "")} onChange={(e) => set("title", e.target.value)} /></Field>
           <Field label="Текст"><textarea className={`${FIELD_CLS} resize-none`} rows={5} value={String(c.text ?? "")} onChange={(e) => set("text", e.target.value)} placeholder="Расскажите о компании…" /></Field>
+          <Field label="Изображение раздела (необязательно)">
+            {!!(c.coverImage || c.image) && (
+              <div className="mb-2 flex items-center gap-2">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={String(c.coverImage || c.image)} alt="" className="h-12 w-20 rounded-lg object-cover" />
+                <button type="button" onClick={() => { set("coverImage", ""); set("image", ""); }} className="text-xs text-red-400/60 hover:text-red-400">✕ Удалить</button>
+              </div>
+            )}
+            <ImageUpload label="Загрузить изображение" value={null} onChange={(url) => { if (url) set("coverImage", url); }} storagePath={`${orderId}/about`} aspectClass="aspect-[16/9]" enableCrop cropAspect={16 / 9} />
+            <GalleryPicker orderId={orderId} onPick={(url) => set("coverImage", url)} />
+          </Field>
+        </div>
+      );
+    case "stats": {
+      const items = (c.items as { value: string; suffix?: string; label: string }[]) ?? [];
+      return (
+        <div className="space-y-3">
+          <Field label="Заголовок (необязательно)" hint="Enter — перенос строки"><textarea className={`${FIELD_CLS} resize-none`} rows={2} value={String(c.title ?? "")} onChange={(e) => set("title", e.target.value)} /></Field>
+          {items.map((it, i) => (
+            <Card key={i} variant="subtle" padding="sm">
+              <div className="flex gap-2">
+                <input className={`${FIELD_CLS} w-20`} value={it.value} onChange={(e) => set("items", items.map((x, j) => j === i ? { ...x, value: e.target.value } : x))} placeholder="100" />
+                <input className={`${FIELD_CLS} w-16`} value={it.suffix ?? ""} onChange={(e) => set("items", items.map((x, j) => j === i ? { ...x, suffix: e.target.value } : x))} placeholder="+" />
+                <input className={`${FIELD_CLS} flex-1`} value={it.label} onChange={(e) => set("items", items.map((x, j) => j === i ? { ...x, label: e.target.value } : x))} placeholder="клиентов" />
+                <button onClick={() => set("items", items.filter((_, j) => j !== i))} className="text-red-400/60 hover:text-red-400 text-xs px-2">✕</button>
+              </div>
+            </Card>
+          ))}
+          <Btn variant="outline" size="sm" onClick={() => set("items", [...items, { value: "", suffix: "", label: "" }])}>+ Добавить цифру</Btn>
+        </div>
+      );
+    }
+    case "hosting-service":
+      return (
+        <div className="space-y-3">
+          <Field label="Заголовок" hint="Enter — перенос строки"><textarea className={`${FIELD_CLS} resize-none`} rows={2} value={String(c.title ?? "")} onChange={(e) => set("title", e.target.value)} /></Field>
+          <Field label="Текст"><textarea className={`${FIELD_CLS} resize-none`} rows={4} value={String(c.text ?? "")} onChange={(e) => set("text", e.target.value)} placeholder="Домен, хостинг, SSL под ключ…" /></Field>
+        </div>
+      );
+    case "calculator":
+      return (
+        <div className="space-y-3">
+          <Field label="Заголовок" hint="Enter — перенос строки"><textarea className={`${FIELD_CLS} resize-none`} rows={2} value={String(c.title ?? "")} onChange={(e) => set("title", e.target.value)} /></Field>
+          <Field label="Подзаголовок"><textarea className={`${FIELD_CLS} resize-none`} rows={2} value={String(c.subtitle ?? "")} onChange={(e) => set("subtitle", e.target.value)} placeholder="Оставьте заявку — рассчитаем стоимость" /></Field>
+          <Field label="Текст кнопки"><input className={FIELD_CLS} value={String(c.cta_text ?? "")} onChange={(e) => set("cta_text", e.target.value)} placeholder="Оставить заявку" /></Field>
         </div>
       );
     case "services": {
@@ -515,6 +655,9 @@ function sectionComplete(s: SiteSection): boolean {
   switch (s.type) {
     case "hero": return !!(c.title && c.cta_text);
     case "about": return !!(c.title && c.text);
+    case "stats": return Array.isArray(c.items) && (c.items as unknown[]).length > 0;
+    case "hosting-service": return !!(c.title && c.text);
+    case "calculator": return !!c.title;
     case "services": return Array.isArray(c.items) && (c.items as unknown[]).length > 0;
     case "gallery": return Array.isArray(c.images) && (c.images as unknown[]).length > 0;
     case "reviews": return Array.isArray(c.items) && (c.items as unknown[]).length > 0;
@@ -865,6 +1008,9 @@ export default function DevelopmentTab({ orderId, order }: { orderId: string; or
           </Card>
         )}
 
+        {/* Materials — client uploads + admin's own */}
+        <MaterialsPanel orderId={orderId} />
+
         {/* Global Settings */}
         <Card variant="solid" padding="md">
           <h3 className="mb-4 text-xs font-semibold uppercase tracking-widest text-white/40">Настройки сайта</h3>
@@ -894,6 +1040,29 @@ export default function DevelopmentTab({ orderId, order }: { orderId: string; or
               <Field label="Описание компании">
                 <textarea className={`${FIELD_CLS} resize-none`} rows={2} value={pd.company_description ?? ""} onChange={(e) => { setPd((p) => ({ ...p, company_description: e.target.value })); setDirty(true); }} placeholder="Чем занимается компания…" />
               </Field>
+            </div>
+          </div>
+          {/* Quick palette presets */}
+          <div className="mt-4 space-y-2">
+            <div>
+              <p className="mb-1.5 text-xs text-white/50">Палитра — основной</p>
+              <div className="flex flex-wrap gap-1.5">
+                {PRIMARY_PALETTE.map((col) => (
+                  <button key={col} type="button" aria-label={col} style={{ background: col }}
+                    onClick={() => { setPd((p) => ({ ...p, branding: { ...p.branding, primary_color: col } })); setDirty(true); }}
+                    className={`h-7 w-7 rounded-lg transition ${pd.branding?.primary_color === col ? "ring-2 ring-white" : "hover:scale-110"}`} />
+                ))}
+              </div>
+            </div>
+            <div>
+              <p className="mb-1.5 text-xs text-white/50">Палитра — дополнительный</p>
+              <div className="flex flex-wrap gap-1.5">
+                {SECONDARY_PALETTE.map((col) => (
+                  <button key={col} type="button" aria-label={col} style={{ background: col }}
+                    onClick={() => { setPd((p) => ({ ...p, branding: { ...p.branding, secondary_color: col } })); setDirty(true); }}
+                    className={`h-7 w-7 rounded-lg transition ${pd.branding?.secondary_color === col ? "ring-2 ring-white" : "hover:scale-110"}`} />
+                ))}
+              </div>
             </div>
           </div>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
