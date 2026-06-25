@@ -51,39 +51,35 @@ function SectionHero({ content, primary, secondary, contactLink }: { content: Re
   const heroImage = s(content.heroImage);
   return (
     <div
-      className="relative overflow-hidden px-6 py-20 text-white sm:px-8 sm:py-24"
-      style={{ background: `linear-gradient(135deg, ${primary}, ${secondary})` }}
+      className="relative overflow-hidden px-6 py-24 sm:px-8 sm:py-28"
+      style={{ background: "linear-gradient(165deg, color-mix(in srgb, var(--bg-surface) 65%, var(--grad-from) 14%), var(--bg-base))", color: "var(--text-primary)" }}
     >
       {heroImage && (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={heroImage} alt="" className="absolute inset-0 h-full w-full object-cover opacity-20" />
+        <img src={heroImage} alt="" className="absolute inset-0 h-full w-full object-cover opacity-15" />
       )}
       {/* Animated glow orbs */}
       <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="vp-orb absolute -top-24 left-[10%] h-80 w-80 rounded-full bg-white/15 blur-3xl" />
-        <div className="vp-orb absolute -bottom-28 right-[8%] h-72 w-72 rounded-full bg-black/15 blur-3xl" style={{ animationDirection: "reverse" }} />
+        <div className="vp-orb absolute -top-24 left-[8%] h-80 w-80 rounded-full blur-3xl" style={{ background: "var(--glow-primary)" }} />
+        <div className="vp-orb absolute -bottom-28 right-[6%] h-72 w-72 rounded-full blur-3xl" style={{ background: "var(--glow-secondary)", animationDirection: "reverse" }} />
       </div>
       <div className="relative mx-auto max-w-4xl">
         <div className="mb-6 flex flex-wrap gap-2">
           {[{ icon: "★", text: "5.0 рейтинг" }, { icon: "✓", text: "Гарантия" }, { icon: "🚀", text: "Быстро" }].map((b) => (
-            <span key={b.text} className="inline-flex items-center gap-1.5 rounded-full border border-white/25 bg-white/10 px-3 py-1 text-xs font-semibold backdrop-blur-sm">
+            <span key={b.text} className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold backdrop-blur-sm" style={{ borderColor: "var(--bg-border)", background: "color-mix(in srgb, var(--bg-surface) 60%, transparent)" }}>
               <span>{b.icon}</span><span>{b.text}</span>
             </span>
           ))}
         </div>
         {!!content.title && (
-          <h1 className="text-3xl font-black leading-[1.08] tracking-tight sm:text-4xl lg:text-6xl break-words whitespace-pre-line">{s(content.title)}</h1>
+          <h1 className="grad-text text-3xl font-black leading-[1.08] tracking-tight sm:text-4xl lg:text-6xl break-words whitespace-pre-line">{s(content.title)}</h1>
         )}
         {!!content.subtitle && (
-          <p className="mt-5 max-w-2xl text-sm leading-relaxed opacity-90 sm:text-lg whitespace-pre-line">{s(content.subtitle)}</p>
+          <p className="mt-5 max-w-2xl text-sm leading-relaxed sm:text-lg whitespace-pre-line" style={{ color: "var(--text-secondary)" }}>{s(content.subtitle)}</p>
         )}
         {!!content.cta_text && (
           <div className="mt-8">
-            <a
-              href={href}
-              className="inline-flex items-center gap-2 rounded-full bg-white px-8 py-3.5 text-sm font-bold transition hover:-translate-y-0.5"
-              style={{ color: primary, boxShadow: "0 14px 40px rgba(0,0,0,0.28)" }}
-            >
+            <a href={href} className="btn-grad inline-flex items-center gap-2 rounded-full px-8 py-3.5 text-sm font-bold transition hover:-translate-y-0.5">
               {ctaIcon(href)}{s(content.cta_text)}
             </a>
           </div>
@@ -444,17 +440,41 @@ export default function SitePreview({
   const contactLink = content.contact_link;
   const design = data.design ?? DESIGN_THEMES[0];
   const bodyFont = data.font || design.bodyFont;
+  const t = data.theme ?? ({
+    bgBase: "#0b1020", bgSurface: "#141b2e", bgBorder: "rgba(255,255,255,0.1)",
+    textPrimary: "#f8fafc", textSecondary: "#cbd5e1",
+    glowPrimary: "rgba(124,58,237,0.3)", glowSecondary: "rgba(34,211,238,0.22)",
+    gradientFrom: primary, gradientTo: secondary,
+  } as BuildData["theme"]);
 
-  // Scoped theme CSS — mirrors the exported site's look (fonts, gradient accent
-  // bars, glow cards, decorative background) so the preview matches the ZIP.
+  // Scoped theme CSS — applies the chosen visual theme (dark/light premium) by
+  // setting tokens AND remapping the hardcoded section colours, so the preview
+  // matches the real exported design instead of a flat light layout.
   const themeCss = `
     @import url("${googleFontsHref([design.headingFont, bodyFont])}");
-    .vp { font-family: ${fontStack(bodyFont)}; --primary: ${primary}; --secondary: ${secondary}; --glow: ${design.glow.toFixed(2)}; position: relative; }
+    .vp { font-family: ${fontStack(bodyFont)};
+      --primary: ${primary}; --secondary: ${secondary}; --glow: ${design.glow.toFixed(2)};
+      --bg-base: ${t.bgBase}; --bg-surface: ${t.bgSurface}; --bg-border: ${t.bgBorder};
+      --text-primary: ${t.textPrimary}; --text-secondary: ${t.textSecondary};
+      --glow-primary: ${t.glowPrimary}; --glow-secondary: ${t.glowSecondary};
+      --grad-from: ${t.gradientFrom}; --grad-to: ${t.gradientTo};
+      position: relative; }
     .vp h1, .vp h2, .vp h3 { font-family: ${fontStack(design.headingFont)};${design.uppercaseHeads ? " text-transform: uppercase; letter-spacing: -0.01em;" : ""} }
-    .vp-accent { height: 5px; width: 48px; border-radius: 9999px; margin-bottom: 12px; background: linear-gradient(90deg, var(--primary), var(--secondary)); box-shadow: 0 0 16px color-mix(in srgb, var(--primary) calc(70% * var(--glow)), transparent); }
-    .vp .grad-text { background: linear-gradient(120deg, var(--primary), var(--secondary)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    /* ── theme remap (scoped to the site, not the browser chrome) ── */
+    .vp-site { background: var(--bg-base); color: var(--text-primary); }
+    .vp-site .bg-white { background: var(--bg-surface) !important; }
+    .vp-site .bg-slate-50 { background: var(--bg-base) !important; }
+    .vp-site .bg-slate-100 { background: var(--bg-surface) !important; }
+    .vp-site .bg-slate-900 { background: color-mix(in srgb, var(--bg-base) 80%, #000) !important; }
+    .vp-site .bg-slate-200 { background: var(--bg-surface) !important; }
+    .vp-site .text-slate-900, .vp-site .text-slate-800 { color: var(--text-primary) !important; }
+    .vp-site .text-slate-700, .vp-site .text-slate-600, .vp-site .text-slate-500, .vp-site .text-slate-400, .vp-site .text-slate-300 { color: var(--text-secondary) !important; }
+    .vp-site .border-slate-100, .vp-site .border-slate-200, .vp-site .border-slate-300 { border-color: var(--bg-border) !important; }
+    .vp-accent { height: 5px; width: 48px; border-radius: 9999px; margin-bottom: 12px; background: linear-gradient(90deg, var(--grad-from), var(--grad-to)); box-shadow: 0 0 16px color-mix(in srgb, var(--grad-from) calc(70% * var(--glow)), transparent); }
+    .vp .grad-text { background: linear-gradient(120deg, var(--text-primary), var(--grad-to)); -webkit-background-clip: text; background-clip: text; color: transparent; }
     .vp .glow-card { transition: transform .3s ease, box-shadow .3s ease; }
-    .vp .glow-card:hover { transform: translateY(-3px); box-shadow: 0 16px 40px color-mix(in srgb, var(--primary) calc(26% * var(--glow)), transparent); }
+    .vp .glow-card:hover { transform: translateY(-3px); box-shadow: 0 16px 40px var(--glow-primary); }
+    .vp .btn-grad { background: linear-gradient(120deg, var(--grad-from), var(--grad-to)) !important; color: #fff !important; box-shadow: 0 12px 34px var(--glow-primary); }
     @keyframes vp-float { 0%, 100% { transform: translate(0,0) scale(1); } 50% { transform: translate(5%,7%) scale(1.1); } }
     .vp .vp-orb { animation: vp-float 16s ease-in-out infinite; }
     @media (prefers-reduced-motion: reduce) { .vp * { animation: none !important; } }
@@ -483,7 +503,7 @@ export default function SitePreview({
         </div>
 
         {/* Content */}
-        <div>
+        <div className="vp-site">
           {data.logo && (
             // eslint-disable-next-line @next/next/no-img-element
             <div className="flex items-center border-b border-slate-100 bg-white px-6 py-3">

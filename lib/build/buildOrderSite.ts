@@ -26,6 +26,20 @@ export type BuildData = {
     primary_color: string;
     secondary_color: string;
   };
+  // Full visual theme (dark/light premium look) carried from the client's
+  // template + the admin's colour pickers, so the preview and the exported
+  // site honour the chosen design instead of a hardcoded light layout.
+  theme: {
+    bgBase: string;
+    bgSurface: string;
+    bgBorder: string;
+    textPrimary: string;
+    textSecondary: string;
+    glowPrimary: string;
+    glowSecondary: string;
+    gradientFrom: string;
+    gradientTo: string;
+  };
   font?: string;
   logo?: string;
   seo: {
@@ -114,6 +128,23 @@ export function buildOrderSite(
       primary_color: pd.branding?.primary_color ?? "#6366f1",
       secondary_color: pd.branding?.secondary_color ?? "#8b5cf6",
     },
+    theme: (() => {
+      const ot = (opts.theme as Record<string, string> | undefined) ?? {};
+      const brand = (pd.branding as Record<string, string> | undefined) ?? {};
+      const primary = brand.primary_color ?? ot.primary ?? "#7c3aed";
+      const secondary = brand.secondary_color ?? ot.secondary ?? "#22d3ee";
+      return {
+        bgBase: brand.bg_base ?? ot.bgBase ?? "#0b1020",
+        bgSurface: brand.bg_surface ?? ot.bgSurface ?? "#141b2e",
+        bgBorder: ot.bgBorder ?? "rgba(255,255,255,0.10)",
+        textPrimary: ot.textPrimary ?? "#f8fafc",
+        textSecondary: ot.textSecondary ?? "#cbd5e1",
+        glowPrimary: ot.glowPrimary ?? "rgba(124,58,237,0.30)",
+        glowSecondary: ot.glowSecondary ?? "rgba(34,211,238,0.22)",
+        gradientFrom: ot.gradientFrom ?? primary,
+        gradientTo: ot.gradientTo ?? secondary,
+      };
+    })(),
     font: pd.font ?? (opts.font as string | undefined) ?? undefined,
     logo: ((ce as { logo?: string })?.logo) ?? (opts.logo as string | undefined) ?? undefined,
     seo: {
