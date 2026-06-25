@@ -412,8 +412,9 @@ export default function CustomizeClient({
             {/* ── About ── */}
             {tab === "about" && (
               <>
-                <Input
+                <Textarea
                   label="Заголовок раздела"
+                  rows={2}
                   value={String(about.title ?? "")}
                   onChange={(e) => setTemplate(updateSectionContent(template, "about", "title", e.target.value))}
                 />

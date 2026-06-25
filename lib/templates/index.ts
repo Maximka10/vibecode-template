@@ -107,7 +107,7 @@ const universal: Template = {
       type: "gallery",
       content: {
         title: "Примеры работ",
-        images: ["Главная страница", "Каталог услуг", "Блок отзывов", "Форма заявки"],
+        images: [],
       },
     },
     {

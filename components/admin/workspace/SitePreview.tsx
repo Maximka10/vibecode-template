@@ -93,7 +93,7 @@ function SectionAbout({ content, primary }: { content: Record<string, unknown>; 
   return (
     <div className="px-4 py-12 bg-white border-b border-slate-100 sm:px-8 sm:py-14">
       <div className="vp-accent" />
-      {!!content.title && <h2 className="mb-4 text-xl font-black text-slate-900 sm:mb-5 sm:text-2xl">{s(content.title)}</h2>}
+      {!!content.title && <h2 className="mb-4 text-xl font-black text-slate-900 whitespace-pre-line sm:mb-5 sm:text-2xl">{s(content.title)}</h2>}
       {!!content.text && <p className="text-sm leading-relaxed text-slate-600 whitespace-pre-line max-w-3xl">{s(content.text)}</p>}
     </div>
   );
@@ -104,7 +104,7 @@ function SectionServices({ content, primary }: { content: Record<string, unknown
   return (
     <div className="px-4 py-12 bg-slate-50 border-b border-slate-100 sm:px-8 sm:py-14">
       <div className="vp-accent" />
-      {!!content.title && <h2 className="mb-6 text-xl font-black text-slate-900 sm:mb-7 sm:text-2xl">{s(content.title)}</h2>}
+      {!!content.title && <h2 className="mb-6 text-xl font-black text-slate-900 whitespace-pre-line sm:mb-7 sm:text-2xl">{s(content.title)}</h2>}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {items.map((item, i) => (
           <div key={i} className="glow-card rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
@@ -145,7 +145,7 @@ function SectionGallery({ content }: { content: Record<string, unknown> }) {
   const restImages = images.filter((i) => i !== mainImg);
   return (
     <div className="px-4 py-12 bg-white border-b border-slate-100 sm:px-8 sm:py-14">
-      {!!content.title && <h2 className="mb-6 text-xl font-black text-slate-900 sm:mb-7 sm:text-2xl">{s(content.title)}</h2>}
+      {!!content.title && <h2 className="mb-6 text-xl font-black text-slate-900 whitespace-pre-line sm:mb-7 sm:text-2xl">{s(content.title)}</h2>}
       {images.length > 0 ? (
         <div className="space-y-3">
           {mainImg && (
@@ -188,7 +188,7 @@ function SectionReviews({ content, primary }: { content: Record<string, unknown>
   return (
     <div className="px-4 py-12 bg-slate-50 border-b border-slate-100 sm:px-8 sm:py-14">
       <div className="vp-accent" />
-      {!!content.title && <h2 className="mb-6 text-xl font-black text-slate-900 sm:mb-7 sm:text-2xl">{s(content.title)}</h2>}
+      {!!content.title && <h2 className="mb-6 text-xl font-black text-slate-900 whitespace-pre-line sm:mb-7 sm:text-2xl">{s(content.title)}</h2>}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {items.map((r, i) => (
           <div key={i} className="glow-card rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -213,7 +213,7 @@ function SectionFAQ({ content, primary }: { content: Record<string, unknown>; pr
   return (
     <div className="px-8 py-14 bg-white border-b border-slate-100">
       <div className="vp-accent" />
-      {!!content.title && <h2 className="mb-7 text-2xl font-black text-slate-900">{s(content.title)}</h2>}
+      {!!content.title && <h2 className="mb-7 text-2xl font-black text-slate-900 whitespace-pre-line">{s(content.title)}</h2>}
       <div className="space-y-3 max-w-3xl">
         {items.map((f, i) => (
           <div key={i} className="rounded-2xl border border-slate-200 overflow-hidden">
@@ -235,7 +235,7 @@ function SectionPricing({ content, primary, contactLink }: { content: Record<str
   return (
     <div className="px-4 py-12 bg-slate-50 border-b border-slate-100 sm:px-8 sm:py-14">
       <div className="vp-accent" />
-      {!!content.title && <h2 className="mb-6 text-xl font-black text-slate-900 sm:mb-7 sm:text-2xl">{s(content.title)}</h2>}
+      {!!content.title && <h2 className="mb-6 text-xl font-black text-slate-900 whitespace-pre-line sm:mb-7 sm:text-2xl">{s(content.title)}</h2>}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         {plans.map((p, i) => (
           <div
@@ -308,7 +308,7 @@ function SectionContacts({ content, primary }: { content: Record<string, unknown
   return (
     <div className="px-8 py-14 bg-white border-b border-slate-100">
       <div className="vp-accent" />
-      {!!content.title && <h2 className="mb-7 text-2xl font-black text-slate-900">{s(content.title)}</h2>}
+      {!!content.title && <h2 className="mb-7 text-2xl font-black text-slate-900 whitespace-pre-line">{s(content.title)}</h2>}
       <div className="grid gap-4 sm:grid-cols-2">
         {items.map((item, i) => (
           <div key={i} className="glow-card flex items-start gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-5">
@@ -336,7 +336,7 @@ function SectionMap({ content, primary }: { content: Record<string, unknown>; pr
   return (
     <div className="px-8 py-14 bg-slate-50 border-b border-slate-100">
       <div className="vp-accent" />
-      {!!content.title && <h2 className="mb-4 text-2xl font-black text-slate-900">{s(content.title)}</h2>}
+      {!!content.title && <h2 className="mb-4 text-2xl font-black text-slate-900 whitespace-pre-line">{s(content.title)}</h2>}
       {!!content.address && <p className="mb-5 text-sm text-slate-600">📍 {s(content.address)}</p>}
       {embedUrl ? (
         <iframe

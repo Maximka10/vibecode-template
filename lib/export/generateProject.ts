@@ -322,7 +322,7 @@ export default function About({ section }: { section: SiteSection }) {
       <div className="mx-auto max-w-4xl">
         <div className="accent-bar" />
         {title && (
-          <h2 className="mb-6 text-2xl font-black leading-tight text-slate-900 sm:text-3xl lg:text-4xl">
+          <h2 className="mb-6 text-2xl font-black leading-tight text-slate-900 whitespace-pre-line sm:text-3xl lg:text-4xl">
             {title}
           </h2>
         )}
@@ -349,7 +349,7 @@ export default function Services({ section }: { section: SiteSection }) {
       <div className="mx-auto max-w-5xl">
         <div className="accent-bar" />
         {title && (
-          <h2 className="mb-10 text-2xl font-black text-slate-900 sm:text-3xl lg:text-4xl">
+          <h2 className="mb-10 text-2xl font-black text-slate-900 whitespace-pre-line sm:text-3xl lg:text-4xl">
             {title}
           </h2>
         )}
@@ -409,7 +409,7 @@ export default function Gallery({ section }: { section: SiteSection }) {
       <div className="mx-auto max-w-5xl">
         <div className="accent-bar" />
         {title && (
-          <h2 className="mb-10 text-2xl font-black text-slate-900 sm:text-3xl lg:text-4xl">{title}</h2>
+          <h2 className="mb-10 text-2xl font-black text-slate-900 whitespace-pre-line sm:text-3xl lg:text-4xl">{title}</h2>
         )}
         <div className="space-y-3">
           {mainImg && (
@@ -446,7 +446,7 @@ export default function Reviews({ section }: { section: SiteSection }) {
       <div className="mx-auto max-w-5xl">
         <div className="accent-bar" />
         {title && (
-          <h2 className="mb-4 text-2xl font-black text-slate-900 sm:text-3xl lg:text-4xl">{title}</h2>
+          <h2 className="mb-4 text-2xl font-black text-slate-900 whitespace-pre-line sm:text-3xl lg:text-4xl">{title}</h2>
         )}
         <p className="mb-8 text-base font-semibold text-slate-500">⭐ 4.9 из 5 — на основе отзывов клиентов</p>
         <div className="grid gap-5 sm:grid-cols-2">
@@ -485,7 +485,7 @@ export default function FAQ({ section }: { section: SiteSection }) {
       <div className="mx-auto max-w-3xl w-full">
         <div className="accent-bar" />
         {title && (
-          <h2 className="mb-10 text-2xl font-black text-slate-900 sm:text-3xl lg:text-4xl">{title}</h2>
+          <h2 className="mb-10 text-2xl font-black text-slate-900 whitespace-pre-line sm:text-3xl lg:text-4xl">{title}</h2>
         )}
         <div className="space-y-3">
           {items.map((f, i) => (
@@ -530,7 +530,7 @@ export default function Pricing({ section }: { section: SiteSection }) {
       <div className="mx-auto max-w-5xl">
         <div className="accent-bar" />
         {title && (
-          <h2 className="mb-10 text-2xl font-black text-slate-900 sm:text-3xl lg:text-4xl">{title}</h2>
+          <h2 className="mb-10 text-2xl font-black text-slate-900 whitespace-pre-line sm:text-3xl lg:text-4xl">{title}</h2>
         )}
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
           {plans.map((p, i) => (
@@ -651,7 +651,7 @@ export default function Contacts({ section }: { section: SiteSection }) {
       <div className="mx-auto max-w-4xl">
         <div className="accent-bar" />
         {title && (
-          <h2 className="mb-10 text-2xl font-black text-slate-900 sm:text-3xl lg:text-4xl">{title}</h2>
+          <h2 className="mb-10 text-2xl font-black text-slate-900 whitespace-pre-line sm:text-3xl lg:text-4xl">{title}</h2>
         )}
         <div className="grid gap-4 sm:grid-cols-2">
           {items.map((item, i) => (
@@ -708,7 +708,7 @@ export default function Map({ section }: { section: SiteSection }) {
     <section className="px-4 py-20 bg-slate-50 sm:px-6 lg:px-8" id="map">
       <div className="mx-auto max-w-4xl">
         <div className="accent-bar" />
-        {title && <h2 className="mb-4 text-2xl font-black text-slate-900 sm:text-3xl lg:text-4xl">{title}</h2>}
+        {title && <h2 className="mb-4 text-2xl font-black text-slate-900 whitespace-pre-line sm:text-3xl lg:text-4xl">{title}</h2>}
         {address && <p className="mb-6 text-slate-600">📍 {address}</p>}
         {src ? (
           <div className="overflow-hidden rounded-2xl shadow-sm">

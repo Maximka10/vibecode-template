@@ -11,6 +11,7 @@ import {
   ALL_SECTION_TYPES,
 } from "@/types/sections";
 import { DESIGN_THEMES } from "@/lib/export/designThemes";
+import ImageUpload from "@/components/ui/ImageUpload";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -35,6 +36,7 @@ type ProjectData = {
     about?: { title?: string; text?: string };
     sections?: SiteSection[];
     design_theme?: string;
+    logo?: string;
   };
 };
 
@@ -209,6 +211,90 @@ function GalleryPicker({ orderId, onPick }: { orderId: string; onPick: (url: str
   );
 }
 
+// ── Gallery editor (top-level component so hooks are unconditional) ────────────
+type GalleryImg = { url: string; title?: string; description?: string; notes?: string; main?: boolean };
+
+function GalleryEditor({
+  content,
+  set,
+  orderId,
+}: {
+  content: SectionContent;
+  set: (key: string, value: unknown) => void;
+  orderId: string;
+}) {
+  const rawImages = (content.images as (string | GalleryImg)[]) ?? [];
+  const images: GalleryImg[] = rawImages.map((i) => (typeof i === "string" ? { url: i } : i));
+  const displayMode = (content.display_mode as string) ?? "contain";
+  const [expandedIdx, setExpandedIdx] = useState<number | null>(null);
+  function updateImg(idx: number, patch: Partial<GalleryImg>) {
+    const next = images.map((im, j) => (j === idx ? { ...im, ...patch } : im));
+    set("images", next);
+  }
+  return (
+    <div className="space-y-3">
+      <Field label="Заголовок"><textarea className={`${FIELD_CLS} resize-none`} rows={2} value={String(content.title ?? "")} onChange={(e) => set("title", e.target.value)} /></Field>
+      <Field label="Режим отображения">
+        <div className="flex gap-2">
+          {(["contain", "cover"] as const).map((mode) => (
+            <button
+              key={mode}
+              type="button"
+              onClick={() => set("display_mode", mode)}
+              className={`rounded-lg border px-3 py-1.5 text-xs font-semibold transition ${displayMode === mode ? "border-cyan-500/50 bg-cyan-500/15 text-cyan-300" : "border-white/10 bg-white/5 text-white/40 hover:text-white/70"}`}
+            >
+              {mode === "contain" ? "Вписать (Contain)" : "Обрезать (Cover)"}
+            </button>
+          ))}
+        </div>
+      </Field>
+      <Field label="Изображения">
+        {images.length > 0 && (
+          <div className="mb-2 space-y-1.5">
+            {images.map((img, i) => (
+              <div key={i} className="rounded-lg border border-white/8 bg-white/4">
+                <div className="flex items-center gap-2 p-1.5">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={img.url} alt="" className="h-10 w-14 shrink-0 rounded object-cover" onError={(e) => { (e.target as HTMLImageElement).style.opacity = "0.3"; }} />
+                  <button type="button" title="Главное фото" onClick={() => updateImg(i, { main: !img.main })} className={`text-base shrink-0 ${img.main ? "opacity-100" : "opacity-20 hover:opacity-60"}`}>⭐</button>
+                  <span className="flex-1 truncate font-mono text-[10px] text-white/40">{img.title || img.url.split("/").pop()}</span>
+                  <button type="button" onClick={() => setExpandedIdx(expandedIdx === i ? null : i)} className="rounded p-1 text-xs text-white/30 hover:text-white">✏</button>
+                  <div className="flex shrink-0 gap-0.5">
+                    <button type="button" disabled={i === 0} onClick={() => { const a = [...images]; [a[i-1], a[i]] = [a[i], a[i-1]]; set("images", a); }} className="rounded p-1 text-white/30 hover:text-white disabled:opacity-20">↑</button>
+                    <button type="button" disabled={i === images.length - 1} onClick={() => { const a = [...images]; [a[i], a[i+1]] = [a[i+1], a[i]]; set("images", a); }} className="rounded p-1 text-white/30 hover:text-white disabled:opacity-20">↓</button>
+                    <button type="button" onClick={() => { set("images", images.filter((_, j) => j !== i)); if (expandedIdx === i) setExpandedIdx(null); }} className="rounded p-1 text-red-400/60 hover:text-red-400">✕</button>
+                  </div>
+                </div>
+                {expandedIdx === i && (
+                  <div className="space-y-2 border-t border-white/8 px-2 pb-2 pt-2">
+                    <input className={`${FIELD_CLS} text-xs`} value={img.title ?? ""} onChange={(e) => updateImg(i, { title: e.target.value })} placeholder="Название фото" />
+                    <input className={`${FIELD_CLS} text-xs`} value={img.description ?? ""} onChange={(e) => updateImg(i, { description: e.target.value })} placeholder="Описание" />
+                    <input className={`${FIELD_CLS} text-xs`} value={img.notes ?? ""} onChange={(e) => updateImg(i, { notes: e.target.value })} placeholder="Примечание по размещению" />
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+        {/* Direct upload (with crop + effects) — works even when no materials are uploaded yet. */}
+        <ImageUpload
+          label="Загрузить новое фото"
+          value={null}
+          onChange={(url) => { if (url) set("images", [...images, { url }]); }}
+          storagePath={`${orderId}/gallery`}
+          aspectClass="aspect-[3/1]"
+          enableCrop
+        />
+        {/* Or pick from already-uploaded materials. */}
+        <GalleryPicker
+          orderId={orderId}
+          onPick={(url) => set("images", [...images, { url }])}
+        />
+      </Field>
+    </div>
+  );
+}
+
 function SectionEditor({
   section,
   onChange,
@@ -246,7 +332,7 @@ function SectionEditor({
     case "about":
       return (
         <div className="space-y-3">
-          <Field label="Заголовок раздела"><input className={FIELD_CLS} value={String(c.title ?? "")} onChange={(e) => set("title", e.target.value)} /></Field>
+          <Field label="Заголовок раздела" hint="Enter — перенос строки"><textarea className={`${FIELD_CLS} resize-none`} rows={2} value={String(c.title ?? "")} onChange={(e) => set("title", e.target.value)} /></Field>
           <Field label="Текст"><textarea className={`${FIELD_CLS} resize-none`} rows={5} value={String(c.text ?? "")} onChange={(e) => set("text", e.target.value)} placeholder="Расскажите о компании…" /></Field>
         </div>
       );
@@ -254,7 +340,7 @@ function SectionEditor({
       const items = (c.items as string[]) ?? [];
       return (
         <div className="space-y-3">
-          <Field label="Заголовок раздела"><input className={FIELD_CLS} value={String(c.title ?? "")} onChange={(e) => set("title", e.target.value)} /></Field>
+          <Field label="Заголовок раздела" hint="Enter — перенос строки"><textarea className={`${FIELD_CLS} resize-none`} rows={2} value={String(c.title ?? "")} onChange={(e) => set("title", e.target.value)} /></Field>
           <Field label="Услуги (каждая с новой строки)">
             <textarea
               className={`${FIELD_CLS} resize-none`}
@@ -270,74 +356,13 @@ function SectionEditor({
         </div>
       );
     }
-    case "gallery": {
-      type GalleryImg = { url: string; title?: string; description?: string; notes?: string; main?: boolean };
-      const rawImages = (c.images as (string | GalleryImg)[]) ?? [];
-      const images: GalleryImg[] = rawImages.map((i) => typeof i === "string" ? { url: i } : i);
-      const displayMode = (c.display_mode as string) ?? "contain";
-      const [expandedIdx, setExpandedIdx] = useState<number | null>(null);
-      function updateImg(idx: number, patch: Partial<GalleryImg>) {
-        const next = images.map((im, j) => j === idx ? { ...im, ...patch } : im);
-        set("images", next);
-      }
-      return (
-        <div className="space-y-3">
-          <Field label="Заголовок"><input className={FIELD_CLS} value={String(c.title ?? "")} onChange={(e) => set("title", e.target.value)} /></Field>
-          <Field label="Режим отображения">
-            <div className="flex gap-2">
-              {(["contain", "cover"] as const).map((mode) => (
-                <button
-                  key={mode}
-                  type="button"
-                  onClick={() => set("display_mode", mode)}
-                  className={`rounded-lg border px-3 py-1.5 text-xs font-semibold transition ${displayMode === mode ? "border-cyan-500/50 bg-cyan-500/15 text-cyan-300" : "border-white/10 bg-white/5 text-white/40 hover:text-white/70"}`}
-                >
-                  {mode === "contain" ? "Вписать (Contain)" : "Обрезать (Cover)"}
-                </button>
-              ))}
-            </div>
-          </Field>
-          <Field label="Изображения">
-            {images.length > 0 && (
-              <div className="mb-2 space-y-1.5">
-                {images.map((img, i) => (
-                  <div key={i} className="rounded-lg border border-white/8 bg-white/4">
-                    <div className="flex items-center gap-2 p-1.5">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={img.url} alt="" className="h-10 w-14 shrink-0 rounded object-cover" onError={(e) => { (e.target as HTMLImageElement).style.opacity = "0.3"; }} />
-                      <button type="button" title="Главное фото" onClick={() => updateImg(i, { main: !img.main })} className={`text-base shrink-0 ${img.main ? "opacity-100" : "opacity-20 hover:opacity-60"}`}>⭐</button>
-                      <span className="flex-1 truncate font-mono text-[10px] text-white/40">{img.title || img.url.split("/").pop()}</span>
-                      <button type="button" onClick={() => setExpandedIdx(expandedIdx === i ? null : i)} className="rounded p-1 text-xs text-white/30 hover:text-white">✏</button>
-                      <div className="flex shrink-0 gap-0.5">
-                        <button type="button" disabled={i === 0} onClick={() => { const a = [...images]; [a[i-1], a[i]] = [a[i], a[i-1]]; set("images", a); }} className="rounded p-1 text-white/30 hover:text-white disabled:opacity-20">↑</button>
-                        <button type="button" disabled={i === images.length - 1} onClick={() => { const a = [...images]; [a[i], a[i+1]] = [a[i+1], a[i]]; set("images", a); }} className="rounded p-1 text-white/30 hover:text-white disabled:opacity-20">↓</button>
-                        <button type="button" onClick={() => { set("images", images.filter((_, j) => j !== i)); if (expandedIdx === i) setExpandedIdx(null); }} className="rounded p-1 text-red-400/60 hover:text-red-400">✕</button>
-                      </div>
-                    </div>
-                    {expandedIdx === i && (
-                      <div className="space-y-2 border-t border-white/8 px-2 pb-2 pt-2">
-                        <input className={`${FIELD_CLS} text-xs`} value={img.title ?? ""} onChange={(e) => updateImg(i, { title: e.target.value })} placeholder="Название фото" />
-                        <input className={`${FIELD_CLS} text-xs`} value={img.description ?? ""} onChange={(e) => updateImg(i, { description: e.target.value })} placeholder="Описание" />
-                        <input className={`${FIELD_CLS} text-xs`} value={img.notes ?? ""} onChange={(e) => updateImg(i, { notes: e.target.value })} placeholder="Примечание по размещению" />
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-            <GalleryPicker
-              orderId={orderId}
-              onPick={(url) => set("images", [...images, { url }])}
-            />
-          </Field>
-        </div>
-      );
-    }
+    case "gallery":
+      return <GalleryEditor content={c} set={set} orderId={orderId} />;
     case "reviews": {
       const items = (c.items as { author: string; text: string; rating: number }[]) ?? [];
       return (
         <div className="space-y-3">
-          <Field label="Заголовок"><input className={FIELD_CLS} value={String(c.title ?? "")} onChange={(e) => set("title", e.target.value)} /></Field>
+          <Field label="Заголовок" hint="Enter — перенос строки"><textarea className={`${FIELD_CLS} resize-none`} rows={2} value={String(c.title ?? "")} onChange={(e) => set("title", e.target.value)} /></Field>
           {items.map((r, i) => (
             <Card key={i} variant="subtle" padding="sm">
               <div className="space-y-2">
@@ -357,7 +382,7 @@ function SectionEditor({
       const items = (c.items as { question: string; answer: string }[]) ?? [];
       return (
         <div className="space-y-3">
-          <Field label="Заголовок"><input className={FIELD_CLS} value={String(c.title ?? "")} onChange={(e) => set("title", e.target.value)} /></Field>
+          <Field label="Заголовок" hint="Enter — перенос строки"><textarea className={`${FIELD_CLS} resize-none`} rows={2} value={String(c.title ?? "")} onChange={(e) => set("title", e.target.value)} /></Field>
           {items.map((f, i) => (
             <Card key={i} variant="subtle" padding="sm">
               <div className="space-y-2">
@@ -377,7 +402,7 @@ function SectionEditor({
       const plans = (c.plans as { name: string; price: string; features: string[] }[]) ?? [];
       return (
         <div className="space-y-3">
-          <Field label="Заголовок"><input className={FIELD_CLS} value={String(c.title ?? "")} onChange={(e) => set("title", e.target.value)} /></Field>
+          <Field label="Заголовок" hint="Enter — перенос строки"><textarea className={`${FIELD_CLS} resize-none`} rows={2} value={String(c.title ?? "")} onChange={(e) => set("title", e.target.value)} /></Field>
           {plans.map((p, i) => (
             <Card key={i} variant="subtle" padding="sm">
               <div className="space-y-2">
@@ -435,7 +460,7 @@ function SectionEditor({
     case "map":
       return (
         <div className="space-y-3">
-          <Field label="Заголовок"><input className={FIELD_CLS} value={String(c.title ?? "")} onChange={(e) => set("title", e.target.value)} /></Field>
+          <Field label="Заголовок" hint="Enter — перенос строки"><textarea className={`${FIELD_CLS} resize-none`} rows={2} value={String(c.title ?? "")} onChange={(e) => set("title", e.target.value)} /></Field>
           <Field label="Адрес" hint="Карта сгенерируется автоматически по адресу">
             <input
               className={FIELD_CLS}
@@ -535,14 +560,27 @@ export default function DevelopmentTab({ orderId, order }: { orderId: string; or
       .then((r) => r.json())
       .then(({ data: d }) => {
         const base = d ?? {};
-        // Pre-fill branding from order if not set
-        if (!base.branding?.primary_color) {
-          const primaryColor = order.primary_color ?? order.selected_options?.theme?.primary ?? "#6366f1";
-          const bgBase = order.bg_color ?? order.selected_options?.theme?.bgBase ?? "#0f172a";
-          base.branding = { ...base.branding, primary_color: primaryColor, bg_base: bgBase };
+        // The client's whole template snapshot is stored in selected_options:
+        // { theme:{...colours}, font, logo, sections:[...], ... }. Pull ALL of
+        // the client's choices — info AND visual design — into the admin
+        // constructor so it starts from exactly what the customer configured.
+        const opts = order.selected_options ?? {};
+        const clientTheme = opts.theme ?? {};
+        // Branding / colours — mirror the client's palette (only fill blanks so
+        // the admin's own edits are never overwritten on reload).
+        base.branding = {
+          ...base.branding,
+          primary_color: base.branding?.primary_color ?? order.primary_color ?? clientTheme.primary ?? "#6366f1",
+          secondary_color: base.branding?.secondary_color ?? clientTheme.secondary ?? "#8b5cf6",
+          bg_base: base.branding?.bg_base ?? order.bg_color ?? clientTheme.bgBase ?? "#0f172a",
+          bg_surface: base.branding?.bg_surface ?? clientTheme.bgSurface ?? "#1e293b",
+        };
+        // Font + logo chosen in the client constructor.
+        if (!base.font && opts.font) base.font = opts.font;
+        if (opts.logo && !base.content_edits?.logo) {
+          base.content_edits = { ...(base.content_edits ?? {}), logo: opts.logo };
         }
         // Pre-fill contact fields from selected_options if empty
-        const opts = order.selected_options ?? {};
         if (!base.company_name && opts.company_name) base.company_name = opts.company_name;
         if (!base.company_description && opts.company_description) base.company_description = opts.company_description;
         if (!base.phone && opts.phone) base.phone = opts.phone;
@@ -906,6 +944,17 @@ export default function DevelopmentTab({ orderId, order }: { orderId: string; or
             <Field label="SEO описание">
               <input className={FIELD_CLS} value={pd.seo_description ?? ""} onChange={(e) => { setPd((p) => ({ ...p, seo_description: e.target.value })); setDirty(true); }} />
             </Field>
+            <div className="col-span-full">
+              <Field label="Логотип" hint="Подтягивается из конструктора заказчика. Можно заменить.">
+                <ImageUpload
+                  label=""
+                  value={pd.content_edits?.logo ?? null}
+                  onChange={(url) => { setPd((p) => ({ ...p, content_edits: { ...(p.content_edits ?? {}), logo: url ?? undefined } })); setDirty(true); }}
+                  storagePath={`${orderId}/logo`}
+                  aspectClass="aspect-[5/2]"
+                />
+              </Field>
+            </div>
           </div>
         </Card>
 
